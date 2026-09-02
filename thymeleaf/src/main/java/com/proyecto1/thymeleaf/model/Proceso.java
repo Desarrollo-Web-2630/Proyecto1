@@ -8,15 +8,18 @@ import lombok.Setter;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
-@Table(name = "usuario")
+@Table(name = "proceso", uniqueConstraints = @UniqueConstraint(columnNames = {"nombre", "empresa_id"}))
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @SQLRestriction("status = 0")
-@SQLDelete(sql = "UPDATE usuario SET status = 1 WHERE id = ?")
-public class Usuario {
+@SQLDelete(sql = "UPDATE proceso SET status = 1 WHERE id = ?")
+public class Proceso {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,29 +28,28 @@ public class Usuario {
     @Column(nullable = false)
     private String nombre;
 
-    @Column(nullable = false, unique = true)
-    private String correo;
+    @Column(nullable = false)
+    private String descripcion;
 
     @Column(nullable = false)
-    private String password;
+    private String categoria;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private RolAcceso rolAcceso;
-
-    @Column(nullable = false)
-    private Boolean activo = true;
+    private EstadoProceso estado = EstadoProceso.BORRADOR;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "empresa_id", nullable = false)
     private Empresa empresa;
 
+    @OneToMany(mappedBy = "proceso", fetch = FetchType.LAZY)
+    private List<Actividad> actividades = new ArrayList<>();
+
     @Column(nullable = false)
     private Integer status = 0;
 
-    public enum RolAcceso {
-        ADMIN,
-        EDITOR,
-        LECTURA
+    public enum EstadoProceso {
+        BORRADOR,
+        PUBLICADO
     }
 }

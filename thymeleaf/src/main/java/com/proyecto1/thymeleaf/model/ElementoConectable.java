@@ -9,14 +9,18 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 @Entity
-@Table(name = "usuario")
+@Table(name = "elemento_conectable")
+@Inheritance(strategy = InheritanceType.JOINED)
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @SQLRestriction("status = 0")
-@SQLDelete(sql = "UPDATE usuario SET status = 1 WHERE id = ?")
-public class Usuario {
+@SQLDelete(sql = "UPDATE elemento_conectable SET status = 1 WHERE id = ?")
+
+// Esta clase es para representar un elemento que puede ser conectado a otros elementos en un proceso. Puede ser una actividad, un gateway o un arco.
+
+public abstract class ElementoConectable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,29 +29,16 @@ public class Usuario {
     @Column(nullable = false)
     private String nombre;
 
-    @Column(nullable = false, unique = true)
-    private String correo;
+    @Column(nullable = false)
+    private Integer posicionX;
 
     @Column(nullable = false)
-    private String password;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private RolAcceso rolAcceso;
-
-    @Column(nullable = false)
-    private Boolean activo = true;
+    private Integer posicionY;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "empresa_id", nullable = false)
-    private Empresa empresa;
+    @JoinColumn(name = "proceso_id", nullable = false)
+    private Proceso proceso;
 
     @Column(nullable = false)
     private Integer status = 0;
-
-    public enum RolAcceso {
-        ADMIN,
-        EDITOR,
-        LECTURA
-    }
 }
