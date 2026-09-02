@@ -11,4 +11,6 @@ public interface GatewayRepository extends JpaRepository<Gateway, Long> {
     List<Gateway> findByProcesoId(Long procesoId);
 
     Optional<Gateway> findByIdAndProcesoEmpresaId(Long id, Long empresaId);
+
+    boolean existsByNombreAndProcesoId(String nombre, Long procesoId);
 }
