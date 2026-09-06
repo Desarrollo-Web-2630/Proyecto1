@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/comunes :: cabeza('Proceso')}"></head>
+<body>
+
+<nav th:replace="~{fragmentos/comunes :: navegacion}"></nav>
+
+<main class="contenido">
+
+    <h1 th:text="${proceso.id} == null ? 'Nuevo proceso' : 'Editar proceso'">Nuevo proceso</h1>
+    <p class="subtitulo" th:if="${proceso.id} == null">
+        El proceso nace en estado borrador; podrás publicarlo cuando el diagrama esté completo.
+    </p>
+
+    <div th:replace="~{fragmentos/comunes :: mensajes}"></div>
+
+    <!-- El mismo formulario sirve para crear y para editar; cambia solo el destino -->
+    <form class="panel" method="post" th:object="${proceso}"
+          th:action="${proceso.id} == null
+                     ? @{/procesos/guardar}
+                     : @{/procesos/actualizar/{id}(id=${proceso.id})}">
+
+        <div class="campo">
+            <label for="nombre">Nombre</label>
+            <input type="text" id="nombre" th:field="*{nombre}" required
+                   placeholder="Solicitud de vacaciones"/>
+        </div>
+
+        <div class="campo">
+            <label for="descripcion">Descripción</label>
+            <textarea id="descripcion" th:field="*{descripcion}" rows="3" required
+                      placeholder="Qué hace este proceso"></textarea>
+        </div>
+
+        <div class="campo">
+            <label for="categoria">Categoría</label>
+            <input type="text" id="categoria" th:field="*{categoria}" required
+                   placeholder="Talento humano"/>
+        </div>
+
+        <div class="pie-formulario">
+            <button type="submit" class="boton">Guardar</button>
+            <a class="boton boton-suave" th:href="@{/procesos}">Cancelar</a>
+        </div>
+    </form>
+
+</main>
+
+</body>
+</html>

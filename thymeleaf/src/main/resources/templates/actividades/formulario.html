@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/comunes :: cabeza('Actividad')}"></head>
+<body>
+
+<nav th:replace="~{fragmentos/comunes :: navegacion}"></nav>
+
+<main class="contenido">
+
+    <h1 th:text="${actividad.id} == null ? 'Nueva actividad' : 'Editar actividad'">Nueva actividad</h1>
+    <p class="subtitulo">La lane define el rol responsable: las actividades se asignan a funciones, no a personas.</p>
+
+    <div th:replace="~{fragmentos/comunes :: mensajes}"></div>
+
+    <form class="panel" method="post" th:object="${actividad}"
+          th:action="${actividad.id} == null
+                     ? @{/procesos/{procesoId}/actividades/guardar(procesoId=${procesoId})}
+                     : @{/procesos/{procesoId}/actividades/actualizar/{id}(procesoId=${procesoId}, id=${actividad.id})}">
+
+        <div class="campo">
+            <label for="nombre">Nombre</label>
+            <input type="text" id="nombre" th:field="*{nombre}" required
+                   placeholder="Revisar solicitud"/>
+        </div>
+
+        <div class="campo">
+            <label for="tipoActividad">Tipo de actividad</label>
+            <input type="text" id="tipoActividad" th:field="*{tipoActividad}" required
+                   placeholder="TAREA_USUARIO"/>
+        </div>
+
+        <div class="campo">
+            <label for="laneId">Lane responsable</label>
+            <input type="number" id="laneId" th:field="*{laneId}" required min="1"
+                   placeholder="1"/>
+        </div>
+
+        <div class="pareja">
+            <div class="campo">
+                <label for="posicionX">Posición X</label>
+                <input type="number" id="posicionX" th:field="*{posicionX}" required min="0" value="0"/>
+            </div>
+            <div class="campo">
+                <label for="posicionY">Posición Y</label>
+                <input type="number" id="posicionY" th:field="*{posicionY}" required min="0" value="0"/>
+            </div>
+        </div>
+
+        <div class="pie-formulario">
+            <button type="submit" class="boton">Guardar</button>
+            <a class="boton boton-suave"
+               th:href="@{/procesos/{procesoId}/actividades(procesoId=${procesoId})}">Cancelar</a>
+        </div>
+    </form>
+
+</main>
+
+</body>
+</html>

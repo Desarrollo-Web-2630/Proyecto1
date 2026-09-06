@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/comunes :: cabeza('Empresa')}"></head>
+<body>
+
+<nav th:replace="~{fragmentos/comunes :: navegacion}"></nav>
+
+<main class="contenido">
+
+    <h1 th:text="${empresa.id} == null ? 'Registrar empresa' : 'Editar empresa'">Registrar empresa</h1>
+    <p class="subtitulo">Cada empresa trabaja en un espacio aislado del resto.</p>
+
+    <div th:replace="~{fragmentos/comunes :: mensajes}"></div>
+
+    <form class="panel" method="post" th:object="${empresa}"
+          th:action="${empresa.id} == null
+                     ? @{/empresas/guardar}
+                     : @{/empresas/actualizar/{id}(id=${empresa.id})}">
+
+        <div class="campo">
+            <label for="nombre">Nombre</label>
+            <input type="text" id="nombre" th:field="*{nombre}" required
+                   placeholder="Constructora del Norte S.A.S."/>
+        </div>
+
+        <div class="campo">
+            <label for="nit">NIT</label>
+            <input type="text" id="nit" th:field="*{nit}" required placeholder="900123456-7"/>
+        </div>
+
+        <div class="campo">
+            <label for="correo">Correo</label>
+            <input type="email" id="correo" th:field="*{correo}" required
+                   placeholder="contacto@empresa.com"/>
+        </div>
+
+        <div class="pie-formulario">
+            <button type="submit" class="boton">Guardar</button>
+            <a class="boton boton-suave" th:href="@{/empresas}">Cancelar</a>
+        </div>
+    </form>
+
+</main>
+
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/comunes :: cabeza('Arco')}"></head>
+<body>
+
+<nav th:replace="~{fragmentos/comunes :: navegacion}"></nav>
+
+<main class="contenido">
+
+    <h1 th:text="${arco.id} == null ? 'Nuevo arco' : 'Editar arco'">Nuevo arco</h1>
+    <p class="subtitulo">El arco fija el orden: conecta un elemento de origen con uno de destino.</p>
+
+    <div th:replace="~{fragmentos/comunes :: mensajes}"></div>
+
+    <form class="panel" method="post" th:object="${arco}"
+          th:action="${arco.id} == null
+                     ? @{/procesos/{procesoId}/arcos/guardar(procesoId=${procesoId})}
+                     : @{/procesos/{procesoId}/arcos/actualizar/{id}(procesoId=${procesoId}, id=${arco.id})}">
+
+        <div class="campo">
+            <label for="nombre">Nombre</label>
+            <input type="text" id="nombre" th:field="*{nombre}" placeholder="Sí"/>
+        </div>
+
+        <div class="campo">
+            <label for="condicion">Condición</label>
+            <input type="text" id="condicion" th:field="*{condicion}"
+                   placeholder="monto &lt;= 1000"/>
+        </div>
+
+        <!--
+          Origen y destino solo se eligen al crear: actualizarArco no los cambia,
+          asi que al editar no se envian.
+        -->
+        <div th:if="${arco.id} == null">
+            <div class="campo">
+                <label for="origenId">Elemento de origen</label>
+                <select id="origenId" name="origenId" required>
+                    <option value="">Selecciona el origen</option>
+                    <option th:each="elemento : ${elementos}"
+                            th:value="${elemento.id}"
+                            th:text="${elemento.nombre}">Elemento</option>
+                </select>
+            </div>
+
+            <div class="campo">
+                <label for="destinoId">Elemento de destino</label>
+                <select id="destinoId" name="destinoId" required>
+                    <option value="">Selecciona el destino</option>
+                    <option th:each="elemento : ${elementos}"
+                            th:value="${elemento.id}"
+                            th:text="${elemento.nombre}">Elemento</option>
+                </select>
+            </div>
+
+            <p class="aviso aviso-error" th:if="${#lists.isEmpty(elementos)}">
+                Este proceso no tiene elementos conectables, así que todavía no se puede crear un arco.
+            </p>
+        </div>
+
+        <div class="pie-formulario">
+            <button type="submit" class="boton">Guardar</button>
+            <a class="boton boton-suave"
+               th:href="@{/procesos/{procesoId}/arcos(procesoId=${procesoId})}">Cancelar</a>
+        </div>
+    </form>
+
+</main>
+
+</body>
+</html>

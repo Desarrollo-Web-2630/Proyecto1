@@ -38,6 +38,7 @@ public class GatewayController {
         model.addAttribute("tiposGateway", Gateway.TipoGateway.values());
         model.addAttribute("procesoId", procesoId);
         return "gateways/formulario";
+    }
 
     // 3. Crear
     @PostMapping("/guardar")
