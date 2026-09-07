@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/comunes :: cabeza('Arcos')}"></head>
+<body>
+
+<nav th:replace="~{fragmentos/comunes :: navegacion}"></nav>
+
+<main class="contenido">
+
+    <div class="encabezado-lista">
+        <h1>Arcos del proceso</h1>
+        <a class="boton" th:href="@{/procesos/{procesoId}/arcos/nuevo(procesoId=${procesoId})}">Nuevo arco</a>
+    </div>
+
+    <div th:replace="~{fragmentos/comunes :: mensajes}"></div>
+
+    <table>
+        <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Origen</th>
+            <th>Destino</th>
+            <th>Condición</th>
+            <th>Acciones</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:if="${#lists.isEmpty(arcos)}">
+            <td colspan="5" class="vacio">Este proceso todavía no tiene arcos.</td>
+        </tr>
+        <tr th:each="arco : ${arcos}">
+            <td th:text="${arco.nombre}">Nombre</td>
+            <td th:text="${arco.origen.nombre}">Origen</td>
+            <td th:text="${arco.destino.nombre}">Destino</td>
+            <td th:text="${arco.condicion}">Condición</td>
+            <td class="acciones">
+                <a class="boton boton-suave"
+                   th:href="@{/procesos/{procesoId}/arcos/editar/{id}(procesoId=${procesoId}, id=${arco.id})}">Editar</a>
+
+                <form th:action="@{/procesos/{procesoId}/arcos/eliminar/{id}(procesoId=${procesoId}, id=${arco.id})}"
+                      method="post" onsubmit="return confirm('¿Eliminar este arco?');">
+                    <button type="submit" class="boton boton-peligro">Eliminar</button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <p style="margin-top:20px">
+        <a class="boton boton-suave" th:href="@{/procesos}">Volver a procesos</a>
+    </p>
+
+</main>
+
+</body>
+</html>
