@@ -1,5 +1,6 @@
 package com.proyecto1.thymeleaf.services;
 
+import com.proyecto1.thymeleaf.dto.GatewayDTO;
 import com.proyecto1.thymeleaf.model.Gateway;
 import com.proyecto1.thymeleaf.model.Proceso;
 import com.proyecto1.thymeleaf.repository.GatewayRepository;
@@ -9,6 +10,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+/**
+ * Logica de negocio de los gateways (HU-14 crear, HU-15 editar, HU-16
+ * eliminar).
+ */
 @Service
 @Transactional
 public class GatewayService {
@@ -36,18 +41,26 @@ public class GatewayService {
     }
 
     // 3. Crear un nuevo gateway dentro de un proceso autorizado
-    public Gateway crearGateway(Gateway gateway, Long procesoId, Long empresaId) {
+    public Gateway crearGateway(GatewayDTO datos, Long procesoId, Long empresaId) {
         Proceso proceso = validarAccesoProceso(procesoId, empresaId);
+        validarDatosObligatorios(datos);
+
+        Gateway gateway = new Gateway();
+        gateway.setNombre(datos.getNombre().trim());
+        gateway.setTipo(datos.getTipo());
         gateway.setProceso(proceso);
+        gateway.setStatus(0);
+
         return gatewayRepository.save(gateway);
     }
 
     // 4. Actualizar un gateway existente
-    public Gateway actualizarGateway(Long id, Gateway gatewayDetalles, Long empresaId) {
+    public Gateway actualizarGateway(Long id, GatewayDTO datos, Long empresaId) {
         Gateway gatewayExistente = obtenerPorIdYEmpresa(id, empresaId);
-        
-        gatewayExistente.setNombre(gatewayDetalles.getNombre());
-        gatewayExistente.setTipo(gatewayDetalles.getTipo());
+        validarDatosObligatorios(datos);
+
+        gatewayExistente.setNombre(datos.getNombre().trim());
+        gatewayExistente.setTipo(datos.getTipo());
 
         return gatewayRepository.save(gatewayExistente);
     }
@@ -62,5 +75,14 @@ public class GatewayService {
     private Proceso validarAccesoProceso(Long procesoId, Long empresaId) {
         return procesoRepository.findByIdAndEmpresaId(procesoId, empresaId)
                 .orElseThrow(() -> new IllegalArgumentException("Proceso no encontrado o no pertenece a su empresa"));
+    }
+
+    private void validarDatosObligatorios(GatewayDTO datos) {
+        if (datos.getNombre() == null || datos.getNombre().isBlank()) {
+            throw new IllegalArgumentException("El nombre del gateway es obligatorio");
+        }
+        if (datos.getTipo() == null) {
+            throw new IllegalArgumentException("El tipo de gateway es obligatorio");
+        }
     }
 }

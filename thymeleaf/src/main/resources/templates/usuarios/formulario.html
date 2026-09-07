@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/comunes :: cabeza('Registrar usuario')}"></head>
+<body>
+
+<nav th:replace="~{fragmentos/comunes :: navegacion}"></nav>
+
+<main class="contenido">
+
+    <h1>Registrar usuario</h1>
+    <p class="subtitulo">El usuario queda asociado a la empresa y con un rol de acceso.</p>
+
+    <div th:replace="~{fragmentos/comunes :: mensajes}"></div>
+
+    <form class="panel" method="post" th:object="${usuario}" th:action="@{/usuarios/guardar}">
+
+        <input type="hidden" th:field="*{id}"/>
+
+        <div class="campo">
+            <label for="nombre">Nombre</label>
+            <input type="text" id="nombre" th:field="*{nombre}"
+                   th:classappend="${#fields.hasErrors('nombre')} ? 'invalido'"
+                   placeholder="Ana Martínez"/>
+            <span class="error-campo" th:if="${#fields.hasErrors('nombre')}" th:errors="*{nombre}"></span>
+        </div>
+
+        <div class="campo">
+            <label for="correo">Correo</label>
+            <input type="email" id="correo" th:field="*{correo}"
+                   th:classappend="${#fields.hasErrors('correo')} ? 'invalido'"
+                   placeholder="ana@empresa.com"/>
+            <span class="error-campo" th:if="${#fields.hasErrors('correo')}" th:errors="*{correo}"></span>
+        </div>
+
+        <div class="campo">
+            <label for="password">Contraseña</label>
+            <input type="password" id="password" th:field="*{password}"
+                   th:classappend="${#fields.hasErrors('password')} ? 'invalido'"/>
+            <span class="error-campo" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></span>
+        </div>
+
+        <div class="campo">
+            <label for="rolAcceso">Rol de acceso</label>
+            <select id="rolAcceso" th:field="*{rolAcceso}"
+                    th:classappend="${#fields.hasErrors('rolAcceso')} ? 'invalido'">
+                <option value="">Selecciona un rol</option>
+                <option th:each="rol : ${rolesAcceso}"
+                        th:value="${rol}"
+                        th:text="${rol}">ADMIN</option>
+            </select>
+            <span class="error-campo" th:if="${#fields.hasErrors('rolAcceso')}" th:errors="*{rolAcceso}"></span>
+        </div>
+
+        <div class="pie-formulario">
+            <button type="submit" class="boton">Guardar</button>
+            <a class="boton boton-suave" th:href="@{/usuarios}">Cancelar</a>
+        </div>
+    </form>
+
+</main>
+
+</body>
+</html>

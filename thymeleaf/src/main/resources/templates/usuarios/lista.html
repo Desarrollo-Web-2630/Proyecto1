@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/comunes :: cabeza('Usuarios')}"></head>
+<body>
+
+<nav th:replace="~{fragmentos/comunes :: navegacion}"></nav>
+
+<main class="contenido">
+
+    <div class="encabezado-lista">
+        <h1>Usuarios</h1>
+        <a class="boton" th:href="@{/usuarios/nuevo}">Registrar usuario</a>
+    </div>
+
+    <div th:replace="~{fragmentos/comunes :: mensajes}"></div>
+
+    <table>
+        <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Correo</th>
+            <th>Rol</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:if="${#lists.isEmpty(usuarios)}">
+            <td colspan="5" class="vacio">Todavía no hay usuarios registrados.</td>
+        </tr>
+        <tr th:each="usuario : ${usuarios}">
+            <td th:text="${usuario.nombre}">Nombre</td>
+            <td th:text="${usuario.correo}">Correo</td>
+            <td>
+                <!-- El cambio de rol se envia solo, sin pasar por un formulario aparte -->
+                <form th:action="@{/usuarios/rol/{id}(id=${usuario.id})}" method="post">
+                    <select name="rolAcceso" onchange="this.form.submit()">
+                        <option th:each="rol : ${rolesAcceso}"
+                                th:value="${rol}"
+                                th:text="${rol}"
+                                th:selected="${rol == usuario.rolAcceso}">ADMIN</option>
+                    </select>
+                </form>
+            </td>
+            <td>
+                <span class="etiqueta"
+                      th:classappend="${usuario.activo} ? 'etiqueta-publicado' : 'etiqueta-borrador'"
+                      th:text="${usuario.activo} ? 'Activo' : 'Inactivo'">Activo</span>
+            </td>
+            <td class="acciones">
+                <form th:if="${usuario.activo}"
+                      th:action="@{/usuarios/desactivar/{id}(id=${usuario.id})}" method="post">
+                    <button type="submit" class="boton boton-suave">Desactivar</button>
+                </form>
+
+                <form th:action="@{/usuarios/eliminar/{id}(id=${usuario.id})}" method="post"
+                      onsubmit="return confirm('¿Eliminar este usuario?');">
+                    <button type="submit" class="boton boton-peligro">Eliminar</button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+</main>
+
+</body>
+</html>

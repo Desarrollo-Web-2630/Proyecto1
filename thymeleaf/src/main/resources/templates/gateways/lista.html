@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/comunes :: cabeza('Gateways')}"></head>
+<body>
+
+<nav th:replace="~{fragmentos/comunes :: navegacion}"></nav>
+
+<main class="contenido">
+
+    <div class="encabezado-lista">
+        <h1>Gateways del proceso</h1>
+        <a class="boton" th:href="@{/procesos/{procesoId}/gateways/nuevo(procesoId=${procesoId})}">Nuevo gateway</a>
+    </div>
+
+    <div th:replace="~{fragmentos/comunes :: mensajes}"></div>
+
+    <table>
+        <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Tipo</th>
+            <th>Acciones</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:if="${#lists.isEmpty(gateways)}">
+            <td colspan="3" class="vacio">Este proceso todavía no tiene gateways.</td>
+        </tr>
+        <tr th:each="gateway : ${gateways}">
+            <td th:text="${gateway.nombre}">Nombre</td>
+            <td th:text="${gateway.tipo}">EXCLUSIVO</td>
+            <td class="acciones">
+                <a class="boton boton-suave"
+                   th:href="@{/procesos/{procesoId}/gateways/editar/{id}(procesoId=${procesoId}, id=${gateway.id})}">Editar</a>
+
+                <form th:action="@{/procesos/{procesoId}/gateways/eliminar/{id}(procesoId=${procesoId}, id=${gateway.id})}"
+                      method="post" onsubmit="return confirm('¿Eliminar este gateway?');">
+                    <button type="submit" class="boton boton-peligro">Eliminar</button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <p style="margin-top:20px">
+        <a class="boton boton-suave" th:href="@{/procesos}">Volver a procesos</a>
+    </p>
+
+</main>
+
+</body>
+</html>

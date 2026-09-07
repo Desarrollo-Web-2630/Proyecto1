@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/comunes :: cabeza('Detalle de la empresa')}"></head>
+<body>
+
+<nav th:replace="~{fragmentos/comunes :: navegacion}"></nav>
+
+<main class="contenido">
+
+    <div class="encabezado-lista">
+        <h1 th:text="${empresa.nombre}">Nombre de la empresa</h1>
+        <a class="boton boton-suave" th:href="@{/empresas}">Volver</a>
+    </div>
+
+    <div th:replace="~{fragmentos/comunes :: mensajes}"></div>
+
+    <div class="panel">
+        <dl class="datos">
+            <dt>NIT</dt>
+            <dd th:text="${empresa.nit}">NIT</dd>
+
+            <dt>Correo</dt>
+            <dd th:text="${empresa.correo}">Correo</dd>
+
+            <dt>Usuarios registrados</dt>
+            <dd th:text="${#lists.size(empresa.usuarios)}">0</dd>
+        </dl>
+
+        <div class="pie-formulario">
+            <a class="boton" th:href="@{/empresas/editar/{id}(id=${empresa.id})}">Editar</a>
+        </div>
+    </div>
+
+</main>
+
+</body>
+</html>

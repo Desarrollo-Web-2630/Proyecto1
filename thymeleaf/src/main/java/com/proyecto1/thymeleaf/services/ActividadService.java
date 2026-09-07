@@ -1,5 +1,6 @@
 package com.proyecto1.thymeleaf.services;
 
+import com.proyecto1.thymeleaf.dto.ActividadDTO;
 import com.proyecto1.thymeleaf.model.Actividad;
 import com.proyecto1.thymeleaf.model.Proceso;
 import com.proyecto1.thymeleaf.repository.ActividadRepository;
@@ -10,7 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * Logica de negocio de las actividades (HU-08 Crear actividad).
+ * Logica de negocio de las actividades (HU-08 crear, HU-09 editar, HU-10
+ * eliminar).
  *
  * Una actividad siempre vive dentro de un proceso y de una lane; la lane es la
  * que define el rol responsable, porque las actividades se asignan a funciones
@@ -50,38 +52,43 @@ public class ActividadService {
     }
 
     // 4. Crear una actividad dentro de un proceso autorizado
-    public Actividad crearActividad(Actividad actividad, Long procesoId, Long empresaId) {
+    public Actividad crearActividad(ActividadDTO datos, Long procesoId, Long empresaId) {
         Proceso proceso = validarAccesoProceso(procesoId, empresaId);
-        validarDatosObligatorios(actividad);
+        validarDatosObligatorios(datos);
 
-        String nombre = actividad.getNombre().trim();
+        String nombre = datos.getNombre().trim();
         if (actividadRepository.existsByNombreAndProcesoId(nombre, procesoId)) {
             throw new IllegalArgumentException("Ya existe una actividad llamada '" + nombre + "' en el proceso");
         }
 
+        Actividad actividad = new Actividad();
         actividad.setNombre(nombre);
-        actividad.setTipoActividad(actividad.getTipoActividad().trim());
+        actividad.setTipoActividad(datos.getTipoActividad().trim());
+        actividad.setLaneId(datos.getLaneId());
+        actividad.setPosicionX(datos.getPosicionX());
+        actividad.setPosicionY(datos.getPosicionY());
         actividad.setProceso(proceso);
 
         return actividadRepository.save(actividad);
     }
 
-    // 5. Actualizar nombre, tipo y lane de una actividad
-    public Actividad actualizarActividad(Long id, Actividad actividadDetalles, Long empresaId) {
+    // 5. Editar nombre, tipo, lane y posicion (HU-09).
+    //    Cambiar la lane cambia el responsable, no es un movimiento estetico.
+    public Actividad actualizarActividad(Long id, ActividadDTO datos, Long empresaId) {
         Actividad actividadExistente = obtenerPorIdYEmpresa(id, empresaId);
-        validarDatosObligatorios(actividadDetalles);
+        validarDatosObligatorios(datos);
 
         Long procesoId = actividadExistente.getProceso().getId();
-        String nombre = actividadDetalles.getNombre().trim();
+        String nombre = datos.getNombre().trim();
         if (actividadRepository.existsByNombreAndProcesoIdAndIdNot(nombre, procesoId, id)) {
             throw new IllegalArgumentException("Ya existe una actividad llamada '" + nombre + "' en el proceso");
         }
 
         actividadExistente.setNombre(nombre);
-        actividadExistente.setTipoActividad(actividadDetalles.getTipoActividad().trim());
-        actividadExistente.setLaneId(actividadDetalles.getLaneId());
-        actividadExistente.setPosicionX(actividadDetalles.getPosicionX());
-        actividadExistente.setPosicionY(actividadDetalles.getPosicionY());
+        actividadExistente.setTipoActividad(datos.getTipoActividad().trim());
+        actividadExistente.setLaneId(datos.getLaneId());
+        actividadExistente.setPosicionX(datos.getPosicionX());
+        actividadExistente.setPosicionY(datos.getPosicionY());
 
         return actividadRepository.save(actividadExistente);
     }
@@ -109,27 +116,31 @@ public class ActividadService {
                 .orElseThrow(() -> new IllegalArgumentException("Proceso no encontrado o no pertenece a su empresa"));
     }
 
-    private void validarDatosObligatorios(Actividad actividad) {
-        if (actividad.getNombre() == null || actividad.getNombre().isBlank()) {
+    /**
+     * El DTO ya trae las anotaciones de validacion, pero el servicio no puede
+     * confiar en que siempre lo llamen desde un formulario validado.
+     */
+    private void validarDatosObligatorios(ActividadDTO datos) {
+        if (datos.getNombre() == null || datos.getNombre().isBlank()) {
             throw new IllegalArgumentException("El nombre de la actividad es obligatorio");
         }
-        if (actividad.getTipoActividad() == null || actividad.getTipoActividad().isBlank()) {
+        if (datos.getTipoActividad() == null || datos.getTipoActividad().isBlank()) {
             throw new IllegalArgumentException("El tipo de actividad es obligatorio");
         }
         // La lane es la que define el rol responsable de la actividad
-        if (actividad.getLaneId() == null) {
+        if (datos.getLaneId() == null) {
             throw new IllegalArgumentException("La actividad debe estar asociada a una lane");
         }
-        validarPosicion(actividad.getPosicionX(), actividad.getPosicionY());
+        validarPosicion(datos.getPosicionX(), datos.getPosicionY());
     }
 
     // La actividad debe quedar donde el usuario la ubico en el diagrama
     private void validarPosicion(Integer posicionX, Integer posicionY) {
         if (posicionX == null || posicionY == null) {
-            throw new IllegalArgumentException("La posicion de la actividad en el diagrama es obligatoria");
+            throw new IllegalArgumentException("La posición de la actividad en el diagrama es obligatoria");
         }
         if (posicionX < 0 || posicionY < 0) {
-            throw new IllegalArgumentException("La posicion de la actividad no puede ser negativa");
+            throw new IllegalArgumentException("La posición de la actividad no puede ser negativa");
         }
     }
 }
