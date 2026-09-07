@@ -1,5 +1,6 @@
 package com.proyecto1.thymeleaf.services;
 
+import com.proyecto1.thymeleaf.dto.ProcesoDTO;
 import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.model.Proceso;
 import com.proyecto1.thymeleaf.repository.EmpresaRepository;
@@ -10,7 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * Logica de negocio de los procesos (HU-04 Crear proceso).
+ * Logica de negocio de los procesos (HU-04 crear, HU-05 editar, HU-06
+ * eliminar, HU-07 consultar).
+ *
+ * Las escrituras reciben ProcesoDTO y no la entidad: asi el formulario no
+ * puede tocar campos que no le corresponden, como el estado o la empresa.
  *
  * Todas las operaciones reciben el empresaId del usuario autenticado para
  * garantizar que una empresa nunca alcance los procesos de otra.
@@ -41,40 +46,38 @@ public class ProcesoService {
     }
 
     // 3. Crear un proceso asociado a la empresa del usuario autenticado
-    public Proceso crearProceso(Proceso proceso, Long empresaId) {
-        validarDatosObligatorios(proceso);
-
+    public Proceso crearProceso(ProcesoDTO datos, Long empresaId) {
         Empresa empresa = empresaRepository.findById(empresaId)
                 .orElseThrow(() -> new IllegalArgumentException("La empresa no existe"));
 
-        String nombre = proceso.getNombre().trim();
+        String nombre = normalizar(datos.getNombre(), "El nombre del proceso es obligatorio");
         if (procesoRepository.existsByNombreAndEmpresaId(nombre, empresaId)) {
             throw new IllegalArgumentException("Ya existe un proceso llamado '" + nombre + "' en la empresa");
         }
 
+        Proceso proceso = new Proceso();
         proceso.setNombre(nombre);
-        proceso.setDescripcion(proceso.getDescripcion().trim());
-        proceso.setCategoria(proceso.getCategoria().trim());
+        proceso.setDescripcion(normalizar(datos.getDescripcion(), "La descripción del proceso es obligatoria"));
+        proceso.setCategoria(normalizar(datos.getCategoria(), "La categoría del proceso es obligatoria"));
         proceso.setEmpresa(empresa);
-        // El proceso siempre nace en borrador, sin importar que estado llegue del formulario
+        // El proceso siempre nace en borrador: el formulario no decide el estado
         proceso.setEstado(Proceso.EstadoProceso.BORRADOR);
 
         return procesoRepository.save(proceso);
     }
 
     // 4. Actualizar la informacion basica de un proceso
-    public Proceso actualizarProceso(Long id, Proceso procesoDetalles, Long empresaId) {
+    public Proceso actualizarProceso(Long id, ProcesoDTO datos, Long empresaId) {
         Proceso procesoExistente = obtenerPorIdYEmpresa(id, empresaId);
-        validarDatosObligatorios(procesoDetalles);
 
-        String nombre = procesoDetalles.getNombre().trim();
+        String nombre = normalizar(datos.getNombre(), "El nombre del proceso es obligatorio");
         if (procesoRepository.existsByNombreAndEmpresaIdAndIdNot(nombre, empresaId, id)) {
             throw new IllegalArgumentException("Ya existe un proceso llamado '" + nombre + "' en la empresa");
         }
 
         procesoExistente.setNombre(nombre);
-        procesoExistente.setDescripcion(procesoDetalles.getDescripcion().trim());
-        procesoExistente.setCategoria(procesoDetalles.getCategoria().trim());
+        procesoExistente.setDescripcion(normalizar(datos.getDescripcion(), "La descripción del proceso es obligatoria"));
+        procesoExistente.setCategoria(normalizar(datos.getCategoria(), "La categoría del proceso es obligatoria"));
 
         return procesoRepository.save(procesoExistente);
     }
@@ -84,7 +87,7 @@ public class ProcesoService {
         Proceso proceso = obtenerPorIdYEmpresa(id, empresaId);
 
         if (proceso.getEstado() == Proceso.EstadoProceso.PUBLICADO) {
-            throw new IllegalArgumentException("El proceso ya esta publicado");
+            throw new IllegalArgumentException("El proceso ya está publicado");
         }
 
         proceso.setEstado(Proceso.EstadoProceso.PUBLICADO);
@@ -97,16 +100,14 @@ public class ProcesoService {
         procesoRepository.delete(proceso);
     }
 
-    // Nombre, descripcion y categoria son los datos que pide la HU-04
-    private void validarDatosObligatorios(Proceso proceso) {
-        if (proceso.getNombre() == null || proceso.getNombre().isBlank()) {
-            throw new IllegalArgumentException("El nombre del proceso es obligatorio");
+    /**
+     * El DTO ya trae las anotaciones de validacion, pero el servicio no puede
+     * confiar en que siempre lo llamen desde un formulario validado.
+     */
+    private String normalizar(String valor, String mensajeSiFalta) {
+        if (valor == null || valor.isBlank()) {
+            throw new IllegalArgumentException(mensajeSiFalta);
         }
-        if (proceso.getDescripcion() == null || proceso.getDescripcion().isBlank()) {
-            throw new IllegalArgumentException("La descripcion del proceso es obligatoria");
-        }
-        if (proceso.getCategoria() == null || proceso.getCategoria().isBlank()) {
-            throw new IllegalArgumentException("La categoria del proceso es obligatoria");
-        }
+        return valor.trim();
     }
 }

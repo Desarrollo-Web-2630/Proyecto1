@@ -1,9 +1,10 @@
 package com.proyecto1.thymeleaf.services;
 
+import com.proyecto1.thymeleaf.dto.ActividadDTO;
+import com.proyecto1.thymeleaf.dto.EmpresaDTO;
+import com.proyecto1.thymeleaf.dto.ProcesoDTO;
 import com.proyecto1.thymeleaf.model.Actividad;
-import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.model.Proceso;
-import com.proyecto1.thymeleaf.repository.EmpresaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,8 +16,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Verifica los criterios de aceptacion de la HU-04 (crear proceso) y la
- * HU-08 (crear actividad).
+ * Verifica los criterios de aceptacion de la HU-04 (crear proceso) y las
+ * HU-08 / HU-09 / HU-10 (crear, editar y eliminar actividad).
  */
 @SpringBootTest
 @Transactional
@@ -29,7 +30,7 @@ class ProcesoActividadServiceTest {
     private ActividadService actividadService;
 
     @Autowired
-    private EmpresaRepository empresaRepository;
+    private EmpresaService empresaService;
 
     private Long empresaA;
     private Long empresaB;
@@ -53,11 +54,9 @@ class ProcesoActividadServiceTest {
     }
 
     @Test
-    void elProcesoNaceEnBorradorAunqueLleguePublicadoDelFormulario() {
-        Proceso entrada = nuevoProceso("Compras");
-        entrada.setEstado(Proceso.EstadoProceso.PUBLICADO);
-
-        Proceso guardado = procesoService.crearProceso(entrada, empresaA);
+    void elProcesoNaceSiempreEnBorrador() {
+        // ProcesoDTO ni siquiera tiene campo estado: el formulario no puede fijarlo
+        Proceso guardado = procesoService.crearProceso(nuevoProceso("Compras"), empresaA);
 
         assertEquals(Proceso.EstadoProceso.BORRADOR, guardado.getEstado());
     }
@@ -100,7 +99,7 @@ class ProcesoActividadServiceTest {
 
     @Test
     void elNombreDelProcesoEsObligatorio() {
-        Proceso sinNombre = nuevoProceso("   ");
+        ProcesoDTO sinNombre = nuevoProceso("   ");
 
         assertThrows(IllegalArgumentException.class,
                 () -> procesoService.crearProceso(sinNombre, empresaA));
@@ -163,11 +162,11 @@ class ProcesoActividadServiceTest {
         Proceso proceso = procesoService.crearProceso(nuevoProceso("Compras"), empresaA);
         Long procesoId = proceso.getId();
 
-        Actividad sinNombre = nuevaActividad("  ", 10, 10, 1L);
-        Actividad sinTipo = nuevaActividad("A", 10, 10, 1L);
+        ActividadDTO sinNombre = nuevaActividad("  ", 10, 10, 1L);
+        ActividadDTO sinTipo = nuevaActividad("A", 10, 10, 1L);
         sinTipo.setTipoActividad(null);
-        Actividad sinLane = nuevaActividad("B", 10, 10, null);
-        Actividad sinPosicion = nuevaActividad("C", null, 10, 1L);
+        ActividadDTO sinLane = nuevaActividad("B", 10, 10, null);
+        ActividadDTO sinPosicion = nuevaActividad("C", null, 10, 1L);
 
         assertThrows(IllegalArgumentException.class,
                 () -> actividadService.crearActividad(sinNombre, procesoId, empresaA));
@@ -177,6 +176,37 @@ class ProcesoActividadServiceTest {
                 () -> actividadService.crearActividad(sinLane, procesoId, empresaA));
         assertThrows(IllegalArgumentException.class,
                 () -> actividadService.crearActividad(sinPosicion, procesoId, empresaA));
+    }
+
+    // ---------- HU-09 - Editar actividad ----------
+
+    @Test
+    void editarLaActividadCambiaNombreTipoYLaneResponsable() {
+        Proceso proceso = procesoService.crearProceso(nuevoProceso("Compras"), empresaA);
+        Actividad actividad = actividadService.crearActividad(
+                nuevaActividad("Revisar solicitud", 10, 10, 1L), proceso.getId(), empresaA);
+
+        ActividadDTO cambios = nuevaActividad("Aprobar solicitud", 30, 40, 5L);
+        cambios.setTipoActividad("TAREA_SERVICIO");
+
+        Actividad editada = actividadService.actualizarActividad(actividad.getId(), cambios, empresaA);
+
+        assertEquals("Aprobar solicitud", editada.getNombre());
+        assertEquals("TAREA_SERVICIO", editada.getTipoActividad());
+        assertEquals(5L, editada.getLaneId());
+    }
+
+    @Test
+    void alEditarNoSePuedeChocarConElNombreDeOtraActividad() {
+        Proceso proceso = procesoService.crearProceso(nuevoProceso("Compras"), empresaA);
+        actividadService.crearActividad(
+                nuevaActividad("Revisar solicitud", 10, 10, 1L), proceso.getId(), empresaA);
+        Actividad segunda = actividadService.crearActividad(
+                nuevaActividad("Aprobar solicitud", 20, 20, 1L), proceso.getId(), empresaA);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> actividadService.actualizarActividad(
+                        segunda.getId(), nuevaActividad("Revisar solicitud", 20, 20, 1L), empresaA));
     }
 
     @Test
@@ -192,26 +222,49 @@ class ProcesoActividadServiceTest {
         assertEquals("Revisar solicitud", movida.getNombre());
     }
 
+    // ---------- HU-10 - Eliminar actividad ----------
+
+    @Test
+    void laActividadEliminadaDesapareceDelListado() {
+        Proceso proceso = procesoService.crearProceso(nuevoProceso("Compras"), empresaA);
+        Actividad actividad = actividadService.crearActividad(
+                nuevaActividad("Revisar solicitud", 10, 10, 1L), proceso.getId(), empresaA);
+
+        actividadService.eliminarActividad(actividad.getId(), empresaA);
+
+        assertTrue(actividadService.listarPorProcesoYEmpresa(proceso.getId(), empresaA).isEmpty());
+    }
+
+    @Test
+    void noSePuedeEliminarLaActividadDeOtraEmpresa() {
+        Proceso proceso = procesoService.crearProceso(nuevoProceso("Compras"), empresaA);
+        Actividad actividad = actividadService.crearActividad(
+                nuevaActividad("Revisar solicitud", 10, 10, 1L), proceso.getId(), empresaA);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> actividadService.eliminarActividad(actividad.getId(), empresaB));
+    }
+
     // ---------- utilidades ----------
 
     private Long crearEmpresa(String nombre, String nit) {
-        Empresa empresa = new Empresa();
+        EmpresaDTO empresa = new EmpresaDTO();
         empresa.setNombre(nombre);
         empresa.setNit(nit);
         empresa.setCorreo("contacto@" + nit + ".com");
-        return empresaRepository.save(empresa).getId();
+        return empresaService.registrarEmpresa(empresa).getId();
     }
 
-    private Proceso nuevoProceso(String nombre) {
-        Proceso proceso = new Proceso();
+    private ProcesoDTO nuevoProceso(String nombre) {
+        ProcesoDTO proceso = new ProcesoDTO();
         proceso.setNombre(nombre);
         proceso.setDescripcion("Proceso de prueba");
         proceso.setCategoria("Operaciones");
         return proceso;
     }
 
-    private Actividad nuevaActividad(String nombre, Integer x, Integer y, Long laneId) {
-        Actividad actividad = new Actividad();
+    private ActividadDTO nuevaActividad(String nombre, Integer x, Integer y, Long laneId) {
+        ActividadDTO actividad = new ActividadDTO();
         actividad.setNombre(nombre);
         actividad.setTipoActividad("TAREA_USUARIO");
         actividad.setPosicionX(x);

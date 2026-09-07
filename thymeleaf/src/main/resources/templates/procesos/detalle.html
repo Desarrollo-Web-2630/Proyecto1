@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/comunes :: cabeza('Detalle del proceso')}"></head>
+<body>
+
+<nav th:replace="~{fragmentos/comunes :: navegacion}"></nav>
+
+<main class="contenido">
+
+    <div class="encabezado-lista">
+        <h1 th:text="${proceso.nombre}">Nombre del proceso</h1>
+        <a class="boton boton-suave" th:href="@{/procesos}">Volver</a>
+    </div>
+
+    <div th:replace="~{fragmentos/comunes :: mensajes}"></div>
+
+    <div class="panel">
+        <dl class="datos">
+            <dt>Descripción</dt>
+            <dd th:text="${proceso.descripcion}">Descripción</dd>
+
+            <dt>Categoría</dt>
+            <dd th:text="${proceso.categoria}">Categoría</dd>
+
+            <dt>Estado</dt>
+            <dd>
+                <span class="etiqueta"
+                      th:classappend="${proceso.estado.name() == 'PUBLICADO'} ? 'etiqueta-publicado' : 'etiqueta-borrador'"
+                      th:text="${proceso.estado}">BORRADOR</span>
+            </dd>
+
+            <dt>Empresa</dt>
+            <dd th:text="${proceso.empresa.nombre}">Empresa</dd>
+        </dl>
+
+        <div class="pie-formulario">
+            <a class="boton boton-suave" th:href="@{/procesos/{id}/actividades(id=${proceso.id})}">Actividades</a>
+            <a class="boton boton-suave" th:href="@{/procesos/{id}/gateways(id=${proceso.id})}">Gateways</a>
+            <a class="boton boton-suave" th:href="@{/procesos/{id}/arcos(id=${proceso.id})}">Arcos</a>
+            <a class="boton" th:href="@{/procesos/editar/{id}(id=${proceso.id})}">Editar</a>
+        </div>
+    </div>
+
+</main>
+
+</body>
+</html>
