@@ -1,9 +1,13 @@
 package com.proyecto1.thymeleaf.controllers;
 
+import com.proyecto1.thymeleaf.dto.EmpresaDTO;
 import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.services.EmpresaService;
+import jakarta.validation.Valid;
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -20,9 +24,11 @@ import java.util.List;
 public class EmpresaController {
 
     private final EmpresaService empresaService;
+    private final ModelMapper modelMapper;
 
-    public EmpresaController(EmpresaService empresaService) {
+    public EmpresaController(EmpresaService empresaService, ModelMapper modelMapper) {
         this.empresaService = empresaService;
+        this.modelMapper = modelMapper;
     }
 
     // 1. Listar las empresas registradas
@@ -49,19 +55,25 @@ public class EmpresaController {
     // 3. Registrar una empresa: mostrar formulario
     @GetMapping("/nueva")
     public String mostrarFormularioRegistro(Model model) {
-        model.addAttribute("empresa", new Empresa());
+        model.addAttribute("empresa", new EmpresaDTO());
         return "empresas/formulario";
     }
 
     // 4. Registrar
     @PostMapping("/guardar")
-    public String guardarEmpresa(@ModelAttribute("empresa") Empresa empresa,
+    public String guardarEmpresa(@Valid @ModelAttribute("empresa") EmpresaDTO empresa,
+                                 BindingResult resultado,
+                                 Model model,
                                  RedirectAttributes redirectAttributes) {
+        if (resultado.hasErrors()) {
+            return "empresas/formulario";
+        }
         try {
             empresaService.registrarEmpresa(empresa);
             redirectAttributes.addFlashAttribute("mensajeExito", "Empresa registrada con éxito.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            model.addAttribute("mensajeError", e.getMessage());
+            return "empresas/formulario";
         }
         return "redirect:/empresas";
     }
@@ -72,7 +84,8 @@ public class EmpresaController {
                                           Model model,
                                           RedirectAttributes redirectAttributes) {
         try {
-            model.addAttribute("empresa", empresaService.obtenerPorId(id));
+            Empresa empresa = empresaService.obtenerPorId(id);
+            model.addAttribute("empresa", modelMapper.map(empresa, EmpresaDTO.class));
             return "empresas/formulario";
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
@@ -83,13 +96,19 @@ public class EmpresaController {
     // 6. Actualizar
     @PostMapping("/actualizar/{id}")
     public String actualizarEmpresa(@PathVariable Long id,
-                                    @ModelAttribute("empresa") Empresa empresa,
+                                    @Valid @ModelAttribute("empresa") EmpresaDTO empresa,
+                                    BindingResult resultado,
+                                    Model model,
                                     RedirectAttributes redirectAttributes) {
+        if (resultado.hasErrors()) {
+            return "empresas/formulario";
+        }
         try {
             empresaService.actualizarEmpresa(id, empresa);
             redirectAttributes.addFlashAttribute("mensajeExito", "Empresa actualizada con éxito.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            model.addAttribute("mensajeError", e.getMessage());
+            return "empresas/formulario";
         }
         return "redirect:/empresas";
     }

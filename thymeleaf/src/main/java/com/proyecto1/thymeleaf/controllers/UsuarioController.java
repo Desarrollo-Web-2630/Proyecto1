@@ -1,10 +1,15 @@
 package com.proyecto1.thymeleaf.controllers;
 
+import com.proyecto1.thymeleaf.dto.LoginDTO;
+import com.proyecto1.thymeleaf.dto.UsuarioDTO;
+import com.proyecto1.thymeleaf.dto.UsuarioVistaDTO;
 import com.proyecto1.thymeleaf.model.Usuario;
 import com.proyecto1.thymeleaf.services.UsuarioService;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -31,10 +36,10 @@ public class UsuarioController {
     // ID de empresa simulado (reemplazar por el ID de la sesion cuando entre Spring Security)
     private final Long EMPRESA_ID_MOCK = 1L;
 
-    // 1. Listar los usuarios de la empresa
+    // 1. Listar los usuarios de la empresa (sin exponer la contrasena)
     @GetMapping
     public String listarUsuarios(Model model) {
-        List<Usuario> usuarios = usuarioService.listarPorEmpresa(EMPRESA_ID_MOCK);
+        List<UsuarioVistaDTO> usuarios = usuarioService.listarPorEmpresa(EMPRESA_ID_MOCK);
 
         model.addAttribute("usuarios", usuarios);
         model.addAttribute("rolesAcceso", Usuario.RolAcceso.values());
@@ -44,41 +49,52 @@ public class UsuarioController {
     // 2. Registrar un usuario: mostrar formulario
     @GetMapping("/nuevo")
     public String mostrarFormularioRegistro(Model model) {
-        model.addAttribute("usuario", new Usuario());
+        model.addAttribute("usuario", new UsuarioDTO());
         model.addAttribute("rolesAcceso", Usuario.RolAcceso.values());
         return "usuarios/formulario";
     }
 
     // 3. Registrar
     @PostMapping("/guardar")
-    public String guardarUsuario(@ModelAttribute("usuario") Usuario usuario,
+    public String guardarUsuario(@Valid @ModelAttribute("usuario") UsuarioDTO usuario,
+                                 BindingResult resultado,
+                                 Model model,
                                  RedirectAttributes redirectAttributes) {
+        model.addAttribute("rolesAcceso", Usuario.RolAcceso.values());
+        if (resultado.hasErrors()) {
+            return "usuarios/formulario";
+        }
         try {
             usuarioService.registrarUsuario(usuario, EMPRESA_ID_MOCK);
             redirectAttributes.addFlashAttribute("mensajeExito", "Usuario registrado con éxito.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            model.addAttribute("mensajeError", e.getMessage());
+            return "usuarios/formulario";
         }
         return "redirect:/usuarios";
     }
 
     // 4. Formulario de inicio de sesion
     @GetMapping("/login")
-    public String mostrarFormularioLogin() {
+    public String mostrarFormularioLogin(Model model) {
+        model.addAttribute("login", new LoginDTO());
         return "usuarios/login";
     }
 
     // 5. Iniciar sesion
     @PostMapping("/login")
-    public String iniciarSesion(@RequestParam String correo,
-                                @RequestParam String password,
+    public String iniciarSesion(@Valid @ModelAttribute("login") LoginDTO login,
+                                BindingResult resultado,
                                 HttpSession session,
-                                RedirectAttributes redirectAttributes) {
-        Optional<Usuario> usuario = usuarioService.login(correo, password);
+                                Model model) {
+        if (resultado.hasErrors()) {
+            return "usuarios/login";
+        }
 
+        Optional<Usuario> usuario = usuarioService.login(login.getCorreo(), login.getPassword());
         if (usuario.isEmpty()) {
-            redirectAttributes.addFlashAttribute("mensajeError", "Correo o contraseña incorrectos.");
-            return "redirect:/usuarios/login";
+            model.addAttribute("mensajeError", "Correo o contraseña incorrectos.");
+            return "usuarios/login";
         }
 
         session.setAttribute("usuarioId", usuario.get().getId());

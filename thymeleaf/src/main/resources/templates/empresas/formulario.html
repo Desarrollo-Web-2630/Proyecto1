@@ -17,21 +17,30 @@
                      ? @{/empresas/guardar}
                      : @{/empresas/actualizar/{id}(id=${empresa.id})}">
 
+        <input type="hidden" th:field="*{id}"/>
+
         <div class="campo">
             <label for="nombre">Nombre</label>
-            <input type="text" id="nombre" th:field="*{nombre}" required
+            <input type="text" id="nombre" th:field="*{nombre}"
+                   th:classappend="${#fields.hasErrors('nombre')} ? 'invalido'"
                    placeholder="Constructora del Norte S.A.S."/>
+            <span class="error-campo" th:if="${#fields.hasErrors('nombre')}" th:errors="*{nombre}"></span>
         </div>
 
         <div class="campo">
             <label for="nit">NIT</label>
-            <input type="text" id="nit" th:field="*{nit}" required placeholder="900123456-7"/>
+            <input type="text" id="nit" th:field="*{nit}"
+                   th:classappend="${#fields.hasErrors('nit')} ? 'invalido'"
+                   placeholder="900123456-7"/>
+            <span class="error-campo" th:if="${#fields.hasErrors('nit')}" th:errors="*{nit}"></span>
         </div>
 
         <div class="campo">
             <label for="correo">Correo</label>
-            <input type="email" id="correo" th:field="*{correo}" required
+            <input type="email" id="correo" th:field="*{correo}"
+                   th:classappend="${#fields.hasErrors('correo')} ? 'invalido'"
                    placeholder="contacto@empresa.com"/>
+            <span class="error-campo" th:if="${#fields.hasErrors('correo')}" th:errors="*{correo}"></span>
         </div>
 
         <div class="pie-formulario">

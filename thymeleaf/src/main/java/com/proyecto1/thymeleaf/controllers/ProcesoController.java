@@ -1,9 +1,13 @@
 package com.proyecto1.thymeleaf.controllers;
 
+import com.proyecto1.thymeleaf.dto.ProcesoDTO;
 import com.proyecto1.thymeleaf.model.Proceso;
 import com.proyecto1.thymeleaf.services.ProcesoService;
+import jakarta.validation.Valid;
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -18,9 +22,11 @@ import java.util.List;
 public class ProcesoController {
 
     private final ProcesoService procesoService;
+    private final ModelMapper modelMapper;
 
-    public ProcesoController(ProcesoService procesoService) {
+    public ProcesoController(ProcesoService procesoService, ModelMapper modelMapper) {
         this.procesoService = procesoService;
+        this.modelMapper = modelMapper;
     }
 
     // ID de empresa simulado (reemplazar por el ID de la sesion cuando entre Spring Security)
@@ -50,19 +56,27 @@ public class ProcesoController {
     // 3. Crear un proceso: mostrar formulario
     @GetMapping("/nuevo")
     public String mostrarFormularioCrear(Model model) {
-        model.addAttribute("proceso", new Proceso());
+        model.addAttribute("proceso", new ProcesoDTO());
         return "procesos/formulario";
     }
 
     // 4. Crear
     @PostMapping("/guardar")
-    public String guardarProceso(@ModelAttribute("proceso") Proceso proceso,
+    public String guardarProceso(@Valid @ModelAttribute("proceso") ProcesoDTO proceso,
+                                 BindingResult resultado,
+                                 Model model,
                                  RedirectAttributes redirectAttributes) {
+        // Con errores de validacion se vuelve al formulario conservando lo escrito
+        if (resultado.hasErrors()) {
+            return "procesos/formulario";
+        }
         try {
             procesoService.crearProceso(proceso, EMPRESA_ID_MOCK);
             redirectAttributes.addFlashAttribute("mensajeExito", "Proceso creado con éxito.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            // Las reglas de negocio (nombre duplicado) se ven al guardar, no al validar
+            model.addAttribute("mensajeError", e.getMessage());
+            return "procesos/formulario";
         }
         return "redirect:/procesos";
     }
@@ -73,7 +87,8 @@ public class ProcesoController {
                                           Model model,
                                           RedirectAttributes redirectAttributes) {
         try {
-            model.addAttribute("proceso", procesoService.obtenerPorIdYEmpresa(id, EMPRESA_ID_MOCK));
+            Proceso proceso = procesoService.obtenerPorIdYEmpresa(id, EMPRESA_ID_MOCK);
+            model.addAttribute("proceso", modelMapper.map(proceso, ProcesoDTO.class));
             return "procesos/formulario";
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
@@ -84,13 +99,19 @@ public class ProcesoController {
     // 6. Actualizar
     @PostMapping("/actualizar/{id}")
     public String actualizarProceso(@PathVariable Long id,
-                                    @ModelAttribute("proceso") Proceso proceso,
+                                    @Valid @ModelAttribute("proceso") ProcesoDTO proceso,
+                                    BindingResult resultado,
+                                    Model model,
                                     RedirectAttributes redirectAttributes) {
+        if (resultado.hasErrors()) {
+            return "procesos/formulario";
+        }
         try {
             procesoService.actualizarProceso(id, proceso, EMPRESA_ID_MOCK);
             redirectAttributes.addFlashAttribute("mensajeExito", "Proceso actualizado con éxito.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            model.addAttribute("mensajeError", e.getMessage());
+            return "procesos/formulario";
         }
         return "redirect:/procesos";
     }

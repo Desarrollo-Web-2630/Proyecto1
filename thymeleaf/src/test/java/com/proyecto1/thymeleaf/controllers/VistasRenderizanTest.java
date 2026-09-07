@@ -1,12 +1,16 @@
 package com.proyecto1.thymeleaf.controllers;
 
-import com.proyecto1.thymeleaf.model.Actividad;
-import com.proyecto1.thymeleaf.model.Empresa;
+import com.proyecto1.thymeleaf.dto.ActividadDTO;
+import com.proyecto1.thymeleaf.dto.EmpresaDTO;
+import com.proyecto1.thymeleaf.dto.GatewayDTO;
+import com.proyecto1.thymeleaf.dto.ProcesoDTO;
+import com.proyecto1.thymeleaf.dto.UsuarioDTO;
 import com.proyecto1.thymeleaf.model.Gateway;
 import com.proyecto1.thymeleaf.model.Proceso;
 import com.proyecto1.thymeleaf.model.Usuario;
 import com.proyecto1.thymeleaf.repository.EmpresaRepository;
 import com.proyecto1.thymeleaf.services.ActividadService;
+import com.proyecto1.thymeleaf.services.EmpresaService;
 import com.proyecto1.thymeleaf.services.GatewayService;
 import com.proyecto1.thymeleaf.services.ProcesoService;
 import com.proyecto1.thymeleaf.services.UsuarioService;
@@ -18,7 +22,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 /**
  * Smoke test de la capa de vistas: recorre cada pantalla GET y comprueba que
@@ -36,6 +43,9 @@ class VistasRenderizanTest {
 
     @Autowired
     private EmpresaRepository empresaRepository;
+
+    @Autowired
+    private EmpresaService empresaService;
 
     @Autowired
     private ProcesoService procesoService;
@@ -59,20 +69,20 @@ class VistasRenderizanTest {
     @BeforeEach
     void prepararDatos() {
         if (empresaRepository.findById(EMPRESA_ID).isEmpty()) {
-            Empresa empresa = new Empresa();
+            EmpresaDTO empresa = new EmpresaDTO();
             empresa.setNombre("Empresa de prueba");
             empresa.setNit("900111222");
             empresa.setCorreo("contacto@prueba.com");
-            empresaRepository.save(empresa);
+            empresaService.registrarEmpresa(empresa);
         }
 
-        Proceso proceso = new Proceso();
+        ProcesoDTO proceso = new ProcesoDTO();
         proceso.setNombre("Proceso " + System.nanoTime());
         proceso.setDescripcion("Proceso de prueba");
         proceso.setCategoria("Operaciones");
         procesoId = procesoService.crearProceso(proceso, EMPRESA_ID).getId();
 
-        Actividad actividad = new Actividad();
+        ActividadDTO actividad = new ActividadDTO();
         actividad.setNombre("Revisar solicitud");
         actividad.setTipoActividad("TAREA_USUARIO");
         actividad.setPosicionX(10);
@@ -80,12 +90,12 @@ class VistasRenderizanTest {
         actividad.setLaneId(1L);
         actividadId = actividadService.crearActividad(actividad, procesoId, EMPRESA_ID).getId();
 
-        Gateway gateway = new Gateway();
+        GatewayDTO gateway = new GatewayDTO();
         gateway.setNombre("Aprobada?");
         gateway.setTipo(Gateway.TipoGateway.EXCLUSIVO);
         gatewayId = gatewayService.crearGateway(gateway, procesoId, EMPRESA_ID).getId();
 
-        Usuario usuario = new Usuario();
+        UsuarioDTO usuario = new UsuarioDTO();
         usuario.setNombre("Ana Martinez");
         usuario.setCorreo("ana" + System.nanoTime() + "@prueba.com");
         usuario.setPassword("secreta");
@@ -136,5 +146,44 @@ class VistasRenderizanTest {
         mockMvc.perform(get("/usuarios")).andExpect(status().isOk());
         mockMvc.perform(get("/usuarios/nuevo")).andExpect(status().isOk());
         mockMvc.perform(get("/usuarios/login")).andExpect(status().isOk());
+    }
+
+    // ---------- Validacion con BindingResult ----------
+
+    @Test
+    void elFormularioDeProcesoVuelveConLosErroresCuandoFaltanDatos() throws Exception {
+        mockMvc.perform(post("/procesos/guardar")
+                        .param("nombre", "")
+                        .param("descripcion", "")
+                        .param("categoria", ""))
+                .andExpect(status().isOk())
+                .andExpect(view().name("procesos/formulario"))
+                .andExpect(model().attributeHasFieldErrors("proceso", "nombre", "descripcion", "categoria"));
+    }
+
+    @Test
+    void elFormularioDeActividadRechazaUnaPosicionNegativa() throws Exception {
+        mockMvc.perform(post("/procesos/{p}/actividades/guardar", procesoId)
+                        .param("nombre", "Otra actividad")
+                        .param("tipoActividad", "TAREA_USUARIO")
+                        .param("laneId", "1")
+                        .param("posicionX", "-5")
+                        .param("posicionY", "10"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("actividades/formulario"))
+                .andExpect(model().attributeHasFieldErrors("actividad", "posicionX"));
+    }
+
+    @Test
+    void elNombreDuplicadoDeProcesoSeAvisaSinPerderElFormulario() throws Exception {
+        Proceso existente = procesoService.obtenerPorIdYEmpresa(procesoId, EMPRESA_ID);
+
+        mockMvc.perform(post("/procesos/guardar")
+                        .param("nombre", existente.getNombre())
+                        .param("descripcion", "Otra descripción")
+                        .param("categoria", "Operaciones"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("procesos/formulario"))
+                .andExpect(model().attributeExists("mensajeError"));
     }
 }

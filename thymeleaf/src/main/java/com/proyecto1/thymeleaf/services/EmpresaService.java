@@ -1,5 +1,6 @@
 package com.proyecto1.thymeleaf.services;
 
+import com.proyecto1.thymeleaf.dto.EmpresaDTO;
 import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.repository.EmpresaRepository;
 import org.springframework.stereotype.Service;
@@ -37,35 +38,33 @@ public class EmpresaService {
     }
 
     // 3. Registrar una empresa nueva
-    public Empresa registrarEmpresa(Empresa empresa) {
-        validarDatosObligatorios(empresa);
-
-        String nit = empresa.getNit().trim();
+    public Empresa registrarEmpresa(EmpresaDTO datos) {
+        String nit = normalizar(datos.getNit(), "El NIT de la empresa es obligatorio");
         if (empresaRepository.existsByNit(nit)) {
             throw new IllegalArgumentException("Ya existe una empresa registrada con el NIT '" + nit + "'");
         }
 
-        empresa.setNombre(empresa.getNombre().trim());
+        Empresa empresa = new Empresa();
+        empresa.setNombre(normalizar(datos.getNombre(), "El nombre de la empresa es obligatorio"));
         empresa.setNit(nit);
-        empresa.setCorreo(empresa.getCorreo().trim());
+        empresa.setCorreo(normalizar(datos.getCorreo(), "El correo de la empresa es obligatorio"));
 
         return empresaRepository.save(empresa);
     }
 
     // 4. Actualizar los datos de una empresa
-    public Empresa actualizarEmpresa(Long id, Empresa empresaDetalles) {
+    public Empresa actualizarEmpresa(Long id, EmpresaDTO datos) {
         Empresa empresaExistente = obtenerPorId(id);
-        validarDatosObligatorios(empresaDetalles);
 
-        String nit = empresaDetalles.getNit().trim();
+        String nit = normalizar(datos.getNit(), "El NIT de la empresa es obligatorio");
         // Solo se valida el NIT contra otras empresas si realmente cambio
         if (!nit.equals(empresaExistente.getNit()) && empresaRepository.existsByNit(nit)) {
             throw new IllegalArgumentException("Ya existe una empresa registrada con el NIT '" + nit + "'");
         }
 
-        empresaExistente.setNombre(empresaDetalles.getNombre().trim());
+        empresaExistente.setNombre(normalizar(datos.getNombre(), "El nombre de la empresa es obligatorio"));
         empresaExistente.setNit(nit);
-        empresaExistente.setCorreo(empresaDetalles.getCorreo().trim());
+        empresaExistente.setCorreo(normalizar(datos.getCorreo(), "El correo de la empresa es obligatorio"));
 
         return empresaRepository.save(empresaExistente);
     }
@@ -76,15 +75,10 @@ public class EmpresaService {
         empresaRepository.delete(empresa);
     }
 
-    private void validarDatosObligatorios(Empresa empresa) {
-        if (empresa.getNombre() == null || empresa.getNombre().isBlank()) {
-            throw new IllegalArgumentException("El nombre de la empresa es obligatorio");
+    private String normalizar(String valor, String mensajeSiFalta) {
+        if (valor == null || valor.isBlank()) {
+            throw new IllegalArgumentException(mensajeSiFalta);
         }
-        if (empresa.getNit() == null || empresa.getNit().isBlank()) {
-            throw new IllegalArgumentException("El NIT de la empresa es obligatorio");
-        }
-        if (empresa.getCorreo() == null || empresa.getCorreo().isBlank()) {
-            throw new IllegalArgumentException("El correo de la empresa es obligatorio");
-        }
+        return valor.trim();
     }
 }

@@ -1,9 +1,13 @@
 package com.proyecto1.thymeleaf.controllers;
 
+import com.proyecto1.thymeleaf.dto.ActividadDTO;
 import com.proyecto1.thymeleaf.model.Actividad;
 import com.proyecto1.thymeleaf.services.ActividadService;
+import jakarta.validation.Valid;
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -19,9 +23,11 @@ import java.util.List;
 public class ActividadController {
 
     private final ActividadService actividadService;
+    private final ModelMapper modelMapper;
 
-    public ActividadController(ActividadService actividadService) {
+    public ActividadController(ActividadService actividadService, ModelMapper modelMapper) {
         this.actividadService = actividadService;
+        this.modelMapper = modelMapper;
     }
 
     // ID de empresa simulado (reemplazar por el ID de la sesion cuando entre Spring Security)
@@ -46,7 +52,7 @@ public class ActividadController {
     // 2. Crear una actividad: mostrar formulario
     @GetMapping("/nueva")
     public String mostrarFormularioCrear(@PathVariable Long procesoId, Model model) {
-        model.addAttribute("actividad", new Actividad());
+        model.addAttribute("actividad", new ActividadDTO());
         model.addAttribute("procesoId", procesoId);
         return "actividades/formulario";
     }
@@ -54,13 +60,20 @@ public class ActividadController {
     // 3. Crear
     @PostMapping("/guardar")
     public String guardarActividad(@PathVariable Long procesoId,
-                                   @ModelAttribute("actividad") Actividad actividad,
+                                   @Valid @ModelAttribute("actividad") ActividadDTO actividad,
+                                   BindingResult resultado,
+                                   Model model,
                                    RedirectAttributes redirectAttributes) {
+        model.addAttribute("procesoId", procesoId);
+        if (resultado.hasErrors()) {
+            return "actividades/formulario";
+        }
         try {
             actividadService.crearActividad(actividad, procesoId, EMPRESA_ID_MOCK);
             redirectAttributes.addFlashAttribute("mensajeExito", "Actividad creada con éxito.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            model.addAttribute("mensajeError", e.getMessage());
+            return "actividades/formulario";
         }
         return "redirect:/procesos/" + procesoId + "/actividades";
     }
@@ -72,7 +85,8 @@ public class ActividadController {
                                           Model model,
                                           RedirectAttributes redirectAttributes) {
         try {
-            model.addAttribute("actividad", actividadService.obtenerPorIdYEmpresa(id, EMPRESA_ID_MOCK));
+            Actividad actividad = actividadService.obtenerPorIdYEmpresa(id, EMPRESA_ID_MOCK);
+            model.addAttribute("actividad", modelMapper.map(actividad, ActividadDTO.class));
             model.addAttribute("procesoId", procesoId);
             return "actividades/formulario";
         } catch (Exception e) {
@@ -81,17 +95,24 @@ public class ActividadController {
         }
     }
 
-    // 5. Actualizar
+    // 5. Actualizar. Cambiar la lane cambia el responsable de la actividad (HU-09)
     @PostMapping("/actualizar/{id}")
     public String actualizarActividad(@PathVariable Long procesoId,
                                       @PathVariable Long id,
-                                      @ModelAttribute("actividad") Actividad actividad,
+                                      @Valid @ModelAttribute("actividad") ActividadDTO actividad,
+                                      BindingResult resultado,
+                                      Model model,
                                       RedirectAttributes redirectAttributes) {
+        model.addAttribute("procesoId", procesoId);
+        if (resultado.hasErrors()) {
+            return "actividades/formulario";
+        }
         try {
             actividadService.actualizarActividad(id, actividad, EMPRESA_ID_MOCK);
             redirectAttributes.addFlashAttribute("mensajeExito", "Actividad actualizada con éxito.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            model.addAttribute("mensajeError", e.getMessage());
+            return "actividades/formulario";
         }
         return "redirect:/procesos/" + procesoId + "/actividades";
     }
@@ -112,7 +133,7 @@ public class ActividadController {
         return "redirect:/procesos/" + procesoId + "/actividades";
     }
 
-    // 7. Eliminar
+    // 7. Eliminar (HU-10). El borrado es logico y la vista pide confirmacion.
     @PostMapping("/eliminar/{id}")
     public String eliminarActividad(@PathVariable Long procesoId,
                                     @PathVariable Long id,

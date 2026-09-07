@@ -8,7 +8,10 @@
 <main class="contenido">
 
     <h1 th:text="${actividad.id} == null ? 'Nueva actividad' : 'Editar actividad'">Nueva actividad</h1>
-    <p class="subtitulo">La lane define el rol responsable: las actividades se asignan a funciones, no a personas.</p>
+    <p class="subtitulo">
+        La lane define el rol responsable: cambiarla cambia quién responde por la actividad,
+        no es un ajuste estético.
+    </p>
 
     <div th:replace="~{fragmentos/comunes :: mensajes}"></div>
 
@@ -17,32 +20,44 @@
                      ? @{/procesos/{procesoId}/actividades/guardar(procesoId=${procesoId})}
                      : @{/procesos/{procesoId}/actividades/actualizar/{id}(procesoId=${procesoId}, id=${actividad.id})}">
 
+        <input type="hidden" th:field="*{id}"/>
+
         <div class="campo">
             <label for="nombre">Nombre</label>
-            <input type="text" id="nombre" th:field="*{nombre}" required
+            <input type="text" id="nombre" th:field="*{nombre}"
+                   th:classappend="${#fields.hasErrors('nombre')} ? 'invalido'"
                    placeholder="Revisar solicitud"/>
+            <span class="error-campo" th:if="${#fields.hasErrors('nombre')}" th:errors="*{nombre}"></span>
         </div>
 
         <div class="campo">
             <label for="tipoActividad">Tipo de actividad</label>
-            <input type="text" id="tipoActividad" th:field="*{tipoActividad}" required
+            <input type="text" id="tipoActividad" th:field="*{tipoActividad}"
+                   th:classappend="${#fields.hasErrors('tipoActividad')} ? 'invalido'"
                    placeholder="TAREA_USUARIO"/>
+            <span class="error-campo" th:if="${#fields.hasErrors('tipoActividad')}" th:errors="*{tipoActividad}"></span>
         </div>
 
         <div class="campo">
             <label for="laneId">Lane responsable</label>
-            <input type="number" id="laneId" th:field="*{laneId}" required min="1"
+            <input type="number" id="laneId" th:field="*{laneId}" min="1"
+                   th:classappend="${#fields.hasErrors('laneId')} ? 'invalido'"
                    placeholder="1"/>
+            <span class="error-campo" th:if="${#fields.hasErrors('laneId')}" th:errors="*{laneId}"></span>
         </div>
 
         <div class="pareja">
             <div class="campo">
                 <label for="posicionX">Posición X</label>
-                <input type="number" id="posicionX" th:field="*{posicionX}" required min="0" value="0"/>
+                <input type="number" id="posicionX" th:field="*{posicionX}" min="0"
+                       th:classappend="${#fields.hasErrors('posicionX')} ? 'invalido'"/>
+                <span class="error-campo" th:if="${#fields.hasErrors('posicionX')}" th:errors="*{posicionX}"></span>
             </div>
             <div class="campo">
                 <label for="posicionY">Posición Y</label>
-                <input type="number" id="posicionY" th:field="*{posicionY}" required min="0" value="0"/>
+                <input type="number" id="posicionY" th:field="*{posicionY}" min="0"
+                       th:classappend="${#fields.hasErrors('posicionY')} ? 'invalido'"/>
+                <span class="error-campo" th:if="${#fields.hasErrors('posicionY')}" th:errors="*{posicionY}"></span>
             </div>
         </div>
 

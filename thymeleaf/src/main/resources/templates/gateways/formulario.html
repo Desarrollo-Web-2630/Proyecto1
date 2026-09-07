@@ -17,20 +17,26 @@
                      ? @{/procesos/{procesoId}/gateways/guardar(procesoId=${procesoId})}
                      : @{/procesos/{procesoId}/gateways/actualizar/{id}(procesoId=${procesoId}, id=${gateway.id})}">
 
+        <input type="hidden" th:field="*{id}"/>
+
         <div class="campo">
             <label for="nombre">Nombre</label>
-            <input type="text" id="nombre" th:field="*{nombre}" required
+            <input type="text" id="nombre" th:field="*{nombre}"
+                   th:classappend="${#fields.hasErrors('nombre')} ? 'invalido'"
                    placeholder="¿Solicitud aprobada?"/>
+            <span class="error-campo" th:if="${#fields.hasErrors('nombre')}" th:errors="*{nombre}"></span>
         </div>
 
         <div class="campo">
             <label for="tipo">Tipo</label>
-            <select id="tipo" th:field="*{tipo}" required>
+            <select id="tipo" th:field="*{tipo}"
+                    th:classappend="${#fields.hasErrors('tipo')} ? 'invalido'">
                 <option value="">Selecciona un tipo</option>
                 <option th:each="opcion : ${tiposGateway}"
                         th:value="${opcion}"
                         th:text="${opcion}">EXCLUSIVO</option>
             </select>
+            <span class="error-campo" th:if="${#fields.hasErrors('tipo')}" th:errors="*{tipo}"></span>
         </div>
 
         <div class="pie-formulario">

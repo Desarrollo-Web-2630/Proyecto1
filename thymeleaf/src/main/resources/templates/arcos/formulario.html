@@ -12,50 +12,59 @@
 
     <div th:replace="~{fragmentos/comunes :: mensajes}"></div>
 
+    <p class="aviso aviso-advertencia" th:if="${#lists.isEmpty(elementos)}">
+        Este proceso no tiene elementos conectables, así que todavía no se puede crear un arco.
+    </p>
+
     <form class="panel" method="post" th:object="${arco}"
           th:action="${arco.id} == null
                      ? @{/procesos/{procesoId}/arcos/guardar(procesoId=${procesoId})}
                      : @{/procesos/{procesoId}/arcos/actualizar/{id}(procesoId=${procesoId}, id=${arco.id})}">
 
+        <input type="hidden" th:field="*{id}"/>
+
         <div class="campo">
-            <label for="nombre">Nombre</label>
-            <input type="text" id="nombre" th:field="*{nombre}" placeholder="Sí"/>
+            <label for="nombre">Etiqueta</label>
+            <input type="text" id="nombre" th:field="*{nombre}"
+                   th:classappend="${#fields.hasErrors('nombre')} ? 'invalido'"
+                   placeholder="Sí"/>
+            <span class="error-campo" th:if="${#fields.hasErrors('nombre')}" th:errors="*{nombre}"></span>
         </div>
 
         <div class="campo">
             <label for="condicion">Condición</label>
             <input type="text" id="condicion" th:field="*{condicion}"
+                   th:classappend="${#fields.hasErrors('condicion')} ? 'invalido'"
                    placeholder="monto &lt;= 1000"/>
+            <span class="error-campo" th:if="${#fields.hasErrors('condicion')}" th:errors="*{condicion}"></span>
+            <span class="error-campo" style="color:inherit;opacity:.7">
+                Solo tiene sentido si el arco sale de un gateway.
+            </span>
         </div>
 
-        <!--
-          Origen y destino solo se eligen al crear: actualizarArco no los cambia,
-          asi que al editar no se envian.
-        -->
-        <div th:if="${arco.id} == null">
-            <div class="campo">
-                <label for="origenId">Elemento de origen</label>
-                <select id="origenId" name="origenId" required>
-                    <option value="">Selecciona el origen</option>
-                    <option th:each="elemento : ${elementos}"
-                            th:value="${elemento.id}"
-                            th:text="${elemento.nombre}">Elemento</option>
-                </select>
-            </div>
+        <!-- La HU-12 permite cambiar los dos extremos, no solo al crear -->
+        <div class="campo">
+            <label for="origenId">Elemento de origen</label>
+            <select id="origenId" th:field="*{origenId}"
+                    th:classappend="${#fields.hasErrors('origenId')} ? 'invalido'">
+                <option value="">Selecciona el origen</option>
+                <option th:each="elemento : ${elementos}"
+                        th:value="${elemento.id}"
+                        th:text="${elemento.nombre}">Elemento</option>
+            </select>
+            <span class="error-campo" th:if="${#fields.hasErrors('origenId')}" th:errors="*{origenId}"></span>
+        </div>
 
-            <div class="campo">
-                <label for="destinoId">Elemento de destino</label>
-                <select id="destinoId" name="destinoId" required>
-                    <option value="">Selecciona el destino</option>
-                    <option th:each="elemento : ${elementos}"
-                            th:value="${elemento.id}"
-                            th:text="${elemento.nombre}">Elemento</option>
-                </select>
-            </div>
-
-            <p class="aviso aviso-error" th:if="${#lists.isEmpty(elementos)}">
-                Este proceso no tiene elementos conectables, así que todavía no se puede crear un arco.
-            </p>
+        <div class="campo">
+            <label for="destinoId">Elemento de destino</label>
+            <select id="destinoId" th:field="*{destinoId}"
+                    th:classappend="${#fields.hasErrors('destinoId')} ? 'invalido'">
+                <option value="">Selecciona el destino</option>
+                <option th:each="elemento : ${elementos}"
+                        th:value="${elemento.id}"
+                        th:text="${elemento.nombre}">Elemento</option>
+            </select>
+            <span class="error-campo" th:if="${#fields.hasErrors('destinoId')}" th:errors="*{destinoId}"></span>
         </div>
 
         <div class="pie-formulario">
