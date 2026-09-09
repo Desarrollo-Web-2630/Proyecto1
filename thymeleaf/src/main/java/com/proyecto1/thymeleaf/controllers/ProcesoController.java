@@ -3,6 +3,7 @@ package com.proyecto1.thymeleaf.controllers;
 import com.proyecto1.thymeleaf.dto.ProcesoDTO;
 import com.proyecto1.thymeleaf.model.Proceso;
 import com.proyecto1.thymeleaf.services.ProcesoService;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Controller;
@@ -29,13 +30,15 @@ public class ProcesoController {
         this.modelMapper = modelMapper;
     }
 
-    // ID de empresa simulado (reemplazar por el ID de la sesion cuando entre Spring Security)
-    private final Long EMPRESA_ID_MOCK = 1L;
-
     // 1. Listar los procesos de la empresa
     @GetMapping
-    public String listarProcesos(Model model) {
-        List<Proceso> procesos = procesoService.listarPorEmpresa(EMPRESA_ID_MOCK);
+    public String listarProcesos(Model model, HttpSession session, RedirectAttributes redirectAttributes) {
+        Long empresaId = obtenerEmpresaId(session, redirectAttributes);
+        if (empresaId == null) {
+            return "redirect:/usuarios/login";
+        }
+
+        List<Proceso> procesos = procesoService.listarPorEmpresa(empresaId);
 
         model.addAttribute("procesos", procesos);
         return "procesos/lista";
@@ -43,9 +46,16 @@ public class ProcesoController {
 
     // 2. Ver el detalle de un proceso
     @GetMapping("/{id}")
-    public String verProceso(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
+    public String verProceso(@PathVariable Long id,
+                            Model model,
+                            HttpSession session,
+                            RedirectAttributes redirectAttributes) {
+        Long empresaId = obtenerEmpresaId(session, redirectAttributes);
+        if (empresaId == null) {
+            return "redirect:/usuarios/login";
+        }
         try {
-            model.addAttribute("proceso", procesoService.obtenerPorIdYEmpresa(id, EMPRESA_ID_MOCK));
+            model.addAttribute("proceso", procesoService.obtenerPorIdYEmpresa(id, empresaId));
             return "procesos/detalle";
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
@@ -63,18 +73,21 @@ public class ProcesoController {
     // 4. Crear
     @PostMapping("/guardar")
     public String guardarProceso(@Valid @ModelAttribute("proceso") ProcesoDTO proceso,
-                                 BindingResult resultado,
-                                 Model model,
-                                 RedirectAttributes redirectAttributes) {
-        // Con errores de validacion se vuelve al formulario conservando lo escrito
+                                BindingResult resultado,
+                                Model model,
+                                HttpSession session,
+                                RedirectAttributes redirectAttributes) {
+        Long empresaId = obtenerEmpresaId(session, redirectAttributes);
+        if (empresaId == null) {
+            return "redirect:/usuarios/login";
+        }
         if (resultado.hasErrors()) {
             return "procesos/formulario";
         }
         try {
-            procesoService.crearProceso(proceso, EMPRESA_ID_MOCK);
+            procesoService.crearProceso(proceso, empresaId);
             redirectAttributes.addFlashAttribute("mensajeExito", "Proceso creado con éxito.");
         } catch (Exception e) {
-            // Las reglas de negocio (nombre duplicado) se ven al guardar, no al validar
             model.addAttribute("mensajeError", e.getMessage());
             return "procesos/formulario";
         }
@@ -84,10 +97,15 @@ public class ProcesoController {
     // 5. Formulario para editar un proceso existente
     @GetMapping("/editar/{id}")
     public String mostrarFormularioEditar(@PathVariable Long id,
-                                          Model model,
-                                          RedirectAttributes redirectAttributes) {
+                                        Model model,
+                                        HttpSession session,
+                                        RedirectAttributes redirectAttributes) {
+        Long empresaId = obtenerEmpresaId(session, redirectAttributes);
+        if (empresaId == null) {
+            return "redirect:/usuarios/login";
+        }
         try {
-            Proceso proceso = procesoService.obtenerPorIdYEmpresa(id, EMPRESA_ID_MOCK);
+            Proceso proceso = procesoService.obtenerPorIdYEmpresa(id, empresaId);
             model.addAttribute("proceso", modelMapper.map(proceso, ProcesoDTO.class));
             return "procesos/formulario";
         } catch (Exception e) {
@@ -102,12 +120,17 @@ public class ProcesoController {
                                     @Valid @ModelAttribute("proceso") ProcesoDTO proceso,
                                     BindingResult resultado,
                                     Model model,
+                                    HttpSession session,
                                     RedirectAttributes redirectAttributes) {
+        Long empresaId = obtenerEmpresaId(session, redirectAttributes);
+        if (empresaId == null) {
+            return "redirect:/usuarios/login";
+        }
         if (resultado.hasErrors()) {
             return "procesos/formulario";
         }
         try {
-            procesoService.actualizarProceso(id, proceso, EMPRESA_ID_MOCK);
+            procesoService.actualizarProceso(id, proceso, empresaId);
             redirectAttributes.addFlashAttribute("mensajeExito", "Proceso actualizado con éxito.");
         } catch (Exception e) {
             model.addAttribute("mensajeError", e.getMessage());
@@ -118,9 +141,15 @@ public class ProcesoController {
 
     // 7. Pasar el proceso de borrador a publicado
     @PostMapping("/publicar/{id}")
-    public String publicarProceso(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+    public String publicarProceso(@PathVariable Long id,
+                                HttpSession session,
+                                RedirectAttributes redirectAttributes) {
+        Long empresaId = obtenerEmpresaId(session, redirectAttributes);
+        if (empresaId == null) {
+            return "redirect:/usuarios/login";
+        }
         try {
-            procesoService.publicarProceso(id, EMPRESA_ID_MOCK);
+            procesoService.publicarProceso(id, empresaId);
             redirectAttributes.addFlashAttribute("mensajeExito", "Proceso publicado con éxito.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
@@ -130,13 +159,28 @@ public class ProcesoController {
 
     // 8. Eliminar
     @PostMapping("/eliminar/{id}")
-    public String eliminarProceso(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+    public String eliminarProceso(@PathVariable Long id,
+                                HttpSession session,
+                                RedirectAttributes redirectAttributes) {
+        Long empresaId = obtenerEmpresaId(session, redirectAttributes);
+        if (empresaId == null) {
+            return "redirect:/usuarios/login";
+        }
         try {
-            procesoService.eliminarProceso(id, EMPRESA_ID_MOCK);
+            procesoService.eliminarProceso(id, empresaId);
             redirectAttributes.addFlashAttribute("mensajeExito", "Proceso eliminado correctamente.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
         }
         return "redirect:/procesos";
+    }
+
+    private Long obtenerEmpresaId(HttpSession session, RedirectAttributes redirectAttributes) {
+        Object empresaId = session.getAttribute("empresaId");
+        if (empresaId == null) {
+            redirectAttributes.addFlashAttribute("mensajeError", "Debe iniciar sesión para acceder a su empresa.");
+            return null;
+        }
+        return Long.valueOf(empresaId.toString());
     }
 }

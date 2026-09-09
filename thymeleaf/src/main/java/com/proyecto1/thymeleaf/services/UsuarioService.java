@@ -6,7 +6,9 @@ import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.model.Usuario;
 import com.proyecto1.thymeleaf.repository.EmpresaRepository;
 import com.proyecto1.thymeleaf.repository.UsuarioRepository;
+import com.proyecto1.thymeleaf.util.PasswordUtil;
 import org.modelmapper.ModelMapper;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,13 +32,16 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final EmpresaRepository empresaRepository;
     private final ModelMapper modelMapper;
+    private final PasswordEncoder passwordEncoder;
 
     public UsuarioService(UsuarioRepository usuarioRepository,
-                          EmpresaRepository empresaRepository,
-                          ModelMapper modelMapper) {
+                        EmpresaRepository empresaRepository,
+                        ModelMapper modelMapper,
+                        PasswordEncoder passwordEncoder) {
         this.usuarioRepository = usuarioRepository;
         this.empresaRepository = empresaRepository;
         this.modelMapper = modelMapper;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // 1. Registrar un usuario dentro de una empresa
@@ -46,15 +51,22 @@ public class UsuarioService {
         Empresa empresa = empresaRepository.findById(empresaId)
                 .orElseThrow(() -> new IllegalArgumentException("La empresa no existe"));
 
-        String correo = datos.getCorreo().trim();
-        if (usuarioRepository.existsByCorreo(correo)) {
+        String correo = normalizarCorreo(datos.getCorreo());
+        String nombre = normalizarNombre(datos.getNombre());
+        String password = normalizarPassword(datos.getPassword());
+
+        if (usuarioRepository.existsByCorreoIgnoreCase(correo)) {
             throw new IllegalArgumentException("Ya existe un usuario con el correo '" + correo + "'");
         }
 
+        if (!PasswordUtil.cumpleReglasBasicas(password)) {
+            throw new IllegalArgumentException("La contraseña debe tener al menos 8 caracteres, incluir mayúscula, minúscula y un número");
+        }
+
         Usuario usuario = new Usuario();
-        usuario.setNombre(datos.getNombre().trim());
+        usuario.setNombre(nombre);
         usuario.setCorreo(correo);
-        usuario.setPassword(datos.getPassword().trim());
+        usuario.setPassword(passwordEncoder.encode(password));
         usuario.setRolAcceso(datos.getRolAcceso());
         usuario.setEmpresa(empresa);
         usuario.setActivo(true);
@@ -69,9 +81,9 @@ public class UsuarioService {
             return Optional.empty();
         }
 
-        return usuarioRepository.findByCorreo(correo.trim())
+        return usuarioRepository.findByCorreoIgnoreCase(correo.trim())
                 .filter(Usuario::getActivo)
-                .filter(u -> u.getPassword().equals(password.trim()));
+                .filter(u -> passwordEncoder.matches(password.trim(), u.getPassword()));
     }
 
     // 3. Listar los usuarios de la empresa, sin exponer la contrasena
@@ -114,11 +126,20 @@ public class UsuarioService {
     }
 
     private void validarDatosObligatorios(UsuarioDTO datos) {
+        if (datos == null) {
+            throw new IllegalArgumentException("Los datos del usuario son obligatorios");
+        }
         if (datos.getNombre() == null || datos.getNombre().isBlank()) {
             throw new IllegalArgumentException("El nombre del usuario es obligatorio");
         }
+        if (datos.getNombre().trim().length() < 2) {
+            throw new IllegalArgumentException("El nombre del usuario debe tener al menos 2 caracteres");
+        }
         if (datos.getCorreo() == null || datos.getCorreo().isBlank()) {
             throw new IllegalArgumentException("El correo del usuario es obligatorio");
+        }
+        if (!datos.getCorreo().trim().matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
+            throw new IllegalArgumentException("El correo no tiene un formato válido");
         }
         if (datos.getPassword() == null || datos.getPassword().isBlank()) {
             throw new IllegalArgumentException("La contraseña del usuario es obligatoria");
@@ -126,5 +147,28 @@ public class UsuarioService {
         if (datos.getRolAcceso() == null) {
             throw new IllegalArgumentException("El rol de acceso es obligatorio");
         }
+    }
+
+    private String normalizarCorreo(String correo) {
+        if (correo == null || correo.isBlank()) {
+            throw new IllegalArgumentException("El correo del usuario es obligatorio");
+        }
+        return correo.trim().toLowerCase();
+    }
+
+    private String normalizarNombre(String nombre) {
+        String texto = nombre == null ? "" : nombre.trim();
+        if (texto.length() < 2) {
+            throw new IllegalArgumentException("El nombre del usuario debe tener al menos 2 caracteres");
+        }
+        return texto;
+    }
+
+    private String normalizarPassword(String password) {
+        String texto = password == null ? "" : password.trim();
+        if (texto.isEmpty()) {
+            throw new IllegalArgumentException("La contraseña del usuario es obligatoria");
+        }
+        return texto;
     }
 }

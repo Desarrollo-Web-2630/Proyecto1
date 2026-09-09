@@ -33,13 +33,15 @@ public class UsuarioController {
         this.usuarioService = usuarioService;
     }
 
-    // ID de empresa simulado (reemplazar por el ID de la sesion cuando entre Spring Security)
-    private final Long EMPRESA_ID_MOCK = 1L;
-
     // 1. Listar los usuarios de la empresa (sin exponer la contrasena)
     @GetMapping
-    public String listarUsuarios(Model model) {
-        List<UsuarioVistaDTO> usuarios = usuarioService.listarPorEmpresa(EMPRESA_ID_MOCK);
+    public String listarUsuarios(Model model, HttpSession session, RedirectAttributes redirectAttributes) {
+        Long empresaId = obtenerEmpresaId(session, redirectAttributes);
+        if (empresaId == null) {
+            return "redirect:/usuarios/login";
+        }
+
+        List<UsuarioVistaDTO> usuarios = usuarioService.listarPorEmpresa(empresaId);
 
         model.addAttribute("usuarios", usuarios);
         model.addAttribute("rolesAcceso", Usuario.RolAcceso.values());
@@ -57,15 +59,20 @@ public class UsuarioController {
     // 3. Registrar
     @PostMapping("/guardar")
     public String guardarUsuario(@Valid @ModelAttribute("usuario") UsuarioDTO usuario,
-                                 BindingResult resultado,
-                                 Model model,
-                                 RedirectAttributes redirectAttributes) {
+                                BindingResult resultado,
+                                Model model,
+                                HttpSession session,
+                                RedirectAttributes redirectAttributes) {
         model.addAttribute("rolesAcceso", Usuario.RolAcceso.values());
+        Long empresaId = obtenerEmpresaId(session, redirectAttributes);
+        if (empresaId == null) {
+            return "redirect:/usuarios/login";
+        }
         if (resultado.hasErrors()) {
             return "usuarios/formulario";
         }
         try {
-            usuarioService.registrarUsuario(usuario, EMPRESA_ID_MOCK);
+            usuarioService.registrarUsuario(usuario, empresaId);
             redirectAttributes.addFlashAttribute("mensajeExito", "Usuario registrado con éxito.");
         } catch (Exception e) {
             model.addAttribute("mensajeError", e.getMessage());
@@ -112,10 +119,15 @@ public class UsuarioController {
     // 7. Cambiar el rol de acceso de un usuario
     @PostMapping("/rol/{id}")
     public String cambiarRol(@PathVariable Long id,
-                             @RequestParam Usuario.RolAcceso rolAcceso,
-                             RedirectAttributes redirectAttributes) {
+                            @RequestParam Usuario.RolAcceso rolAcceso,
+                            HttpSession session,
+                            RedirectAttributes redirectAttributes) {
+        Long empresaId = obtenerEmpresaId(session, redirectAttributes);
+        if (empresaId == null) {
+            return "redirect:/usuarios/login";
+        }
         try {
-            usuarioService.cambiarRol(id, rolAcceso, EMPRESA_ID_MOCK);
+            usuarioService.cambiarRol(id, rolAcceso, empresaId);
             redirectAttributes.addFlashAttribute("mensajeExito", "Rol actualizado con éxito.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
@@ -125,9 +137,15 @@ public class UsuarioController {
 
     // 8. Desactivar un usuario sin borrarlo
     @PostMapping("/desactivar/{id}")
-    public String desactivarUsuario(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+    public String desactivarUsuario(@PathVariable Long id,
+                                  HttpSession session,
+                                  RedirectAttributes redirectAttributes) {
+        Long empresaId = obtenerEmpresaId(session, redirectAttributes);
+        if (empresaId == null) {
+            return "redirect:/usuarios/login";
+        }
         try {
-            usuarioService.desactivarUsuario(id, EMPRESA_ID_MOCK);
+            usuarioService.desactivarUsuario(id, empresaId);
             redirectAttributes.addFlashAttribute("mensajeExito", "Usuario desactivado correctamente.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
@@ -137,13 +155,28 @@ public class UsuarioController {
 
     // 9. Eliminar
     @PostMapping("/eliminar/{id}")
-    public String eliminarUsuario(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+    public String eliminarUsuario(@PathVariable Long id,
+                                HttpSession session,
+                                RedirectAttributes redirectAttributes) {
+        Long empresaId = obtenerEmpresaId(session, redirectAttributes);
+        if (empresaId == null) {
+            return "redirect:/usuarios/login";
+        }
         try {
-            usuarioService.eliminarUsuario(id, EMPRESA_ID_MOCK);
+            usuarioService.eliminarUsuario(id, empresaId);
             redirectAttributes.addFlashAttribute("mensajeExito", "Usuario eliminado correctamente.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
         }
         return "redirect:/usuarios";
+    }
+
+    private Long obtenerEmpresaId(HttpSession session, RedirectAttributes redirectAttributes) {
+        Object empresaId = session.getAttribute("empresaId");
+        if (empresaId == null) {
+            redirectAttributes.addFlashAttribute("mensajeError", "Debe iniciar sesión para acceder a su empresa.");
+            return null;
+        }
+        return Long.valueOf(empresaId.toString());
     }
 }

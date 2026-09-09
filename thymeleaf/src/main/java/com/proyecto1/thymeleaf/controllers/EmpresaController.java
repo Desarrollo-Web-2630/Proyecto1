@@ -62,9 +62,9 @@ public class EmpresaController {
     // 4. Registrar
     @PostMapping("/guardar")
     public String guardarEmpresa(@Valid @ModelAttribute("empresa") EmpresaDTO empresa,
-                                 BindingResult resultado,
-                                 Model model,
-                                 RedirectAttributes redirectAttributes) {
+                                BindingResult resultado,
+                                Model model,
+                                RedirectAttributes redirectAttributes) {
         if (resultado.hasErrors()) {
             return "empresas/formulario";
         }
@@ -81,8 +81,8 @@ public class EmpresaController {
     // 5. Formulario para editar una empresa existente
     @GetMapping("/editar/{id}")
     public String mostrarFormularioEditar(@PathVariable Long id,
-                                          Model model,
-                                          RedirectAttributes redirectAttributes) {
+                                        Model model,
+                                        RedirectAttributes redirectAttributes) {
         try {
             Empresa empresa = empresaService.obtenerPorId(id);
             model.addAttribute("empresa", modelMapper.map(empresa, EmpresaDTO.class));
