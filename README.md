@@ -6,6 +6,90 @@ El proyecto permite la administración multitenant de empresas, usuarios, roles,
 
 ---
 
+## Diagrama de clases
+
+```mermaid
+classDiagram
+    class Empresa {
+        Long id
+        String nombre
+        String nit
+    }
+
+    class Usuario {
+        Long id
+        String correo
+        String password
+        String nombre
+        boolean activo
+    }
+
+    class Rol {
+        Long id
+        String nombre
+        String descripcion
+    }
+
+    class Proceso {
+        Long id
+        String nombre
+        String clave
+        String descripcion
+    }
+
+    class Pool {
+        Long id
+        String nombre
+    }
+
+    class Lane {
+        Long id
+        String nombre
+    }
+
+    class Actividad {
+        Long id
+        String nombre
+        String tipo
+        String metadata
+    }
+
+    class Arco {
+        Long id
+        String condicion
+        String tipo
+    }
+
+    class Gateway {
+        Long id
+        String tipo
+    }
+
+    class Mensaje {
+        Long id
+        String contenido
+        String correlacion
+    }
+
+    Empresa "1" -- "0..*" Usuario : tiene
+    Empresa "1" -- "0..*" Proceso : posee
+
+    Usuario "0..*" -- "0..*" Rol : asigna
+
+    Proceso "1" -- "0..*" Pool : contiene
+    Pool "1" -- "0..*" Lane : contiene
+    Proceso "1" -- "0..*" Actividad : contiene
+
+    Lane "1" -- "0..*" Actividad : contiene
+
+    Actividad "0..*" -- "0..*" Arco : conecta
+    Arco "1" -- "1" Actividad : origen
+    Arco "1" -- "1" Actividad : destino
+
+    Actividad "0..1" -- "0..1" Gateway : puedeTener
+    Proceso "0..*" -- "0..*" Mensaje : maneja
+    Mensaje "1" -- "1" Actividad : enviado_por / recibido_por
+```
 
 ## Arquitectura y Estructura del Proyecto
 
