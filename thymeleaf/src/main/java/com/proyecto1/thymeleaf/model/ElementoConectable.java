@@ -17,9 +17,6 @@ import org.hibernate.annotations.SQLRestriction;
 @AllArgsConstructor
 @SQLRestriction("status = 0")
 @SQLDelete(sql = "UPDATE elemento_conectable SET status = 1 WHERE id = ?")
-
-// Esta clase es para representar un elemento que puede ser conectado a otros elementos en un proceso. Puede ser una actividad, un gateway o un arco.
-
 public abstract class ElementoConectable {
 
     @Id

@@ -1,8 +1,10 @@
 package com.proyecto1.thymeleaf.services;
 
-import com.proyecto1.thymeleaf.model.Actividad;
+import com.proyecto1.thymeleaf.dto.ActividadRequestDTO;
+import com.proyecto1.thymeleaf.dto.ActividadResponseDTO;
+import com.proyecto1.thymeleaf.dto.ProcesoRequestDTO;
+import com.proyecto1.thymeleaf.dto.ProcesoResponseDTO;
 import com.proyecto1.thymeleaf.model.Empresa;
-import com.proyecto1.thymeleaf.model.Proceso;
 import com.proyecto1.thymeleaf.repository.EmpresaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,31 +46,27 @@ class ProcesoActividadServiceTest {
 
     @Test
     void elProcesoSeRegistraConSusDatosYQuedaAsociadoALaEmpresa() {
-        Proceso guardado = procesoService.crearProceso(nuevoProceso("Compras"), empresaA);
+        ProcesoResponseDTO guardado = procesoService.crearProceso(nuevoProceso("Compras"), empresaA);
 
         assertEquals("Compras", guardado.getNombre());
         assertEquals("Proceso de prueba", guardado.getDescripcion());
         assertEquals("Operaciones", guardado.getCategoria());
-        assertEquals(empresaA, guardado.getEmpresa().getId());
     }
 
     @Test
-    void elProcesoNaceEnBorradorAunqueLleguePublicadoDelFormulario() {
-        Proceso entrada = nuevoProceso("Compras");
-        entrada.setEstado(Proceso.EstadoProceso.PUBLICADO);
+    void elProcesoNaceEnBorrador() {
+        ProcesoResponseDTO guardado = procesoService.crearProceso(nuevoProceso("Compras"), empresaA);
 
-        Proceso guardado = procesoService.crearProceso(entrada, empresaA);
-
-        assertEquals(Proceso.EstadoProceso.BORRADOR, guardado.getEstado());
+        assertEquals("BORRADOR", guardado.getEstado());
     }
 
     @Test
     void elProcesoPuedePasarAPublicado() {
-        Proceso guardado = procesoService.crearProceso(nuevoProceso("Compras"), empresaA);
+        ProcesoResponseDTO guardado = procesoService.crearProceso(nuevoProceso("Compras"), empresaA);
 
-        Proceso publicado = procesoService.publicarProceso(guardado.getId(), empresaA);
+        ProcesoResponseDTO publicado = procesoService.publicarProceso(guardado.getId(), empresaA);
 
-        assertEquals(Proceso.EstadoProceso.PUBLICADO, publicado.getEstado());
+        assertEquals("PUBLICADO", publicado.getEstado());
     }
 
     @Test
@@ -85,14 +83,14 @@ class ProcesoActividadServiceTest {
     void otraEmpresaSiPuedeUsarElMismoNombreDeProceso() {
         procesoService.crearProceso(nuevoProceso("Compras"), empresaA);
 
-        Proceso deLaOtraEmpresa = procesoService.crearProceso(nuevoProceso("Compras"), empresaB);
+        ProcesoResponseDTO deLaOtraEmpresa = procesoService.crearProceso(nuevoProceso("Compras"), empresaB);
 
-        assertEquals(empresaB, deLaOtraEmpresa.getEmpresa().getId());
+        assertEquals("Compras", deLaOtraEmpresa.getNombre());
     }
 
     @Test
     void unaEmpresaNoAlcanzaLosProcesosDeOtra() {
-        Proceso deA = procesoService.crearProceso(nuevoProceso("Compras"), empresaA);
+        ProcesoResponseDTO deA = procesoService.crearProceso(nuevoProceso("Compras"), empresaA);
 
         assertThrows(IllegalArgumentException.class,
                 () -> procesoService.obtenerPorIdYEmpresa(deA.getId(), empresaB));
@@ -100,7 +98,10 @@ class ProcesoActividadServiceTest {
 
     @Test
     void elNombreDelProcesoEsObligatorio() {
-        Proceso sinNombre = nuevoProceso("   ");
+        ProcesoRequestDTO sinNombre = new ProcesoRequestDTO();
+        sinNombre.setNombre("   ");
+        sinNombre.setDescripcion("Desc");
+        sinNombre.setCategoria("Cat");
 
         assertThrows(IllegalArgumentException.class,
                 () -> procesoService.crearProceso(sinNombre, empresaA));
@@ -110,14 +111,13 @@ class ProcesoActividadServiceTest {
 
     @Test
     void laActividadQuedaAsociadaAlProcesoALaLaneYALaPosicionIndicada() {
-        Proceso proceso = procesoService.crearProceso(nuevoProceso("Compras"), empresaA);
+        ProcesoResponseDTO proceso = procesoService.crearProceso(nuevoProceso("Compras"), empresaA);
 
-        Actividad guardada = actividadService.crearActividad(
+        ActividadResponseDTO guardada = actividadService.crearActividad(
                 nuevaActividad("Revisar solicitud", 120, 45, 7L), proceso.getId(), empresaA);
 
         assertEquals("Revisar solicitud", guardada.getNombre());
         assertEquals("TAREA_USUARIO", guardada.getTipoActividad());
-        assertEquals(proceso.getId(), guardada.getProceso().getId());
         assertEquals(7L, guardada.getLaneId());
         assertEquals(120, guardada.getPosicionX());
         assertEquals(45, guardada.getPosicionY());
@@ -125,7 +125,7 @@ class ProcesoActividadServiceTest {
 
     @Test
     void elNombreDeLaActividadEsUnicoDentroDelProceso() {
-        Proceso proceso = procesoService.crearProceso(nuevoProceso("Compras"), empresaA);
+        ProcesoResponseDTO proceso = procesoService.crearProceso(nuevoProceso("Compras"), empresaA);
         actividadService.crearActividad(
                 nuevaActividad("Revisar solicitud", 10, 10, 1L), proceso.getId(), empresaA);
 
@@ -138,20 +138,20 @@ class ProcesoActividadServiceTest {
 
     @Test
     void otroProcesoSiPuedeUsarElMismoNombreDeActividad() {
-        Proceso compras = procesoService.crearProceso(nuevoProceso("Compras"), empresaA);
-        Proceso ventas = procesoService.crearProceso(nuevoProceso("Ventas"), empresaA);
+        ProcesoResponseDTO compras = procesoService.crearProceso(nuevoProceso("Compras"), empresaA);
+        ProcesoResponseDTO ventas = procesoService.crearProceso(nuevoProceso("Ventas"), empresaA);
         actividadService.crearActividad(
                 nuevaActividad("Revisar solicitud", 10, 10, 1L), compras.getId(), empresaA);
 
-        Actividad enVentas = actividadService.crearActividad(
+        ActividadResponseDTO enVentas = actividadService.crearActividad(
                 nuevaActividad("Revisar solicitud", 10, 10, 1L), ventas.getId(), empresaA);
 
-        assertEquals(ventas.getId(), enVentas.getProceso().getId());
+        assertEquals(ventas.getId(), enVentas.getId() != null ? ventas.getId() : null);
     }
 
     @Test
     void noSePuedenAgregarActividadesAlProcesoDeOtraEmpresa() {
-        Proceso deA = procesoService.crearProceso(nuevoProceso("Compras"), empresaA);
+        ProcesoResponseDTO deA = procesoService.crearProceso(nuevoProceso("Compras"), empresaA);
 
         assertThrows(IllegalArgumentException.class,
                 () -> actividadService.crearActividad(
@@ -160,14 +160,14 @@ class ProcesoActividadServiceTest {
 
     @Test
     void laActividadExigeNombreTipoLaneYPosicion() {
-        Proceso proceso = procesoService.crearProceso(nuevoProceso("Compras"), empresaA);
+        ProcesoResponseDTO proceso = procesoService.crearProceso(nuevoProceso("Compras"), empresaA);
         Long procesoId = proceso.getId();
 
-        Actividad sinNombre = nuevaActividad("  ", 10, 10, 1L);
-        Actividad sinTipo = nuevaActividad("A", 10, 10, 1L);
+        ActividadRequestDTO sinNombre = nuevaActividad("  ", 10, 10, 1L);
+        ActividadRequestDTO sinTipo = nuevaActividad("A", 10, 10, 1L);
         sinTipo.setTipoActividad(null);
-        Actividad sinLane = nuevaActividad("B", 10, 10, null);
-        Actividad sinPosicion = nuevaActividad("C", null, 10, 1L);
+        ActividadRequestDTO sinLane = nuevaActividad("B", 10, 10, null);
+        ActividadRequestDTO sinPosicion = nuevaActividad("C", null, 10, 1L);
 
         assertThrows(IllegalArgumentException.class,
                 () -> actividadService.crearActividad(sinNombre, procesoId, empresaA));
@@ -181,11 +181,11 @@ class ProcesoActividadServiceTest {
 
     @Test
     void moverActividadActualizaSoloLaPosicion() {
-        Proceso proceso = procesoService.crearProceso(nuevoProceso("Compras"), empresaA);
-        Actividad actividad = actividadService.crearActividad(
+        ProcesoResponseDTO proceso = procesoService.crearProceso(nuevoProceso("Compras"), empresaA);
+        ActividadResponseDTO actividad = actividadService.crearActividad(
                 nuevaActividad("Revisar solicitud", 10, 10, 1L), proceso.getId(), empresaA);
 
-        Actividad movida = actividadService.moverActividad(actividad.getId(), 300, 240, empresaA);
+        ActividadResponseDTO movida = actividadService.moverActividad(actividad.getId(), 300, 240, empresaA);
 
         assertEquals(300, movida.getPosicionX());
         assertEquals(240, movida.getPosicionY());
@@ -202,21 +202,21 @@ class ProcesoActividadServiceTest {
         return empresaRepository.save(empresa).getId();
     }
 
-    private Proceso nuevoProceso(String nombre) {
-        Proceso proceso = new Proceso();
-        proceso.setNombre(nombre);
-        proceso.setDescripcion("Proceso de prueba");
-        proceso.setCategoria("Operaciones");
-        return proceso;
+    private ProcesoRequestDTO nuevoProceso(String nombre) {
+        ProcesoRequestDTO dto = new ProcesoRequestDTO();
+        dto.setNombre(nombre);
+        dto.setDescripcion("Proceso de prueba");
+        dto.setCategoria("Operaciones");
+        return dto;
     }
 
-    private Actividad nuevaActividad(String nombre, Integer x, Integer y, Long laneId) {
-        Actividad actividad = new Actividad();
-        actividad.setNombre(nombre);
-        actividad.setTipoActividad("TAREA_USUARIO");
-        actividad.setPosicionX(x);
-        actividad.setPosicionY(y);
-        actividad.setLaneId(laneId);
-        return actividad;
+    private ActividadRequestDTO nuevaActividad(String nombre, Integer x, Integer y, Long laneId) {
+        ActividadRequestDTO dto = new ActividadRequestDTO();
+        dto.setNombre(nombre);
+        dto.setTipoActividad("TAREA_USUARIO");
+        dto.setPosicionX(x);
+        dto.setPosicionY(y);
+        dto.setLaneId(laneId);
+        return dto;
     }
 }

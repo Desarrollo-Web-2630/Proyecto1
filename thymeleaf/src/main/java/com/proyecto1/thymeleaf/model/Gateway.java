@@ -23,7 +23,7 @@ public class Gateway {
     private String nombre;
 
     @Enumerated(EnumType.STRING)
-    private TipoGateway tipo; // <--- AQUÍ SE USA EL ENUM
+    private TipoGateway tipo;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "proceso_id", nullable = false)
@@ -33,7 +33,6 @@ public class Gateway {
     @Builder.Default
     private Integer status = 0;
 
-    // DEFINICIÓN DEL ENUM DENTRO DE LA CLASE GATEWAY
     public enum TipoGateway {
         EXCLUSIVO,
         PARALELO,
