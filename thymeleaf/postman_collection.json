@@ -5,7 +5,11 @@
     "description": "Colección con los endpoints principales del backend para pruebas en Postman. Variable `baseUrl` usada para la URL base."
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    }
   ],
   "item": [
     {
@@ -13,23 +17,119 @@
       "item": [
         {
           "name": "1 - Crear empresa (ejemplo)",
-          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Empresa Test\",\n  \"nit\": \"123456789\",\n  \"correo\": \"empresa@example.com\"\n}" }, "url": "{{baseUrl}}/api/v1/empresas" }
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Empresa Test\",\n  \"nit\": \"123456789\",\n  \"correo\": \"empresa@example.com\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/empresas",
+            "auth": {
+              "type": "noauth"
+            }
+          }
         },
         {
           "name": "2 - Crear usuario (ejemplo)",
-          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Mariana Osorio\",\n  \"correo\": \"mariana-osoriov@javeriana.edu.co\",\n  \"password\": \"Password1A\",\n  \"rolAcceso\": \"EDITOR\",\n  \"empresaId\": 1\n}" }, "url": "{{baseUrl}}/api/v1/usuarios" }
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Mariana Osorio\",\n  \"correo\": \"mariana-osoriov@javeriana.edu.co\",\n  \"password\": \"Password1A\",\n  \"rolAcceso\": \"EDITOR\",\n  \"empresaId\": 1\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/usuarios"
+          }
         },
         {
           "name": "3 - Reenviar verificación (persistente)",
-          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"correo\": \"mariana-osoriov@javeriana.edu.co\"\n}" }, "url": "{{baseUrl}}/api/auth/reenviar-verificacion" }
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"mariana-osoriov@javeriana.edu.co\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/reenviar-verificacion",
+            "auth": {
+              "type": "noauth"
+            }
+          }
         },
         {
           "name": "4 - Envío debug (genera debugToken si no existe usuario)",
-          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"to\": \"mariana-osoriov@javeriana.edu.co\",\n  \"name\": \"Mariana\"\n}" }, "url": "{{baseUrl}}/api/v1/debug/email" }
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"mariana-osoriov@javeriana.edu.co\",\n  \"name\": \"Mariana\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/debug/email"
+          }
         },
         {
           "name": "5 - Verificar token (GET)",
-          "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/auth/verificar-correo?token={{token}}" }
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/auth/verificar-correo?token={{token}}",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Activar cuenta (fija la contrasena del admin inicial)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/activar-cuenta",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "activar-cuenta"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{token}}\",\n  \"nuevaPassword\": \"ClaveSegura123\"\n}"
+            },
+            "description": "El token llega por correo (o al log si APP_MAIL_ENABLED=false). Pegalo en la variable de entorno {{token}}. Despues de esto, inicia sesion con ese correo y ClaveSegura123."
+          }
         }
       ]
     },
@@ -54,12 +154,20 @@
           "name": "Crear empresa",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nombre\": \"Mi Empresa S.A.\",\n  \"nit\": \"900123456-7\",\n  \"correo\": \"contacto@miempresa.com\"\n}"
             },
-            "url": "{{baseUrl}}/api/v1/empresas"
+            "url": "{{baseUrl}}/api/v1/empresas",
+            "auth": {
+              "type": "noauth"
+            }
           }
         }
       ]
@@ -69,60 +177,158 @@
       "item": [
         {
           "name": "Listar usuarios",
-          "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/usuarios" }
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/usuarios"
+          }
         },
         {
           "name": "Obtener usuario",
-          "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/usuarios/1" }
-        },
-        {
-        "name": "Registrar usuario",
-        "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Juan Perez\",\n  \"correo\": \"juan.perez@example.com\",\n  \"password\": \"DevPass123\",\n  \"rolAcceso\": \"EDITOR\"\n}" },
-            "url": "{{baseUrl}}/api/v1/usuarios"
-        }
-        },
-        {
-        "name": "Login (provisional)",
-        "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"correo\": \"juan.perez@example.com\",\n  \"password\": \"DevPass123\"\n}" },
-            "url": "{{baseUrl}}/api/v1/usuarios/login"
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/usuarios/1"
           }
+        },
+        {
+          "name": "Registrar usuario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Juan Perez\",\n  \"correo\": \"juan.perez@example.com\",\n  \"password\": \"DevPass123\",\n  \"rolAcceso\": \"EDITOR\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/usuarios"
+          }
+        },
+        {
+          "name": "Login (provisional)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"juan.perez@example.com\",\n  \"password\": \"DevPass123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/usuarios/login",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var body = pm.response.json();",
+                  "    pm.environment.set('jwt', body.token);",
+                  "    pm.test('Login OK: token guardado en {{jwt}}', function () { pm.expect(body.token).to.be.a('string'); });",
+                  "} else {",
+                  "    pm.test('Login fallido (401 sin cuerpo: no revela si el correo existe)', function () { pm.expect(pm.response.code).to.eql(401); });",
+                  "}"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
       "name": "Procesos",
       "item": [
-        { "name": "Listar procesos", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/procesos" } },
-        { "name": "Obtener proceso", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/procesos/1" } },
+        {
+          "name": "Listar procesos",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/procesos"
+          }
+        },
+        {
+          "name": "Obtener proceso",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/procesos/1"
+          }
+        },
         {
           "name": "Crear proceso",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Proceso de venta\",\n  \"descripcion\": \"Flujo de venta de producto\",\n  \"categoria\": \"Comercial\"\n}" },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Proceso de venta\",\n  \"descripcion\": \"Flujo de venta de producto\",\n  \"categoria\": \"Comercial\"\n}"
+            },
             "url": "{{baseUrl}}/api/v1/procesos"
           }
         },
-        { "name": "Actualizar proceso", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Proceso actualizado\",\n  \"descripcion\": \"Descripcion nueva\",\n  \"categoria\": \"Operativo\"\n}" }, "url": "{{baseUrl}}/api/v1/procesos/1" } },
-        { "name": "Publicar proceso", "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/procesos/1/publicar" } }
+        {
+          "name": "Actualizar proceso",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Proceso actualizado\",\n  \"descripcion\": \"Descripcion nueva\",\n  \"categoria\": \"Operativo\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/procesos/1"
+          }
+        },
+        {
+          "name": "Publicar proceso",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/procesos/1/publicar"
+          }
+        }
       ]
     },
     {
       "name": "Actividades",
       "item": [
-        { "name": "Listar actividades (por proceso)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/procesos/1/actividades" } },
+        {
+          "name": "Listar actividades (por proceso)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/procesos/1/actividades"
+          }
+        },
         {
           "name": "Crear actividad",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Tarea 1\",\n  \"tipoActividad\": \"Manual\",\n  \"laneId\": 1,\n  \"posicionX\": 100,\n  \"posicionY\": 200\n}" },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Tarea 1\",\n  \"tipoActividad\": \"Manual\",\n  \"laneId\": 1,\n  \"posicionX\": 100,\n  \"posicionY\": 200\n}"
+            },
             "url": "{{baseUrl}}/api/v1/procesos/1/actividades"
           }
         }
@@ -131,13 +337,27 @@
     {
       "name": "Arcos",
       "item": [
-        { "name": "Listar arcos", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/procesos/1/arcos" } },
+        {
+          "name": "Listar arcos",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/procesos/1/arcos"
+          }
+        },
         {
           "name": "Crear arco",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Arco A-B\",\n  \"condicion\": \"\",\n  \"origenId\": 10,\n  \"destinoId\": 11\n}" },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Arco A-B\",\n  \"condicion\": \"\",\n  \"origenId\": 10,\n  \"destinoId\": 11\n}"
+            },
             "url": "{{baseUrl}}/api/v1/procesos/1/arcos"
           }
         }
@@ -146,13 +366,27 @@
     {
       "name": "Gateways",
       "item": [
-        { "name": "Listar gateways", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/procesos/1/gateways" } },
+        {
+          "name": "Listar gateways",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/procesos/1/gateways"
+          }
+        },
         {
           "name": "Crear gateway",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Decision 1\",\n  \"tipoGateway\": \"EXCLUSIVE\"\n}" },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Decision 1\",\n  \"tipoGateway\": \"EXCLUSIVE\"\n}"
+            },
             "url": "{{baseUrl}}/api/v1/procesos/1/gateways"
           }
         }
@@ -161,9 +395,31 @@
     {
       "name": "Elementos",
       "item": [
-        { "name": "Listar elementos", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/procesos/1/elementos" } },
-        { "name": "Actualizar posicion elemento", "request": { "method": "PATCH", "url": "{{baseUrl}}/api/v1/procesos/1/elementos/10/posicion?x=150&y=250" } }
+        {
+          "name": "Listar elementos",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/procesos/1/elementos"
+          }
+        },
+        {
+          "name": "Actualizar posicion elemento",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/v1/procesos/1/elementos/10/posicion?x=150&y=250"
+          }
+        }
       ]
     }
-  ]
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwt}}",
+        "type": "string"
+      }
+    ]
+  }
 }

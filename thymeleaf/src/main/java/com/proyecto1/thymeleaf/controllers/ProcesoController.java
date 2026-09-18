@@ -1,8 +1,14 @@
 package com.proyecto1.thymeleaf.controllers;
 
 import com.proyecto1.thymeleaf.dto.ProcesoDTO;
+import com.proyecto1.thymeleaf.dto.ProcesoRespuestaDTO;
 import com.proyecto1.thymeleaf.model.Proceso;
+import com.proyecto1.thymeleaf.security.ContextoSeguridad;
 import com.proyecto1.thymeleaf.services.ProcesoService;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,45 +20,79 @@ import java.util.List;
 public class ProcesoController {
 
     private final ProcesoService procesoService;
-    private final Long EMPRESA_ID_MOCK = 1L;
 
     public ProcesoController(ProcesoService procesoService) {
         this.procesoService = procesoService;
     }
 
+    // Activos por defecto; ?incluirInactivos=true para verlos todos (HU-07)
     @GetMapping
-    public ResponseEntity<List<Proceso>> listar() {
-        List<Proceso> procesos = procesoService.listarPorEmpresa(EMPRESA_ID_MOCK);
+    public ResponseEntity<List<ProcesoRespuestaDTO>> listar(@RequestParam(defaultValue = "false") boolean incluirInactivos) {
+        List<ProcesoRespuestaDTO> procesos = procesoService
+                .listarPorEmpresa(ContextoSeguridad.empresaIdActual(), incluirInactivos)
+                .stream().map(ProcesoRespuestaDTO::desde).toList();
         return ResponseEntity.ok(procesos);
     }
 
+    /**
+     * HU-07: busqueda por nombre, filtros por estado y categoria, paginacion.
+     * Ejemplo: /api/v1/procesos/buscar?nombre=compra&estado=PUBLICADO&page=0&size=10
+     */
+    @GetMapping("/buscar")
+    public ResponseEntity<Page<ProcesoRespuestaDTO>> buscar(@RequestParam(required = false) String nombre,
+                                                            @RequestParam(required = false) Proceso.EstadoProceso estado,
+                                                            @RequestParam(required = false) String categoria,
+                                                            @RequestParam(defaultValue = "false") boolean incluirInactivos,
+                                                            @RequestParam(defaultValue = "0") int page,
+                                                            @RequestParam(defaultValue = "10") int size) {
+        // Tope de tamano de pagina para que nadie pida 10 millones de filas de golpe
+        int tamano = Math.min(Math.max(size, 1), 100);
+        Page<ProcesoRespuestaDTO> resultado = procesoService.buscar(
+                        ContextoSeguridad.empresaIdActual(), nombre, estado, categoria, incluirInactivos,
+                        PageRequest.of(Math.max(page, 0), tamano, Sort.by("nombre").ascending()))
+                .map(ProcesoRespuestaDTO::desde);
+        return ResponseEntity.ok(resultado);
+    }
+
     @GetMapping("/{id}")
-    public ResponseEntity<Proceso> obtener(@PathVariable Long id) {
-        Proceso proceso = procesoService.obtenerPorIdYEmpresa(id, EMPRESA_ID_MOCK);
-        return ResponseEntity.ok(proceso);
+    public ResponseEntity<ProcesoRespuestaDTO> obtener(@PathVariable Long id) {
+        Proceso proceso = procesoService.obtenerPorIdYEmpresa(id, ContextoSeguridad.empresaIdActual());
+        return ResponseEntity.ok(ProcesoRespuestaDTO.desde(proceso));
     }
 
     @PostMapping
-    public ResponseEntity<Proceso> crear(@RequestBody ProcesoDTO datos) {
-        Proceso creado = procesoService.crearProceso(datos, EMPRESA_ID_MOCK);
-        return ResponseEntity.status(HttpStatus.CREATED).body(creado);
+    public ResponseEntity<ProcesoRespuestaDTO> crear(@Valid @RequestBody ProcesoDTO datos) {
+        Proceso creado = procesoService.crearProceso(datos, ContextoSeguridad.empresaIdActual());
+        return ResponseEntity.status(HttpStatus.CREATED).body(ProcesoRespuestaDTO.desde(creado));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Proceso> actualizar(@PathVariable Long id, @RequestBody ProcesoDTO datos) {
-        Proceso actualizado = procesoService.actualizarProceso(id, datos, EMPRESA_ID_MOCK);
-        return ResponseEntity.ok(actualizado);
+    public ResponseEntity<ProcesoRespuestaDTO> actualizar(@PathVariable Long id, @Valid @RequestBody ProcesoDTO datos) {
+        Proceso actualizado = procesoService.actualizarProceso(id, datos, ContextoSeguridad.empresaIdActual());
+        return ResponseEntity.ok(ProcesoRespuestaDTO.desde(actualizado));
     }
 
     @PostMapping("/{id}/publicar")
-    public ResponseEntity<Proceso> publicar(@PathVariable Long id) {
-        Proceso publicado = procesoService.publicarProceso(id, EMPRESA_ID_MOCK);
-        return ResponseEntity.ok(publicado);
+    public ResponseEntity<ProcesoRespuestaDTO> publicar(@PathVariable Long id) {
+        return ResponseEntity.ok(ProcesoRespuestaDTO.desde(
+                procesoService.publicarProceso(id, ContextoSeguridad.empresaIdActual())));
+    }
+
+    @PostMapping("/{id}/inactivar")
+    public ResponseEntity<ProcesoRespuestaDTO> inactivar(@PathVariable Long id) {
+        return ResponseEntity.ok(ProcesoRespuestaDTO.desde(
+                procesoService.inactivarProceso(id, ContextoSeguridad.empresaIdActual())));
+    }
+
+    @PostMapping("/{id}/reactivar")
+    public ResponseEntity<ProcesoRespuestaDTO> reactivar(@PathVariable Long id) {
+        return ResponseEntity.ok(ProcesoRespuestaDTO.desde(
+                procesoService.reactivarProceso(id, ContextoSeguridad.empresaIdActual())));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
-        procesoService.eliminarProceso(id, EMPRESA_ID_MOCK);
+        procesoService.eliminarProceso(id, ContextoSeguridad.empresaIdActual());
         return ResponseEntity.noContent().build();
     }
 }

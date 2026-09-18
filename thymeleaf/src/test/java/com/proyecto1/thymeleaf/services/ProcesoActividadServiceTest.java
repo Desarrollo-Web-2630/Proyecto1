@@ -5,11 +5,19 @@ import com.proyecto1.thymeleaf.dto.EmpresaDTO;
 import com.proyecto1.thymeleaf.dto.ProcesoDTO;
 import com.proyecto1.thymeleaf.model.Actividad;
 import com.proyecto1.thymeleaf.model.Proceso;
+import com.proyecto1.thymeleaf.model.Usuario;
+import com.proyecto1.thymeleaf.security.UsuarioPrincipal;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -39,6 +47,21 @@ class ProcesoActividadServiceTest {
     void prepararEmpresas() {
         empresaA = crearEmpresa("Empresa A", "900111222");
         empresaB = crearEmpresa("Empresa B", "900333444");
+
+        // ActividadService.eliminarActividad y ArcoService.eliminarArco exigen
+        // un administrador autenticado (HU-10, HU-13). El chequeo de empresa
+        // (findByIdAndEmpresaId) sigue corriendo antes y es el que produce el
+        // IllegalArgumentException en los tests de aislamiento entre
+        // empresas, asi que autenticar aqui con un id de empresa cualquiera
+        // no debilita esas pruebas.
+        UsuarioPrincipal admin = new UsuarioPrincipal(1L, empresaA, Usuario.RolAcceso.ADMIN, "admin@prueba.com");
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(admin, null, List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
+    }
+
+    @AfterEach
+    void limpiarContextoDeSeguridad() {
+        SecurityContextHolder.clearContext();
     }
 
     // ---------- HU-04 - Crear proceso ----------

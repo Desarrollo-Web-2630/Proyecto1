@@ -6,6 +6,7 @@ import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.model.Usuario;
 import com.proyecto1.thymeleaf.repository.EmpresaRepository;
 import com.proyecto1.thymeleaf.repository.UsuarioRepository;
+import com.proyecto1.thymeleaf.security.ContextoSeguridad;
 import com.proyecto1.thymeleaf.util.PasswordUtil;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,6 +25,12 @@ import java.util.Optional;
  *
  * Las lecturas devuelven UsuarioVistaDTO en vez de la entidad, para que la
  * contrasena no salga de esta capa.
+ *
+ * Un usuario nuevo nace inactivo y recibe un correo de verificacion: aunque
+ * aqui el administrador ya eligio su contrasena (a diferencia del admin
+ * inicial de EmpresaService, que no tiene ninguna utilizable), igual se exige
+ * verificar el correo antes de poder iniciar sesion, para evitar cuentas
+ * creadas con un correo mal escrito o que no le pertenece a esa persona.
  */
 @Service
 @Transactional
@@ -33,19 +40,23 @@ public class UsuarioService {
     private final EmpresaRepository empresaRepository;
     private final ModelMapper modelMapper;
     private final PasswordEncoder passwordEncoder;
+    private final VerificacionCorreoService verificacionCorreoService;
 
     public UsuarioService(UsuarioRepository usuarioRepository,
                         EmpresaRepository empresaRepository,
                         ModelMapper modelMapper,
-                        PasswordEncoder passwordEncoder) {
+                        PasswordEncoder passwordEncoder,
+                        VerificacionCorreoService verificacionCorreoService) {
         this.usuarioRepository = usuarioRepository;
         this.empresaRepository = empresaRepository;
         this.modelMapper = modelMapper;
         this.passwordEncoder = passwordEncoder;
+        this.verificacionCorreoService = verificacionCorreoService;
     }
 
-    // 1. Registrar un usuario dentro de una empresa
+    // 1. Registrar un usuario dentro de una empresa (solo un administrador invita)
     public Usuario registrarUsuario(UsuarioDTO datos, Long empresaId) {
+        ContextoSeguridad.exigirAdmin("registrar nuevos usuarios");
         validarDatosObligatorios(datos);
 
         Empresa empresa = empresaRepository.findById(empresaId)
@@ -60,7 +71,7 @@ public class UsuarioService {
         }
 
         if (!PasswordUtil.cumpleReglasBasicas(password)) {
-            throw new IllegalArgumentException("La contraseña debe tener al menos 8 caracteres, incluir mayúscula, minúscula y un número");
+            throw new IllegalArgumentException("La contrasena debe tener al menos 8 caracteres, incluir mayuscula, minuscula y un numero");
         }
 
         Usuario usuario = new Usuario();
@@ -69,12 +80,16 @@ public class UsuarioService {
         usuario.setPassword(passwordEncoder.encode(password));
         usuario.setRolAcceso(datos.getRolAcceso());
         usuario.setEmpresa(empresa);
-        usuario.setActivo(true);
+        // Inactivo hasta verificar el correo (HU-03: "rechazar usuarios inactivos").
+        usuario.setActivo(false);
 
-        return usuarioRepository.save(usuario);
+        Usuario guardado = usuarioRepository.save(usuario);
+        verificacionCorreoService.crearYEnviarToken(guardado);
+
+        return guardado;
     }
 
-    // 2. Iniciar sesion (provisional, mientras entra Spring Security)
+    // 2. Iniciar sesion
     @Transactional(readOnly = true)
     public Optional<Usuario> login(String correo, String password) {
         if (correo == null || correo.isBlank() || password == null || password.isBlank()) {
@@ -102,15 +117,17 @@ public class UsuarioService {
                 .orElseThrow(() -> new IllegalArgumentException("El usuario no existe o no pertenece a su empresa"));
     }
 
-    // 5. Desactivar un usuario
+    // 5. Desactivar un usuario (solo un administrador)
     public Usuario desactivarUsuario(Long id, Long empresaId) {
+        ContextoSeguridad.exigirAdmin("desactivar usuarios");
         Usuario usuario = obtenerPorIdYEmpresa(id, empresaId);
         usuario.setActivo(false);
         return usuarioRepository.save(usuario);
     }
 
-    // 6. Cambiar el rol de acceso de un usuario
+    // 6. Cambiar el rol de acceso de un usuario (solo un administrador)
     public Usuario cambiarRol(Long id, Usuario.RolAcceso nuevoRol, Long empresaId) {
+        ContextoSeguridad.exigirAdmin("cambiar el rol de un usuario");
         if (nuevoRol == null) {
             throw new IllegalArgumentException("El nuevo rol de acceso es obligatorio");
         }
@@ -119,8 +136,9 @@ public class UsuarioService {
         return usuarioRepository.save(usuario);
     }
 
-    // 7. Eliminar un usuario
+    // 7. Eliminar un usuario (solo un administrador)
     public void eliminarUsuario(Long id, Long empresaId) {
+        ContextoSeguridad.exigirAdmin("eliminar usuarios");
         Usuario usuario = obtenerPorIdYEmpresa(id, empresaId);
         usuarioRepository.delete(usuario);
     }
@@ -139,10 +157,10 @@ public class UsuarioService {
             throw new IllegalArgumentException("El correo del usuario es obligatorio");
         }
         if (!datos.getCorreo().trim().matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
-            throw new IllegalArgumentException("El correo no tiene un formato válido");
+            throw new IllegalArgumentException("El correo no tiene un formato valido");
         }
         if (datos.getPassword() == null || datos.getPassword().isBlank()) {
-            throw new IllegalArgumentException("La contraseña del usuario es obligatoria");
+            throw new IllegalArgumentException("La contrasena del usuario es obligatoria");
         }
         if (datos.getRolAcceso() == null) {
             throw new IllegalArgumentException("El rol de acceso es obligatorio");
@@ -167,7 +185,7 @@ public class UsuarioService {
     private String normalizarPassword(String password) {
         String texto = password == null ? "" : password.trim();
         if (texto.isEmpty()) {
-            throw new IllegalArgumentException("La contraseña del usuario es obligatoria");
+            throw new IllegalArgumentException("La contrasena del usuario es obligatoria");
         }
         return texto;
     }

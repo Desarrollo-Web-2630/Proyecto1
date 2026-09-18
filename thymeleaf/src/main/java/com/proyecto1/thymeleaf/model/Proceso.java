@@ -42,6 +42,8 @@ public class Proceso {
     @JoinColumn(name = "empresa_id", nullable = false)
     private Empresa empresa;
 
+    // Coleccion inversa: nunca se serializa (ver Empresa.usuarios).
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @OneToMany(mappedBy = "proceso", fetch = FetchType.LAZY)
     private List<Actividad> actividades = new ArrayList<>();
 
@@ -50,6 +52,9 @@ public class Proceso {
 
     public enum EstadoProceso {
         BORRADOR,
-        PUBLICADO
+        PUBLICADO,
+        // Oculto de los listados por defecto sin borrarlo: distinto del borrado
+        // logico (status=1), que lo saca de toda consulta.
+        INACTIVO
     }
 }

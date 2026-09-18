@@ -10,4 +10,9 @@ public interface VerificacionTokenRepository extends JpaRepository<VerificacionT
     Optional<VerificacionToken> findByToken(String token);
 
     void deleteByToken(String token);
+
+    // Cuantos tokens de este usuario expiran despues de un instante dado. Como
+    // todos se crean con la misma vigencia, sirve para saber cuantos se
+    // generaron en la ultima hora sin agregar una columna de fecha.
+    long countByUsuarioIdAndExpiracionAfter(Long usuarioId, java.time.Instant instante);
 }

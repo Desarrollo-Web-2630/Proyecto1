@@ -1,7 +1,7 @@
 package com.proyecto1.thymeleaf.controllers;
 
 import com.proyecto1.thymeleaf.dto.EmpresaDTO;
-import com.proyecto1.thymeleaf.model.Empresa;
+import com.proyecto1.thymeleaf.dto.EmpresaRespuestaDTO;
 import com.proyecto1.thymeleaf.services.EmpresaService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -21,25 +21,25 @@ public class EmpresaController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Empresa>> listar() {
-        return ResponseEntity.ok(empresaService.listarTodas());
+    public ResponseEntity<List<EmpresaRespuestaDTO>> listar() {
+        return ResponseEntity.ok(empresaService.listarTodas().stream().map(EmpresaRespuestaDTO::desde).toList());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Empresa> obtener(@PathVariable Long id) {
-        return ResponseEntity.ok(empresaService.obtenerPorId(id));
+    public ResponseEntity<EmpresaRespuestaDTO> obtener(@PathVariable Long id) {
+        return ResponseEntity.ok(EmpresaRespuestaDTO.desde(empresaService.obtenerPorId(id)));
     }
 
+    // Publico: registra la empresa y su administrador inicial (inactivo hasta activar la cuenta)
     @PostMapping
-    public ResponseEntity<Empresa> crear(@Valid @RequestBody EmpresaDTO datos) {
-        Empresa creado = empresaService.registrarEmpresa(datos);
-        return ResponseEntity.status(HttpStatus.CREATED).body(creado);
+    public ResponseEntity<EmpresaRespuestaDTO> crear(@Valid @RequestBody EmpresaDTO datos) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(EmpresaRespuestaDTO.desde(empresaService.registrarEmpresa(datos)));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Empresa> actualizar(@PathVariable Long id, @Valid @RequestBody EmpresaDTO datos) {
-        Empresa actualizado = empresaService.actualizarEmpresa(id, datos);
-        return ResponseEntity.ok(actualizado);
+    public ResponseEntity<EmpresaRespuestaDTO> actualizar(@PathVariable Long id, @Valid @RequestBody EmpresaDTO datos) {
+        return ResponseEntity.ok(EmpresaRespuestaDTO.desde(empresaService.actualizarEmpresa(id, datos)));
     }
 
     @DeleteMapping("/{id}")

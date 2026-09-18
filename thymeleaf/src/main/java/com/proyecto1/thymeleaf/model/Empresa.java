@@ -37,6 +37,11 @@ public class Empresa {
     @Column(nullable = false)
     private Integer status = 0;
 
+    // Coleccion inversa: nunca se serializa. Sin esto, devolver cualquier
+    // entidad que llegue a Empresa (Proceso.empresa, por ejemplo) produce
+    // empresa -> usuarios -> usuario.empresa -> usuarios -> ... hasta que
+    // Jackson corta por profundidad, con decenas de KB por respuesta.
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @OneToMany(mappedBy = "empresa", fetch = FetchType.LAZY)
     private List<Usuario> usuarios = new ArrayList<>();
 }
