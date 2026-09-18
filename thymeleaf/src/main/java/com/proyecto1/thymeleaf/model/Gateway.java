@@ -1,8 +1,14 @@
 package com.proyecto1.thymeleaf.model;
 
-import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.SQLDelete;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.SQLRestriction;
 
 @Entity
@@ -10,30 +16,18 @@ import org.hibernate.annotations.SQLRestriction;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@SuperBuilder
 @SQLRestriction("status = 0")
-@SQLDelete(sql = "UPDATE gateways SET status = 1 WHERE id = ?")
-public class Gateway {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    private String nombre;
+public class Gateway extends ElementoConectable {
 
     @Enumerated(EnumType.STRING)
-    private TipoGateway tipo; // <--- AQUÍ SE USA EL ENUM
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "proceso_id", nullable = false)
-    private Proceso proceso;
-
     @Column(nullable = false)
-    @Builder.Default
-    private Integer status = 0;
+    private TipoGateway tipo;
 
-    // DEFINICIÓN DEL ENUM DENTRO DE LA CLASE GATEWAY
+    public boolean requiereCondicionEnSalidas() {
+        return tipo == TipoGateway.EXCLUSIVO || tipo == TipoGateway.INCLUSIVO;
+    }
+
     public enum TipoGateway {
         EXCLUSIVO,
         PARALELO,
