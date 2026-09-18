@@ -5,9 +5,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -47,6 +53,39 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Map<String, Object>> manejarConstraint(ConstraintViolationException e) {
         return construir(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
+    // Peticiones mal formadas: son culpa del cliente, no un fallo del servidor.
+    // Sin estos manejadores caerian en el Exception generico y saldrian como 500.
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> manejarCuerpoIlegible(HttpMessageNotReadableException e) {
+        return construir(HttpStatus.BAD_REQUEST,
+                "El cuerpo de la peticion no es un JSON valido o contiene un valor no permitido");
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, Object>> manejarTipoInvalido(MethodArgumentTypeMismatchException e) {
+        return construir(HttpStatus.BAD_REQUEST, "El parametro '" + e.getName() + "' tiene un valor invalido");
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<Map<String, Object>> manejarParametroFaltante(MissingServletRequestParameterException e) {
+        return construir(HttpStatus.BAD_REQUEST, "Falta el parametro obligatorio '" + e.getParameterName() + "'");
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<Map<String, Object>> manejarMetodoNoSoportado(HttpRequestMethodNotSupportedException e) {
+        return construir(HttpStatus.METHOD_NOT_ALLOWED, "El metodo " + e.getMethod() + " no esta soportado en esta ruta");
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<Map<String, Object>> manejarTipoDeContenido(HttpMediaTypeNotSupportedException e) {
+        return construir(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "El cuerpo debe enviarse como application/json");
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> manejarRutaInexistente(NoResourceFoundException e) {
+        return construir(HttpStatus.NOT_FOUND, "La ruta solicitada no existe");
     }
 
     // Cualquier otra cosa: no se filtra el mensaje real, solo se registra en el log

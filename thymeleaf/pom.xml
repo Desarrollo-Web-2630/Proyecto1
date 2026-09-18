@@ -34,9 +34,12 @@
       <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
     <!-- Thymeleaf removed for backend-only build -->
+    <!-- Solo BCrypt para cifrar contrasenas. Spring Security completo (filtros,
+         login, JWT) es de la entrega final; con el starter en el classpath y sin
+         configuracion propia, Spring bloquea todo con su pantalla de login. -->
     <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-security</artifactId>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-crypto</artifactId>
     </dependency>
 
     <!-- Verificar correo -->

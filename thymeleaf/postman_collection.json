@@ -350,7 +350,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Decision 1\",\n  \"tipoGateway\": \"EXCLUSIVE\"\n}"
+              "raw": "{\n  \"nombre\": \"Decision 1\",\n  \"tipo\": \"EXCLUSIVO\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/procesos/1/gateways"
           }
