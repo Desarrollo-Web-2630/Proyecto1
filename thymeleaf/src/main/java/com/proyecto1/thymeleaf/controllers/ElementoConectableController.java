@@ -1,7 +1,7 @@
 package com.proyecto1.thymeleaf.controllers;
 
 import com.proyecto1.thymeleaf.dto.ElementoRespuestaDTO;
-import com.proyecto1.thymeleaf.security.ContextoSeguridad;
+import com.proyecto1.thymeleaf.util.EmpresaActual;
 import com.proyecto1.thymeleaf.services.ElementoConectableService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,7 +22,7 @@ public class ElementoConectableController {
     @GetMapping
     public ResponseEntity<List<ElementoRespuestaDTO>> listarPorProceso(@PathVariable Long procesoId) {
         return ResponseEntity.ok(elementoConectableService
-                .listarElementosPorProcesoYEmpresa(procesoId, ContextoSeguridad.empresaIdActual())
+                .listarElementosPorProcesoYEmpresa(procesoId, EmpresaActual.id())
                 .stream().map(ElementoRespuestaDTO::desde).toList());
     }
 
@@ -31,7 +31,7 @@ public class ElementoConectableController {
     public ResponseEntity<ElementoRespuestaDTO> obtenerPorId(@PathVariable Long procesoId,
                                                              @PathVariable Long id) {
         return ResponseEntity.ok(ElementoRespuestaDTO.desde(
-                elementoConectableService.obtenerPorIdYEmpresa(id, ContextoSeguridad.empresaIdActual())));
+                elementoConectableService.obtenerPorIdYEmpresa(id, EmpresaActual.id())));
     }
 
     // 3. UPDATE POSITION - Actualizar coordenadas X e Y
@@ -40,7 +40,7 @@ public class ElementoConectableController {
                                                 @PathVariable Long id,
                                                 @RequestParam Integer x,
                                                 @RequestParam Integer y) {
-        elementoConectableService.actualizarPosiciones(id, x, y, ContextoSeguridad.empresaIdActual());
+        elementoConectableService.actualizarPosiciones(id, x, y, EmpresaActual.id());
         return ResponseEntity.ok().build();
     }
 
@@ -48,7 +48,7 @@ public class ElementoConectableController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long procesoId,
                                         @PathVariable Long id) {
-        elementoConectableService.eliminarElemento(id, ContextoSeguridad.empresaIdActual());
+        elementoConectableService.eliminarElemento(id, EmpresaActual.id());
         return ResponseEntity.noContent().build();
     }
 }

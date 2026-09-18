@@ -5,7 +5,6 @@ import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.model.Usuario;
 import com.proyecto1.thymeleaf.repository.EmpresaRepository;
 import com.proyecto1.thymeleaf.repository.UsuarioRepository;
-import com.proyecto1.thymeleaf.security.ContextoSeguridad;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,21 +46,15 @@ public class EmpresaService {
         this.verificacionCorreoService = verificacionCorreoService;
     }
 
-    // 1. "Listar" para un usuario normal es ver la propia empresa, no las de
-    //    los demas: sin este filtro, cualquier usuario autenticado de
-    //    cualquier empresa podia ver el nombre, NIT y correo de contacto de
-    //    todas las empresas del sistema con GET /api/v1/empresas.
+    // 1. Listar todas las empresas registradas
     @Transactional(readOnly = true)
     public List<Empresa> listarTodas() {
-        return empresaRepository.findById(ContextoSeguridad.empresaIdActual())
-                .map(List::of)
-                .orElseGet(List::of);
+        return empresaRepository.findAll();
     }
 
-    // 2. Obtener una empresa por su id: solo la propia, nunca la de otro tenant
+    // 2. Obtener una empresa por su id
     @Transactional(readOnly = true)
     public Empresa obtenerPorId(Long id) {
-        ContextoSeguridad.exigirPropiaEmpresa(id);
         return empresaRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("La empresa no existe"));
     }
@@ -105,10 +98,9 @@ public class EmpresaService {
         return empresaGuardada;
     }
 
-    // 4. Actualizar los datos de una empresa (solo el administrador de esa empresa)
+    // 4. Actualizar los datos de una empresa
     public Empresa actualizarEmpresa(Long id, EmpresaDTO datos) {
         Empresa empresaExistente = obtenerPorId(id);
-        ContextoSeguridad.exigirAdmin("editar los datos de la empresa");
         validarEmpresa(datos);
 
         String nit = normalizar(datos.getNit(), "El NIT de la empresa es obligatorio");
@@ -130,10 +122,9 @@ public class EmpresaService {
         return empresaRepository.save(empresaExistente);
     }
 
-    // 5. Eliminar (borrado logico via @SQLDelete; solo el administrador de esa empresa)
+    // 5. Eliminar (borrado logico via @SQLDelete)
     public void eliminarEmpresa(Long id) {
         Empresa empresa = obtenerPorId(id);
-        ContextoSeguridad.exigirAdmin("eliminar la empresa");
         empresaRepository.delete(empresa);
     }
 

@@ -6,7 +6,6 @@ import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.model.Usuario;
 import com.proyecto1.thymeleaf.repository.EmpresaRepository;
 import com.proyecto1.thymeleaf.repository.UsuarioRepository;
-import com.proyecto1.thymeleaf.security.ContextoSeguridad;
 import com.proyecto1.thymeleaf.util.PasswordUtil;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -54,9 +53,8 @@ public class UsuarioService {
         this.verificacionCorreoService = verificacionCorreoService;
     }
 
-    // 1. Registrar un usuario dentro de una empresa (solo un administrador invita)
+    // 1. Registrar un usuario dentro de una empresa
     public Usuario registrarUsuario(UsuarioDTO datos, Long empresaId) {
-        ContextoSeguridad.exigirAdmin("registrar nuevos usuarios");
         validarDatosObligatorios(datos);
 
         Empresa empresa = empresaRepository.findById(empresaId)
@@ -117,17 +115,15 @@ public class UsuarioService {
                 .orElseThrow(() -> new IllegalArgumentException("El usuario no existe o no pertenece a su empresa"));
     }
 
-    // 5. Desactivar un usuario (solo un administrador)
+    // 5. Desactivar un usuario
     public Usuario desactivarUsuario(Long id, Long empresaId) {
-        ContextoSeguridad.exigirAdmin("desactivar usuarios");
         Usuario usuario = obtenerPorIdYEmpresa(id, empresaId);
         usuario.setActivo(false);
         return usuarioRepository.save(usuario);
     }
 
-    // 6. Cambiar el rol de acceso de un usuario (solo un administrador)
+    // 6. Cambiar el rol de acceso de un usuario
     public Usuario cambiarRol(Long id, Usuario.RolAcceso nuevoRol, Long empresaId) {
-        ContextoSeguridad.exigirAdmin("cambiar el rol de un usuario");
         if (nuevoRol == null) {
             throw new IllegalArgumentException("El nuevo rol de acceso es obligatorio");
         }
@@ -136,9 +132,8 @@ public class UsuarioService {
         return usuarioRepository.save(usuario);
     }
 
-    // 7. Eliminar un usuario (solo un administrador)
+    // 7. Eliminar un usuario
     public void eliminarUsuario(Long id, Long empresaId) {
-        ContextoSeguridad.exigirAdmin("eliminar usuarios");
         Usuario usuario = obtenerPorIdYEmpresa(id, empresaId);
         usuarioRepository.delete(usuario);
     }

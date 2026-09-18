@@ -5,7 +5,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -15,18 +14,14 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Manejo centralizado de errores. Antes de esto, cualquier IllegalArgumentException
- * de un servicio (nombre duplicado, proceso no encontrado, contrasena debil,
- * literalmente el 90% de las validaciones de negocio de este proyecto) caia
- * sin capturar y Spring Boot respondia 500 Internal Server Error con su
- * pagina de error generica, sin importar que la causa fuera un error del
- * cliente (400) y no del servidor.
+ * Manejo centralizado de errores. Sin esto, cualquier IllegalArgumentException
+ * de un servicio (nombre duplicado, proceso no encontrado, contrasena debil:
+ * el grueso de las validaciones de negocio) sale como 500 con la pagina
+ * generica de Spring Boot, aunque la causa sea del cliente.
  *
- * Los mensajes que se devuelven son siempre los que ya escriben los propios
- * servicios (pensados para mostrarse: "Ya existe un proceso llamado...", "La
- * contrasena debe tener..."). Nunca se devuelve el mensaje crudo de una
- * excepcion inesperada ni su stacktrace: eso solo se registra en el log del
- * servidor.
+ * Los mensajes devueltos son los que ya escriben los servicios. Nunca se
+ * devuelve el mensaje crudo de una excepcion inesperada ni su stacktrace:
+ * eso solo va al log.
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -52,18 +47,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Map<String, Object>> manejarConstraint(ConstraintViolationException e) {
         return construir(HttpStatus.BAD_REQUEST, e.getMessage());
-    }
-
-    // Un rol sin permiso para la operacion (ContextoSeguridad.exigirAdmin/exigirEscritura/exigirPropiaEmpresa)
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<Map<String, Object>> manejarAccesoDenegado(AccessDeniedException e) {
-        return construir(HttpStatus.FORBIDDEN, e.getMessage());
-    }
-
-    // ContextoSeguridad.usuarioActual() cuando no hay ningun JWT valido en la peticion
-    @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<Map<String, Object>> manejarSinAutenticar(IllegalStateException e) {
-        return construir(HttpStatus.UNAUTHORIZED, "Debe iniciar sesion para realizar esta operacion");
     }
 
     // Cualquier otra cosa: no se filtra el mensaje real, solo se registra en el log

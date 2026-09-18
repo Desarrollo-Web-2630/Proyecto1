@@ -29,10 +29,7 @@
               "mode": "raw",
               "raw": "{\n  \"nombre\": \"Empresa Test\",\n  \"nit\": \"123456789\",\n  \"correo\": \"empresa@example.com\"\n}"
             },
-            "url": "{{baseUrl}}/api/v1/empresas",
-            "auth": {
-              "type": "noauth"
-            }
+            "url": "{{baseUrl}}/api/v1/empresas"
           }
         },
         {
@@ -66,10 +63,7 @@
               "mode": "raw",
               "raw": "{\n  \"correo\": \"mariana-osoriov@javeriana.edu.co\"\n}"
             },
-            "url": "{{baseUrl}}/api/auth/reenviar-verificacion",
-            "auth": {
-              "type": "noauth"
-            }
+            "url": "{{baseUrl}}/api/auth/reenviar-verificacion"
           }
         },
         {
@@ -94,19 +88,13 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/api/auth/verificar-correo?token={{token}}",
-            "auth": {
-              "type": "noauth"
-            }
+            "url": "{{baseUrl}}/api/auth/verificar-correo?token={{token}}"
           }
         },
         {
           "name": "Activar cuenta (fija la contrasena del admin inicial)",
           "request": {
             "method": "POST",
-            "auth": {
-              "type": "noauth"
-            },
             "header": [
               {
                 "key": "Content-Type",
@@ -164,10 +152,7 @@
               "mode": "raw",
               "raw": "{\n  \"nombre\": \"Mi Empresa S.A.\",\n  \"nit\": \"900123456-7\",\n  \"correo\": \"contacto@miempresa.com\"\n}"
             },
-            "url": "{{baseUrl}}/api/v1/empresas",
-            "auth": {
-              "type": "noauth"
-            }
+            "url": "{{baseUrl}}/api/v1/empresas"
           }
         }
       ]
@@ -220,28 +205,8 @@
               "mode": "raw",
               "raw": "{\n  \"correo\": \"juan.perez@example.com\",\n  \"password\": \"DevPass123\"\n}"
             },
-            "url": "{{baseUrl}}/api/v1/usuarios/login",
-            "auth": {
-              "type": "noauth"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "if (pm.response.code === 200) {",
-                  "    var body = pm.response.json();",
-                  "    pm.environment.set('jwt', body.token);",
-                  "    pm.test('Login OK: token guardado en {{jwt}}', function () { pm.expect(body.token).to.be.a('string'); });",
-                  "} else {",
-                  "    pm.test('Login fallido (401 sin cuerpo: no revela si el correo existe)', function () { pm.expect(pm.response.code).to.eql(401); });",
-                  "}"
-                ]
-              }
-            }
-          ]
+            "url": "{{baseUrl}}/api/v1/usuarios/login"
+          }
         }
       ]
     },
@@ -412,14 +377,17 @@
       ]
     }
   ],
-  "auth": {
-    "type": "bearer",
-    "bearer": [
-      {
-        "key": "token",
-        "value": "{{jwt}}",
-        "type": "string"
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Entrega 2, sin autenticacion: la empresa se elige con este encabezado.",
+          "var empresaId = pm.environment.get('empresaId') || '1';",
+          "pm.request.headers.upsert({ key: 'X-Empresa-Id', value: String(empresaId) });"
+        ]
       }
-    ]
-  }
+    }
+  ]
 }
