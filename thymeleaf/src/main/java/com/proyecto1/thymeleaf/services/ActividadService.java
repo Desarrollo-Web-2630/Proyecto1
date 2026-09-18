@@ -5,6 +5,7 @@ import com.proyecto1.thymeleaf.model.Actividad;
 import com.proyecto1.thymeleaf.model.Proceso;
 import com.proyecto1.thymeleaf.repository.ActividadRepository;
 import com.proyecto1.thymeleaf.repository.ProcesoRepository;
+import com.proyecto1.thymeleaf.security.ContextoSeguridad;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -104,9 +105,10 @@ public class ActividadService {
         return actividadRepository.save(actividad);
     }
 
-    // 7. Eliminar (borrado logico via @SQLDelete)
+    // 7. Eliminar (borrado logico via @SQLDelete). HU-10: solo el administrador.
     public void eliminarActividad(Long id, Long empresaId) {
         Actividad actividad = obtenerPorIdYEmpresa(id, empresaId);
+        ContextoSeguridad.exigirAdmin("eliminar actividades");
         actividadRepository.delete(actividad);
     }
 

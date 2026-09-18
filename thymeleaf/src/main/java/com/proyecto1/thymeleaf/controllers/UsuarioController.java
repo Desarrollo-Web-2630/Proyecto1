@@ -1,149 +1,85 @@
 package com.proyecto1.thymeleaf.controllers;
 
 import com.proyecto1.thymeleaf.dto.LoginDTO;
+import com.proyecto1.thymeleaf.dto.LoginResponseDTO;
 import com.proyecto1.thymeleaf.dto.UsuarioDTO;
 import com.proyecto1.thymeleaf.dto.UsuarioVistaDTO;
 import com.proyecto1.thymeleaf.model.Usuario;
+import com.proyecto1.thymeleaf.security.ContextoSeguridad;
+import com.proyecto1.thymeleaf.security.JwtService;
 import com.proyecto1.thymeleaf.services.UsuarioService;
-import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.validation.BindingResult;
+import org.modelmapper.ModelMapper;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Controlador MVC de usuarios (HU-02 registro en empresa, HU-03 inicio de sesion).
- *
- * El login de aqui es provisional: guarda el usuario en la sesion HTTP.
- * Cuando entre Spring Security debe reemplazarse por su formulario de
- * autenticacion y el EMPRESA_ID_MOCK desaparece.
- */
-@Controller
-@RequestMapping("/usuarios")
+@RestController
+@RequestMapping("/api/v1/usuarios")
 public class UsuarioController {
 
     private final UsuarioService usuarioService;
+    private final ModelMapper modelMapper;
+    private final JwtService jwtService;
 
-    public UsuarioController(UsuarioService usuarioService) {
+    public UsuarioController(UsuarioService usuarioService, ModelMapper modelMapper, JwtService jwtService) {
         this.usuarioService = usuarioService;
+        this.modelMapper = modelMapper;
+        this.jwtService = jwtService;
     }
 
-    // ID de empresa simulado (reemplazar por el ID de la sesion cuando entre Spring Security)
-    private final Long EMPRESA_ID_MOCK = 1L;
-
-    // 1. Listar los usuarios de la empresa (sin exponer la contrasena)
     @GetMapping
-    public String listarUsuarios(Model model) {
-        List<UsuarioVistaDTO> usuarios = usuarioService.listarPorEmpresa(EMPRESA_ID_MOCK);
-
-        model.addAttribute("usuarios", usuarios);
-        model.addAttribute("rolesAcceso", Usuario.RolAcceso.values());
-        return "usuarios/lista";
+    public ResponseEntity<List<UsuarioVistaDTO>> listar() {
+        return ResponseEntity.ok(usuarioService.listarPorEmpresa(ContextoSeguridad.empresaIdActual()));
     }
 
-    // 2. Registrar un usuario: mostrar formulario
-    @GetMapping("/nuevo")
-    public String mostrarFormularioRegistro(Model model) {
-        model.addAttribute("usuario", new UsuarioDTO());
-        model.addAttribute("rolesAcceso", Usuario.RolAcceso.values());
-        return "usuarios/formulario";
+    @GetMapping("/{id}")
+    public ResponseEntity<UsuarioVistaDTO> obtener(@PathVariable Long id) {
+        Usuario u = usuarioService.obtenerPorIdYEmpresa(id, ContextoSeguridad.empresaIdActual());
+        return ResponseEntity.ok(modelMapper.map(u, UsuarioVistaDTO.class));
     }
 
-    // 3. Registrar
-    @PostMapping("/guardar")
-    public String guardarUsuario(@Valid @ModelAttribute("usuario") UsuarioDTO usuario,
-                                 BindingResult resultado,
-                                 Model model,
-                                 RedirectAttributes redirectAttributes) {
-        model.addAttribute("rolesAcceso", Usuario.RolAcceso.values());
-        if (resultado.hasErrors()) {
-            return "usuarios/formulario";
-        }
-        try {
-            usuarioService.registrarUsuario(usuario, EMPRESA_ID_MOCK);
-            redirectAttributes.addFlashAttribute("mensajeExito", "Usuario registrado con éxito.");
-        } catch (Exception e) {
-            model.addAttribute("mensajeError", e.getMessage());
-            return "usuarios/formulario";
-        }
-        return "redirect:/usuarios";
+    // Invitar un compañero a la empresa (solo ADMIN, verificado en el servicio)
+    @PostMapping
+    public ResponseEntity<UsuarioVistaDTO> crear(@Valid @RequestBody UsuarioDTO datos) {
+        Usuario creado = usuarioService.registrarUsuario(datos, ContextoSeguridad.empresaIdActual());
+        return ResponseEntity.status(HttpStatus.CREATED).body(modelMapper.map(creado, UsuarioVistaDTO.class));
     }
 
-    // 4. Formulario de inicio de sesion
-    @GetMapping("/login")
-    public String mostrarFormularioLogin(Model model) {
-        model.addAttribute("login", new LoginDTO());
-        return "usuarios/login";
-    }
-
-    // 5. Iniciar sesion
+    /**
+     * HU-03: respuesta generica cuando falla (401 sin cuerpo), sin distinguir
+     * "correo no existe" de "contraseña incorrecta" ni de "cuenta inactiva":
+     * las tres dan exactamente la misma respuesta al cliente.
+     */
     @PostMapping("/login")
-    public String iniciarSesion(@Valid @ModelAttribute("login") LoginDTO login,
-                                BindingResult resultado,
-                                HttpSession session,
-                                Model model) {
-        if (resultado.hasErrors()) {
-            return "usuarios/login";
-        }
-
+    public ResponseEntity<LoginResponseDTO> login(@Valid @RequestBody LoginDTO login) {
         Optional<Usuario> usuario = usuarioService.login(login.getCorreo(), login.getPassword());
-        if (usuario.isEmpty()) {
-            model.addAttribute("mensajeError", "Correo o contraseña incorrectos.");
-            return "usuarios/login";
-        }
 
-        session.setAttribute("usuarioId", usuario.get().getId());
-        session.setAttribute("empresaId", usuario.get().getEmpresa().getId());
-        return "redirect:/procesos";
+        return usuario.map(u -> {
+            String token = jwtService.generarToken(u);
+            LoginResponseDTO respuesta = new LoginResponseDTO(token, modelMapper.map(u, UsuarioVistaDTO.class));
+            return ResponseEntity.ok(respuesta);
+        }).orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
     }
 
-    // 6. Cerrar sesion
-    @PostMapping("/logout")
-    public String cerrarSesion(HttpSession session) {
-        session.invalidate();
-        return "redirect:/usuarios/login";
+    @PostMapping("/{id}/rol")
+    public ResponseEntity<UsuarioVistaDTO> cambiarRol(@PathVariable Long id, @RequestParam Usuario.RolAcceso rolAcceso) {
+        Usuario actualizado = usuarioService.cambiarRol(id, rolAcceso, ContextoSeguridad.empresaIdActual());
+        return ResponseEntity.ok(modelMapper.map(actualizado, UsuarioVistaDTO.class));
     }
 
-    // 7. Cambiar el rol de acceso de un usuario
-    @PostMapping("/rol/{id}")
-    public String cambiarRol(@PathVariable Long id,
-                             @RequestParam Usuario.RolAcceso rolAcceso,
-                             RedirectAttributes redirectAttributes) {
-        try {
-            usuarioService.cambiarRol(id, rolAcceso, EMPRESA_ID_MOCK);
-            redirectAttributes.addFlashAttribute("mensajeExito", "Rol actualizado con éxito.");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
-        }
-        return "redirect:/usuarios";
+    @PostMapping("/{id}/desactivar")
+    public ResponseEntity<UsuarioVistaDTO> desactivar(@PathVariable Long id) {
+        Usuario actualizado = usuarioService.desactivarUsuario(id, ContextoSeguridad.empresaIdActual());
+        return ResponseEntity.ok(modelMapper.map(actualizado, UsuarioVistaDTO.class));
     }
 
-    // 8. Desactivar un usuario sin borrarlo
-    @PostMapping("/desactivar/{id}")
-    public String desactivarUsuario(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        try {
-            usuarioService.desactivarUsuario(id, EMPRESA_ID_MOCK);
-            redirectAttributes.addFlashAttribute("mensajeExito", "Usuario desactivado correctamente.");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
-        }
-        return "redirect:/usuarios";
-    }
-
-    // 9. Eliminar
-    @PostMapping("/eliminar/{id}")
-    public String eliminarUsuario(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        try {
-            usuarioService.eliminarUsuario(id, EMPRESA_ID_MOCK);
-            redirectAttributes.addFlashAttribute("mensajeExito", "Usuario eliminado correctamente.");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
-        }
-        return "redirect:/usuarios";
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+        usuarioService.eliminarUsuario(id, ContextoSeguridad.empresaIdActual());
+        return ResponseEntity.noContent().build();
     }
 }

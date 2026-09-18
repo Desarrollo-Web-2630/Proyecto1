@@ -4,6 +4,7 @@ import com.proyecto1.thymeleaf.model.Usuario;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -25,7 +26,9 @@ public class UsuarioDTO {
     private Long id;
 
     @NotBlank(message = "El nombre del usuario es obligatorio")
-    @Size(max = 255, message = "El nombre no puede superar los 255 caracteres")
+    @Size(min = 2, max = 255, message = "El nombre debe tener entre 2 y 255 caracteres")
+    @Pattern(regexp = "^(?=.*[A-Za-zÁÉÍÓÚáéíóú])[A-Za-zÁÉÍÓÚáéíóú .'-]+$",
+            message = "El nombre solo puede contener letras y espacios básicos")
     private String nombre;
 
     @NotBlank(message = "El correo del usuario es obligatorio")
@@ -34,7 +37,9 @@ public class UsuarioDTO {
     private String correo;
 
     @NotBlank(message = "La contraseña es obligatoria")
-    @Size(min = 6, message = "La contraseña debe tener al menos 6 caracteres")
+    @Size(min = 8, max = 128, message = "La contraseña debe tener entre 8 y 128 caracteres")
+    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{8,}$",
+            message = "La contraseña debe incluir mayúscula, minúscula y al menos un número")
     private String password;
 
     @NotNull(message = "El rol de acceso es obligatorio")

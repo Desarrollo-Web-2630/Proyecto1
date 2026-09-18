@@ -1,142 +1,98 @@
 package com.proyecto1.thymeleaf.controllers;
 
 import com.proyecto1.thymeleaf.dto.ProcesoDTO;
+import com.proyecto1.thymeleaf.dto.ProcesoRespuestaDTO;
 import com.proyecto1.thymeleaf.model.Proceso;
+import com.proyecto1.thymeleaf.security.ContextoSeguridad;
 import com.proyecto1.thymeleaf.services.ProcesoService;
 import jakarta.validation.Valid;
-import org.modelmapper.ModelMapper;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.validation.BindingResult;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
 
-/**
- * Controlador MVC de procesos (HU-04 crear, HU-05 editar, HU-06 eliminar,
- * HU-07 consultar).
- */
-@Controller
-@RequestMapping("/procesos")
+@RestController
+@RequestMapping("/api/v1/procesos")
 public class ProcesoController {
 
     private final ProcesoService procesoService;
-    private final ModelMapper modelMapper;
 
-    public ProcesoController(ProcesoService procesoService, ModelMapper modelMapper) {
+    public ProcesoController(ProcesoService procesoService) {
         this.procesoService = procesoService;
-        this.modelMapper = modelMapper;
     }
 
-    // ID de empresa simulado (reemplazar por el ID de la sesion cuando entre Spring Security)
-    private final Long EMPRESA_ID_MOCK = 1L;
-
-    // 1. Listar los procesos de la empresa
+    // Activos por defecto; ?incluirInactivos=true para verlos todos (HU-07)
     @GetMapping
-    public String listarProcesos(Model model) {
-        List<Proceso> procesos = procesoService.listarPorEmpresa(EMPRESA_ID_MOCK);
-
-        model.addAttribute("procesos", procesos);
-        return "procesos/lista";
+    public ResponseEntity<List<ProcesoRespuestaDTO>> listar(@RequestParam(defaultValue = "false") boolean incluirInactivos) {
+        List<ProcesoRespuestaDTO> procesos = procesoService
+                .listarPorEmpresa(ContextoSeguridad.empresaIdActual(), incluirInactivos)
+                .stream().map(ProcesoRespuestaDTO::desde).toList();
+        return ResponseEntity.ok(procesos);
     }
 
-    // 2. Ver el detalle de un proceso
+    /**
+     * HU-07: busqueda por nombre, filtros por estado y categoria, paginacion.
+     * Ejemplo: /api/v1/procesos/buscar?nombre=compra&estado=PUBLICADO&page=0&size=10
+     */
+    @GetMapping("/buscar")
+    public ResponseEntity<Page<ProcesoRespuestaDTO>> buscar(@RequestParam(required = false) String nombre,
+                                                            @RequestParam(required = false) Proceso.EstadoProceso estado,
+                                                            @RequestParam(required = false) String categoria,
+                                                            @RequestParam(defaultValue = "false") boolean incluirInactivos,
+                                                            @RequestParam(defaultValue = "0") int page,
+                                                            @RequestParam(defaultValue = "10") int size) {
+        // Tope de tamano de pagina para que nadie pida 10 millones de filas de golpe
+        int tamano = Math.min(Math.max(size, 1), 100);
+        Page<ProcesoRespuestaDTO> resultado = procesoService.buscar(
+                        ContextoSeguridad.empresaIdActual(), nombre, estado, categoria, incluirInactivos,
+                        PageRequest.of(Math.max(page, 0), tamano, Sort.by("nombre").ascending()))
+                .map(ProcesoRespuestaDTO::desde);
+        return ResponseEntity.ok(resultado);
+    }
+
     @GetMapping("/{id}")
-    public String verProceso(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
-        try {
-            model.addAttribute("proceso", procesoService.obtenerPorIdYEmpresa(id, EMPRESA_ID_MOCK));
-            return "procesos/detalle";
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
-            return "redirect:/procesos";
-        }
+    public ResponseEntity<ProcesoRespuestaDTO> obtener(@PathVariable Long id) {
+        Proceso proceso = procesoService.obtenerPorIdYEmpresa(id, ContextoSeguridad.empresaIdActual());
+        return ResponseEntity.ok(ProcesoRespuestaDTO.desde(proceso));
     }
 
-    // 3. Crear un proceso: mostrar formulario
-    @GetMapping("/nuevo")
-    public String mostrarFormularioCrear(Model model) {
-        model.addAttribute("proceso", new ProcesoDTO());
-        return "procesos/formulario";
+    @PostMapping
+    public ResponseEntity<ProcesoRespuestaDTO> crear(@Valid @RequestBody ProcesoDTO datos) {
+        Proceso creado = procesoService.crearProceso(datos, ContextoSeguridad.empresaIdActual());
+        return ResponseEntity.status(HttpStatus.CREATED).body(ProcesoRespuestaDTO.desde(creado));
     }
 
-    // 4. Crear
-    @PostMapping("/guardar")
-    public String guardarProceso(@Valid @ModelAttribute("proceso") ProcesoDTO proceso,
-                                 BindingResult resultado,
-                                 Model model,
-                                 RedirectAttributes redirectAttributes) {
-        // Con errores de validacion se vuelve al formulario conservando lo escrito
-        if (resultado.hasErrors()) {
-            return "procesos/formulario";
-        }
-        try {
-            procesoService.crearProceso(proceso, EMPRESA_ID_MOCK);
-            redirectAttributes.addFlashAttribute("mensajeExito", "Proceso creado con éxito.");
-        } catch (Exception e) {
-            // Las reglas de negocio (nombre duplicado) se ven al guardar, no al validar
-            model.addAttribute("mensajeError", e.getMessage());
-            return "procesos/formulario";
-        }
-        return "redirect:/procesos";
+    @PutMapping("/{id}")
+    public ResponseEntity<ProcesoRespuestaDTO> actualizar(@PathVariable Long id, @Valid @RequestBody ProcesoDTO datos) {
+        Proceso actualizado = procesoService.actualizarProceso(id, datos, ContextoSeguridad.empresaIdActual());
+        return ResponseEntity.ok(ProcesoRespuestaDTO.desde(actualizado));
     }
 
-    // 5. Formulario para editar un proceso existente
-    @GetMapping("/editar/{id}")
-    public String mostrarFormularioEditar(@PathVariable Long id,
-                                          Model model,
-                                          RedirectAttributes redirectAttributes) {
-        try {
-            Proceso proceso = procesoService.obtenerPorIdYEmpresa(id, EMPRESA_ID_MOCK);
-            model.addAttribute("proceso", modelMapper.map(proceso, ProcesoDTO.class));
-            return "procesos/formulario";
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
-            return "redirect:/procesos";
-        }
+    @PostMapping("/{id}/publicar")
+    public ResponseEntity<ProcesoRespuestaDTO> publicar(@PathVariable Long id) {
+        return ResponseEntity.ok(ProcesoRespuestaDTO.desde(
+                procesoService.publicarProceso(id, ContextoSeguridad.empresaIdActual())));
     }
 
-    // 6. Actualizar
-    @PostMapping("/actualizar/{id}")
-    public String actualizarProceso(@PathVariable Long id,
-                                    @Valid @ModelAttribute("proceso") ProcesoDTO proceso,
-                                    BindingResult resultado,
-                                    Model model,
-                                    RedirectAttributes redirectAttributes) {
-        if (resultado.hasErrors()) {
-            return "procesos/formulario";
-        }
-        try {
-            procesoService.actualizarProceso(id, proceso, EMPRESA_ID_MOCK);
-            redirectAttributes.addFlashAttribute("mensajeExito", "Proceso actualizado con éxito.");
-        } catch (Exception e) {
-            model.addAttribute("mensajeError", e.getMessage());
-            return "procesos/formulario";
-        }
-        return "redirect:/procesos";
+    @PostMapping("/{id}/inactivar")
+    public ResponseEntity<ProcesoRespuestaDTO> inactivar(@PathVariable Long id) {
+        return ResponseEntity.ok(ProcesoRespuestaDTO.desde(
+                procesoService.inactivarProceso(id, ContextoSeguridad.empresaIdActual())));
     }
 
-    // 7. Pasar el proceso de borrador a publicado
-    @PostMapping("/publicar/{id}")
-    public String publicarProceso(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        try {
-            procesoService.publicarProceso(id, EMPRESA_ID_MOCK);
-            redirectAttributes.addFlashAttribute("mensajeExito", "Proceso publicado con éxito.");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
-        }
-        return "redirect:/procesos";
+    @PostMapping("/{id}/reactivar")
+    public ResponseEntity<ProcesoRespuestaDTO> reactivar(@PathVariable Long id) {
+        return ResponseEntity.ok(ProcesoRespuestaDTO.desde(
+                procesoService.reactivarProceso(id, ContextoSeguridad.empresaIdActual())));
     }
 
-    // 8. Eliminar
-    @PostMapping("/eliminar/{id}")
-    public String eliminarProceso(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        try {
-            procesoService.eliminarProceso(id, EMPRESA_ID_MOCK);
-            redirectAttributes.addFlashAttribute("mensajeExito", "Proceso eliminado correctamente.");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
-        }
-        return "redirect:/procesos";
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+        procesoService.eliminarProceso(id, ContextoSeguridad.empresaIdActual());
+        return ResponseEntity.noContent().build();
     }
 }
