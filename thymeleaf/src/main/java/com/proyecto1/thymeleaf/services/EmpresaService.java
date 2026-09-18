@@ -23,10 +23,10 @@ import java.util.List;
  * El administrador inicial nunca recibe una contrasena fija ni utilizable al
  * crearse: se le asigna un valor aleatorio, jamas revelado, y queda inactivo
  * hasta que active su cuenta con POST /api/auth/activar-cuenta, donde elige
- * su propia contrasena. Antes de este cambio la contrasena era el literal
- * "DesarrolloWeb123" para todas las empresas, visible en el codigo fuente
- * publico: cualquiera podia iniciar sesion como administrador de cualquier
- * empresa solo sabiendo su correo de contacto.
+ * su propia contrasena. Antes de este cambio la contrasena era un literal
+ * fijo, igual para todas las empresas y visible en el codigo fuente publico:
+ * cualquiera podia iniciar sesion como administrador de cualquier empresa
+ * solo sabiendo su correo de contacto.
  */
 @Service
 @Transactional

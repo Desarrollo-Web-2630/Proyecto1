@@ -42,6 +42,8 @@ public class Proceso {
     @JoinColumn(name = "empresa_id", nullable = false)
     private Empresa empresa;
 
+    // Coleccion inversa: nunca se serializa (ver Empresa.usuarios).
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @OneToMany(mappedBy = "proceso", fetch = FetchType.LAZY)
     private List<Actividad> actividades = new ArrayList<>();
 

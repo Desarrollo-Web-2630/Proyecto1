@@ -1,10 +1,9 @@
 package com.proyecto1.thymeleaf.controllers;
 
 import com.proyecto1.thymeleaf.dto.ArcoDTO;
-import com.proyecto1.thymeleaf.model.Arco;
+import com.proyecto1.thymeleaf.dto.ArcoRespuestaDTO;
 import com.proyecto1.thymeleaf.security.ContextoSeguridad;
 import com.proyecto1.thymeleaf.services.ArcoService;
-import com.proyecto1.thymeleaf.services.ElementoConectableService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,34 +18,35 @@ import java.util.Map;
 public class ArcoController {
 
     private final ArcoService arcoService;
-    private final ElementoConectableService elementoConectableService;
 
-    public ArcoController(ArcoService arcoService, ElementoConectableService elementoConectableService) {
+    public ArcoController(ArcoService arcoService) {
         this.arcoService = arcoService;
-        this.elementoConectableService = elementoConectableService;
     }
 
     @GetMapping
-    public ResponseEntity<List<Arco>> listar(@PathVariable Long procesoId) {
-        return ResponseEntity.ok(arcoService.listarPorProcesoYEmpresa(procesoId, ContextoSeguridad.empresaIdActual()));
+    public ResponseEntity<List<ArcoRespuestaDTO>> listar(@PathVariable Long procesoId) {
+        return ResponseEntity.ok(arcoService
+                .listarPorProcesoYEmpresa(procesoId, ContextoSeguridad.empresaIdActual())
+                .stream().map(ArcoRespuestaDTO::desde).toList());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Arco> obtener(@PathVariable Long procesoId, @PathVariable Long id) {
-        return ResponseEntity.ok(arcoService.obtenerPorIdYEmpresa(id, ContextoSeguridad.empresaIdActual()));
+    public ResponseEntity<ArcoRespuestaDTO> obtener(@PathVariable Long procesoId, @PathVariable Long id) {
+        return ResponseEntity.ok(ArcoRespuestaDTO.desde(
+                arcoService.obtenerPorIdYEmpresa(id, ContextoSeguridad.empresaIdActual())));
     }
 
     @PostMapping
-    public ResponseEntity<Arco> crear(@PathVariable Long procesoId, @Valid @RequestBody ArcoDTO datos) {
-        Arco creado = arcoService.crearArco(datos, procesoId, ContextoSeguridad.empresaIdActual());
-        return ResponseEntity.status(HttpStatus.CREATED).body(creado);
+    public ResponseEntity<ArcoRespuestaDTO> crear(@PathVariable Long procesoId, @Valid @RequestBody ArcoDTO datos) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ArcoRespuestaDTO.desde(
+                arcoService.crearArco(datos, procesoId, ContextoSeguridad.empresaIdActual())));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Arco> actualizar(@PathVariable Long procesoId, @PathVariable Long id,
-                                           @Valid @RequestBody ArcoDTO datos) {
-        Arco actualizado = arcoService.actualizarArco(id, datos, ContextoSeguridad.empresaIdActual());
-        return ResponseEntity.ok(actualizado);
+    public ResponseEntity<ArcoRespuestaDTO> actualizar(@PathVariable Long procesoId, @PathVariable Long id,
+                                                       @Valid @RequestBody ArcoDTO datos) {
+        return ResponseEntity.ok(ArcoRespuestaDTO.desde(
+                arcoService.actualizarArco(id, datos, ContextoSeguridad.empresaIdActual())));
     }
 
     @DeleteMapping("/{id}")

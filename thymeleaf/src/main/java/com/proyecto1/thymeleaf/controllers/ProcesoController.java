@@ -1,6 +1,7 @@
 package com.proyecto1.thymeleaf.controllers;
 
 import com.proyecto1.thymeleaf.dto.ProcesoDTO;
+import com.proyecto1.thymeleaf.dto.ProcesoRespuestaDTO;
 import com.proyecto1.thymeleaf.model.Proceso;
 import com.proyecto1.thymeleaf.security.ContextoSeguridad;
 import com.proyecto1.thymeleaf.services.ProcesoService;
@@ -26,8 +27,10 @@ public class ProcesoController {
 
     // Activos por defecto; ?incluirInactivos=true para verlos todos (HU-07)
     @GetMapping
-    public ResponseEntity<List<Proceso>> listar(@RequestParam(defaultValue = "false") boolean incluirInactivos) {
-        List<Proceso> procesos = procesoService.listarPorEmpresa(ContextoSeguridad.empresaIdActual(), incluirInactivos);
+    public ResponseEntity<List<ProcesoRespuestaDTO>> listar(@RequestParam(defaultValue = "false") boolean incluirInactivos) {
+        List<ProcesoRespuestaDTO> procesos = procesoService
+                .listarPorEmpresa(ContextoSeguridad.empresaIdActual(), incluirInactivos)
+                .stream().map(ProcesoRespuestaDTO::desde).toList();
         return ResponseEntity.ok(procesos);
     }
 
@@ -36,52 +39,55 @@ public class ProcesoController {
      * Ejemplo: /api/v1/procesos/buscar?nombre=compra&estado=PUBLICADO&page=0&size=10
      */
     @GetMapping("/buscar")
-    public ResponseEntity<Page<Proceso>> buscar(@RequestParam(required = false) String nombre,
-                                                @RequestParam(required = false) Proceso.EstadoProceso estado,
-                                                @RequestParam(required = false) String categoria,
-                                                @RequestParam(defaultValue = "false") boolean incluirInactivos,
-                                                @RequestParam(defaultValue = "0") int page,
-                                                @RequestParam(defaultValue = "10") int size) {
+    public ResponseEntity<Page<ProcesoRespuestaDTO>> buscar(@RequestParam(required = false) String nombre,
+                                                            @RequestParam(required = false) Proceso.EstadoProceso estado,
+                                                            @RequestParam(required = false) String categoria,
+                                                            @RequestParam(defaultValue = "false") boolean incluirInactivos,
+                                                            @RequestParam(defaultValue = "0") int page,
+                                                            @RequestParam(defaultValue = "10") int size) {
         // Tope de tamano de pagina para que nadie pida 10 millones de filas de golpe
         int tamano = Math.min(Math.max(size, 1), 100);
-        Page<Proceso> resultado = procesoService.buscar(
-                ContextoSeguridad.empresaIdActual(), nombre, estado, categoria, incluirInactivos,
-                PageRequest.of(Math.max(page, 0), tamano, Sort.by("nombre").ascending()));
+        Page<ProcesoRespuestaDTO> resultado = procesoService.buscar(
+                        ContextoSeguridad.empresaIdActual(), nombre, estado, categoria, incluirInactivos,
+                        PageRequest.of(Math.max(page, 0), tamano, Sort.by("nombre").ascending()))
+                .map(ProcesoRespuestaDTO::desde);
         return ResponseEntity.ok(resultado);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Proceso> obtener(@PathVariable Long id) {
+    public ResponseEntity<ProcesoRespuestaDTO> obtener(@PathVariable Long id) {
         Proceso proceso = procesoService.obtenerPorIdYEmpresa(id, ContextoSeguridad.empresaIdActual());
-        return ResponseEntity.ok(proceso);
+        return ResponseEntity.ok(ProcesoRespuestaDTO.desde(proceso));
     }
 
     @PostMapping
-    public ResponseEntity<Proceso> crear(@Valid @RequestBody ProcesoDTO datos) {
+    public ResponseEntity<ProcesoRespuestaDTO> crear(@Valid @RequestBody ProcesoDTO datos) {
         Proceso creado = procesoService.crearProceso(datos, ContextoSeguridad.empresaIdActual());
-        return ResponseEntity.status(HttpStatus.CREATED).body(creado);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ProcesoRespuestaDTO.desde(creado));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Proceso> actualizar(@PathVariable Long id, @Valid @RequestBody ProcesoDTO datos) {
+    public ResponseEntity<ProcesoRespuestaDTO> actualizar(@PathVariable Long id, @Valid @RequestBody ProcesoDTO datos) {
         Proceso actualizado = procesoService.actualizarProceso(id, datos, ContextoSeguridad.empresaIdActual());
-        return ResponseEntity.ok(actualizado);
+        return ResponseEntity.ok(ProcesoRespuestaDTO.desde(actualizado));
     }
 
     @PostMapping("/{id}/publicar")
-    public ResponseEntity<Proceso> publicar(@PathVariable Long id) {
-        Proceso publicado = procesoService.publicarProceso(id, ContextoSeguridad.empresaIdActual());
-        return ResponseEntity.ok(publicado);
+    public ResponseEntity<ProcesoRespuestaDTO> publicar(@PathVariable Long id) {
+        return ResponseEntity.ok(ProcesoRespuestaDTO.desde(
+                procesoService.publicarProceso(id, ContextoSeguridad.empresaIdActual())));
     }
 
     @PostMapping("/{id}/inactivar")
-    public ResponseEntity<Proceso> inactivar(@PathVariable Long id) {
-        return ResponseEntity.ok(procesoService.inactivarProceso(id, ContextoSeguridad.empresaIdActual()));
+    public ResponseEntity<ProcesoRespuestaDTO> inactivar(@PathVariable Long id) {
+        return ResponseEntity.ok(ProcesoRespuestaDTO.desde(
+                procesoService.inactivarProceso(id, ContextoSeguridad.empresaIdActual())));
     }
 
     @PostMapping("/{id}/reactivar")
-    public ResponseEntity<Proceso> reactivar(@PathVariable Long id) {
-        return ResponseEntity.ok(procesoService.reactivarProceso(id, ContextoSeguridad.empresaIdActual()));
+    public ResponseEntity<ProcesoRespuestaDTO> reactivar(@PathVariable Long id) {
+        return ResponseEntity.ok(ProcesoRespuestaDTO.desde(
+                procesoService.reactivarProceso(id, ContextoSeguridad.empresaIdActual())));
     }
 
     @DeleteMapping("/{id}")

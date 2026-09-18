@@ -7,8 +7,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 /**
  * Solo el encoder de contrasenas. Las reglas de autenticacion y autorizacion
- * viven en SecurityConfig; antes estaban mezcladas aqui con un
- * anyRequest().permitAll() que dejaba toda la API abierta.
+ * viven en SecurityConfig; antes estaban mezcladas aqui con una regla que
+ * dejaba toda la API abierta sin autenticacion.
  */
 @Configuration
 public class EncoderConfig {

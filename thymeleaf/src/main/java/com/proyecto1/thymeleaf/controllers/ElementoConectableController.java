@@ -1,6 +1,6 @@
 package com.proyecto1.thymeleaf.controllers;
 
-import com.proyecto1.thymeleaf.model.ElementoConectable;
+import com.proyecto1.thymeleaf.dto.ElementoRespuestaDTO;
 import com.proyecto1.thymeleaf.security.ContextoSeguridad;
 import com.proyecto1.thymeleaf.services.ElementoConectableService;
 import org.springframework.http.ResponseEntity;
@@ -20,19 +20,18 @@ public class ElementoConectableController {
 
     // 1. READ ALL - Obtener todos los elementos conectables de un proceso
     @GetMapping
-    public ResponseEntity<List<ElementoConectable>> listarPorProceso(@PathVariable Long procesoId) {
-        List<ElementoConectable> elementos = elementoConectableService
-                .listarElementosPorProcesoYEmpresa(procesoId, ContextoSeguridad.empresaIdActual());
-        return ResponseEntity.ok(elementos);
+    public ResponseEntity<List<ElementoRespuestaDTO>> listarPorProceso(@PathVariable Long procesoId) {
+        return ResponseEntity.ok(elementoConectableService
+                .listarElementosPorProcesoYEmpresa(procesoId, ContextoSeguridad.empresaIdActual())
+                .stream().map(ElementoRespuestaDTO::desde).toList());
     }
 
     // 2. READ ONE - Obtener un elemento conectable por ID
     @GetMapping("/{id}")
-    public ResponseEntity<ElementoConectable> obtenerPorId(@PathVariable Long procesoId,
-                                                        @PathVariable Long id) {
-        ElementoConectable elemento = elementoConectableService
-                .obtenerPorIdYEmpresa(id, ContextoSeguridad.empresaIdActual());
-        return ResponseEntity.ok(elemento);
+    public ResponseEntity<ElementoRespuestaDTO> obtenerPorId(@PathVariable Long procesoId,
+                                                             @PathVariable Long id) {
+        return ResponseEntity.ok(ElementoRespuestaDTO.desde(
+                elementoConectableService.obtenerPorIdYEmpresa(id, ContextoSeguridad.empresaIdActual())));
     }
 
     // 3. UPDATE POSITION - Actualizar coordenadas X e Y
