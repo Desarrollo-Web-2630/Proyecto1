@@ -34,9 +34,12 @@
       <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
     <!-- Thymeleaf removed for backend-only build -->
+    <!-- Solo BCrypt para cifrar contrasenas. Spring Security completo (filtros,
+         login, JWT) es de la entrega final; con el starter en el classpath y sin
+         configuracion propia, Spring bloquea todo con su pantalla de login. -->
     <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-security</artifactId>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-crypto</artifactId>
     </dependency>
 
     <!-- Verificar correo -->
@@ -78,25 +81,6 @@
       <groupId>org.modelmapper</groupId>
       <artifactId>modelmapper</artifactId>
       <version>3.1.1</version>
-    </dependency>
-
-    <!-- JWT: emision y validacion de tokens de sesion -->
-    <dependency>
-      <groupId>io.jsonwebtoken</groupId>
-      <artifactId>jjwt-api</artifactId>
-      <version>0.12.6</version>
-    </dependency>
-    <dependency>
-      <groupId>io.jsonwebtoken</groupId>
-      <artifactId>jjwt-impl</artifactId>
-      <version>0.12.6</version>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.jsonwebtoken</groupId>
-      <artifactId>jjwt-jackson</artifactId>
-      <version>0.12.6</version>
-      <scope>runtime</scope>
     </dependency>
     
     <!-- Testing Standard -->
