@@ -1,12 +1,11 @@
 package com.proyecto1.thymeleaf.controllers;
 
-import com.proyecto1.thymeleaf.dto.ActividadDTO;
+import com.proyecto1.thymeleaf.dto.ActividadRequestDTO;
 import com.proyecto1.thymeleaf.dto.EmpresaDTO;
 import com.proyecto1.thymeleaf.dto.GatewayDTO;
-import com.proyecto1.thymeleaf.dto.ProcesoDTO;
-import com.proyecto1.thymeleaf.dto.UsuarioDTO;
+import com.proyecto1.thymeleaf.dto.ProcesoRequestDTO;
+import com.proyecto1.thymeleaf.dto.ProcesoResponseDTO;
 import com.proyecto1.thymeleaf.model.Gateway;
-import com.proyecto1.thymeleaf.model.Proceso;
 import com.proyecto1.thymeleaf.model.Usuario;
 import com.proyecto1.thymeleaf.repository.EmpresaRepository;
 import com.proyecto1.thymeleaf.services.ActividadService;
@@ -27,13 +26,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
-/**
- * Smoke test de la capa de vistas: recorre cada pantalla GET y comprueba que
- * la plantilla Thymeleaf existe y renderiza sin reventar.
- *
- * Los errores de Thymeleaf no aparecen al compilar, solo al renderizar, asi
- * que sin esta prueba una plantilla rota pasa desapercibida hasta produccion.
- */
 @SpringBootTest
 @AutoConfigureMockMvc
 class VistasRenderizanTest {
@@ -59,7 +51,6 @@ class VistasRenderizanTest {
     @Autowired
     private UsuarioService usuarioService;
 
-    // Los controladores usan EMPRESA_ID_MOCK = 1L mientras no exista Spring Security
     private static final Long EMPRESA_ID = 1L;
 
     private Long procesoId;
@@ -76,13 +67,13 @@ class VistasRenderizanTest {
             empresaService.registrarEmpresa(empresa);
         }
 
-        ProcesoDTO proceso = new ProcesoDTO();
+        ProcesoRequestDTO proceso = new ProcesoRequestDTO();
         proceso.setNombre("Proceso " + System.nanoTime());
         proceso.setDescripcion("Proceso de prueba");
         proceso.setCategoria("Operaciones");
         procesoId = procesoService.crearProceso(proceso, EMPRESA_ID).getId();
 
-        ActividadDTO actividad = new ActividadDTO();
+        ActividadRequestDTO actividad = new ActividadRequestDTO();
         actividad.setNombre("Revisar solicitud");
         actividad.setTipoActividad("TAREA_USUARIO");
         actividad.setPosicionX(10);
@@ -95,7 +86,7 @@ class VistasRenderizanTest {
         gateway.setTipo(Gateway.TipoGateway.EXCLUSIVO);
         gatewayId = gatewayService.crearGateway(gateway, procesoId, EMPRESA_ID).getId();
 
-        UsuarioDTO usuario = new UsuarioDTO();
+        Usuario usuario = new Usuario();
         usuario.setNombre("Ana Martinez");
         usuario.setCorreo("ana" + System.nanoTime() + "@prueba.com");
         usuario.setPassword("secreta");
@@ -148,8 +139,6 @@ class VistasRenderizanTest {
         mockMvc.perform(get("/usuarios/login")).andExpect(status().isOk());
     }
 
-    // ---------- Validacion con BindingResult ----------
-
     @Test
     void elFormularioDeProcesoVuelveConLosErroresCuandoFaltanDatos() throws Exception {
         mockMvc.perform(post("/procesos/guardar")
@@ -176,11 +165,11 @@ class VistasRenderizanTest {
 
     @Test
     void elNombreDuplicadoDeProcesoSeAvisaSinPerderElFormulario() throws Exception {
-        Proceso existente = procesoService.obtenerPorIdYEmpresa(procesoId, EMPRESA_ID);
+        ProcesoResponseDTO existente = procesoService.obtenerPorIdYEmpresa(procesoId, EMPRESA_ID);
 
         mockMvc.perform(post("/procesos/guardar")
                         .param("nombre", existente.getNombre())
-                        .param("descripcion", "Otra descripción")
+                        .param("descripcion", "Otra descripcion")
                         .param("categoria", "Operaciones"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("procesos/formulario"))

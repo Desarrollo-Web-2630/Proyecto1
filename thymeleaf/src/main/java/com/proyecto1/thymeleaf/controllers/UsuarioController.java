@@ -2,7 +2,6 @@ package com.proyecto1.thymeleaf.controllers;
 
 import com.proyecto1.thymeleaf.dto.LoginDTO;
 import com.proyecto1.thymeleaf.dto.UsuarioDTO;
-import com.proyecto1.thymeleaf.dto.UsuarioVistaDTO;
 import com.proyecto1.thymeleaf.model.Usuario;
 import com.proyecto1.thymeleaf.services.UsuarioService;
 import jakarta.servlet.http.HttpSession;
@@ -16,13 +15,6 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Controlador MVC de usuarios (HU-02 registro en empresa, HU-03 inicio de sesion).
- *
- * El login de aqui es provisional: guarda el usuario en la sesion HTTP.
- * Cuando entre Spring Security debe reemplazarse por su formulario de
- * autenticacion y el EMPRESA_ID_MOCK desaparece.
- */
 @Controller
 @RequestMapping("/usuarios")
 public class UsuarioController {
@@ -33,7 +25,6 @@ public class UsuarioController {
         this.usuarioService = usuarioService;
     }
 
-    // 1. Listar los usuarios de la empresa (sin exponer la contrasena)
     @GetMapping
     public String listarUsuarios(Model model, HttpSession session, RedirectAttributes redirectAttributes) {
         Long empresaId = obtenerEmpresaId(session, redirectAttributes);
@@ -41,14 +32,12 @@ public class UsuarioController {
             return "redirect:/usuarios/login";
         }
 
-        List<UsuarioVistaDTO> usuarios = usuarioService.listarPorEmpresa(empresaId);
-
+        List<Usuario> usuarios = usuarioService.listarPorEmpresa(empresaId);
         model.addAttribute("usuarios", usuarios);
         model.addAttribute("rolesAcceso", Usuario.RolAcceso.values());
         return "usuarios/lista";
     }
 
-    // 2. Registrar un usuario: mostrar formulario
     @GetMapping("/nuevo")
     public String mostrarFormularioRegistro(Model model) {
         model.addAttribute("usuario", new UsuarioDTO());
@@ -56,7 +45,6 @@ public class UsuarioController {
         return "usuarios/formulario";
     }
 
-    // 3. Registrar
     @PostMapping("/guardar")
     public String guardarUsuario(@Valid @ModelAttribute("usuario") UsuarioDTO usuario,
                                 BindingResult resultado,
@@ -72,8 +60,13 @@ public class UsuarioController {
             return "usuarios/formulario";
         }
         try {
-            usuarioService.registrarUsuario(usuario, empresaId);
-            redirectAttributes.addFlashAttribute("mensajeExito", "Usuario registrado con éxito.");
+            Usuario nuevoUsuario = new Usuario();
+            nuevoUsuario.setNombre(usuario.getNombre());
+            nuevoUsuario.setCorreo(usuario.getCorreo());
+            nuevoUsuario.setPassword(usuario.getPassword());
+            nuevoUsuario.setRolAcceso(usuario.getRolAcceso());
+            usuarioService.registrarUsuario(nuevoUsuario, empresaId);
+            redirectAttributes.addFlashAttribute("mensajeExito", "Usuario registrado con exito.");
         } catch (Exception e) {
             model.addAttribute("mensajeError", e.getMessage());
             return "usuarios/formulario";
@@ -81,14 +74,12 @@ public class UsuarioController {
         return "redirect:/usuarios";
     }
 
-    // 4. Formulario de inicio de sesion
     @GetMapping("/login")
     public String mostrarFormularioLogin(Model model) {
         model.addAttribute("login", new LoginDTO());
         return "usuarios/login";
     }
 
-    // 5. Iniciar sesion
     @PostMapping("/login")
     public String iniciarSesion(@Valid @ModelAttribute("login") LoginDTO login,
                                 BindingResult resultado,
@@ -100,7 +91,7 @@ public class UsuarioController {
 
         Optional<Usuario> usuario = usuarioService.login(login.getCorreo(), login.getPassword());
         if (usuario.isEmpty()) {
-            model.addAttribute("mensajeError", "Correo o contraseña incorrectos.");
+            model.addAttribute("mensajeError", "Correo o contrasena incorrectos.");
             return "usuarios/login";
         }
 
@@ -109,14 +100,12 @@ public class UsuarioController {
         return "redirect:/procesos";
     }
 
-    // 6. Cerrar sesion
     @PostMapping("/logout")
     public String cerrarSesion(HttpSession session) {
         session.invalidate();
         return "redirect:/usuarios/login";
     }
 
-    // 7. Cambiar el rol de acceso de un usuario
     @PostMapping("/rol/{id}")
     public String cambiarRol(@PathVariable Long id,
                             @RequestParam Usuario.RolAcceso rolAcceso,
@@ -128,14 +117,13 @@ public class UsuarioController {
         }
         try {
             usuarioService.cambiarRol(id, rolAcceso, empresaId);
-            redirectAttributes.addFlashAttribute("mensajeExito", "Rol actualizado con éxito.");
+            redirectAttributes.addFlashAttribute("mensajeExito", "Rol actualizado con exito.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
         }
         return "redirect:/usuarios";
     }
 
-    // 8. Desactivar un usuario sin borrarlo
     @PostMapping("/desactivar/{id}")
     public String desactivarUsuario(@PathVariable Long id,
                                   HttpSession session,
@@ -153,7 +141,6 @@ public class UsuarioController {
         return "redirect:/usuarios";
     }
 
-    // 9. Eliminar
     @PostMapping("/eliminar/{id}")
     public String eliminarUsuario(@PathVariable Long id,
                                 HttpSession session,
@@ -174,7 +161,7 @@ public class UsuarioController {
     private Long obtenerEmpresaId(HttpSession session, RedirectAttributes redirectAttributes) {
         Object empresaId = session.getAttribute("empresaId");
         if (empresaId == null) {
-            redirectAttributes.addFlashAttribute("mensajeError", "Debe iniciar sesión para acceder a su empresa.");
+            redirectAttributes.addFlashAttribute("mensajeError", "Debe iniciar sesion para acceder a su empresa.");
             return null;
         }
         return Long.valueOf(empresaId.toString());
