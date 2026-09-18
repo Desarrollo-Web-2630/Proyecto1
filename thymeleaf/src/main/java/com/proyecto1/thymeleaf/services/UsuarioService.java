@@ -37,7 +37,7 @@ public class UsuarioService {
                 .orElseThrow(() -> new IllegalArgumentException("La empresa no existe"));
 
         String correo = usuario.getCorreo().trim();
-        if (usuarioRepository.existsByCorreo(correo)) {
+        if (usuarioRepository.existsByCorreoIgnoreCase(correo)) {
             throw new IllegalArgumentException("Ya existe un usuario con el correo '" + correo + "'");
         }
 
@@ -57,7 +57,7 @@ public class UsuarioService {
             return Optional.empty();
         }
 
-        return usuarioRepository.findByCorreo(correo.trim())
+        return usuarioRepository.findByCorreoIgnoreCase(correo.trim())
                 .filter(Usuario::getActivo)
                 .filter(u -> u.getPassword().equals(password.trim()));
     }

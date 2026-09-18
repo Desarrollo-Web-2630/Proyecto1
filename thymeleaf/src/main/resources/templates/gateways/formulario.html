@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/comunes :: cabeza('Gateway')}"></head>
+<body>
+
+<nav th:replace="~{fragmentos/comunes :: navegacion}"></nav>
+
+<main class="contenido">
+
+    <h1 th:text="${gateway.id} == null ? 'Nuevo gateway' : 'Editar gateway'">Nuevo gateway</h1>
+    <p class="subtitulo">Un gateway es el punto donde el proceso decide por cuál camino continuar.</p>
+
+    <div th:replace="~{fragmentos/comunes :: mensajes}"></div>
+
+    <form class="panel" method="post" th:object="${gateway}"
+          th:action="${gateway.id} == null
+                     ? @{/procesos/{procesoId}/gateways/guardar(procesoId=${procesoId})}
+                     : @{/procesos/{procesoId}/gateways/actualizar/{id}(procesoId=${procesoId}, id=${gateway.id})}">
+
+        <input type="hidden" th:field="*{id}"/>
+
+        <div class="campo">
+            <label for="nombre">Nombre</label>
+            <input type="text" id="nombre" th:field="*{nombre}"
+                   th:classappend="${#fields.hasErrors('nombre')} ? 'invalido'"
+                   placeholder="¿Solicitud aprobada?"/>
+            <span class="error-campo" th:if="${#fields.hasErrors('nombre')}" th:errors="*{nombre}"></span>
+        </div>
+
+        <div class="campo">
+            <label for="tipo">Tipo</label>
+            <select id="tipo" th:field="*{tipo}"
+                    th:classappend="${#fields.hasErrors('tipo')} ? 'invalido'">
+                <option value="">Selecciona un tipo</option>
+                <option th:each="opcion : ${tiposGateway}"
+                        th:value="${opcion}"
+                        th:text="${opcion}">EXCLUSIVO</option>
+            </select>
+            <span class="error-campo" th:if="${#fields.hasErrors('tipo')}" th:errors="*{tipo}"></span>
+        </div>
+
+        <div class="pie-formulario">
+            <button type="submit" class="boton">Guardar</button>
+            <a class="boton boton-suave"
+               th:href="@{/procesos/{procesoId}/gateways(procesoId=${procesoId})}">Cancelar</a>
+        </div>
+    </form>
+
+</main>
+
+</body>
+</html>

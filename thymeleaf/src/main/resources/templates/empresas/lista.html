@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/comunes :: cabeza('Empresas')}"></head>
+<body>
+
+<nav th:replace="~{fragmentos/comunes :: navegacion}"></nav>
+
+<main class="contenido">
+
+    <div class="encabezado-lista">
+        <h1>Empresas</h1>
+        <a class="boton" th:href="@{/empresas/nueva}">Registrar empresa</a>
+    </div>
+
+    <div th:replace="~{fragmentos/comunes :: mensajes}"></div>
+
+    <table>
+        <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>NIT</th>
+            <th>Correo</th>
+            <th>Acciones</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:if="${#lists.isEmpty(empresas)}">
+            <td colspan="4" class="vacio">Todavía no hay empresas registradas.</td>
+        </tr>
+        <tr th:each="empresa : ${empresas}">
+            <td>
+                <a th:href="@{/empresas/{id}(id=${empresa.id})}" th:text="${empresa.nombre}">Nombre</a>
+            </td>
+            <td th:text="${empresa.nit}">NIT</td>
+            <td th:text="${empresa.correo}">Correo</td>
+            <td class="acciones">
+                <a class="boton boton-suave" th:href="@{/empresas/editar/{id}(id=${empresa.id})}">Editar</a>
+
+                <form th:action="@{/empresas/eliminar/{id}(id=${empresa.id})}" method="post"
+                      onsubmit="return confirm('¿Eliminar esta empresa?');">
+                    <button type="submit" class="boton boton-peligro">Eliminar</button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+</main>
+
+</body>
+</html>

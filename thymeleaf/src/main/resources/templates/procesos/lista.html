@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/comunes :: cabeza('Procesos')}"></head>
+<body>
+
+<nav th:replace="~{fragmentos/comunes :: navegacion}"></nav>
+
+<main class="contenido">
+
+    <div class="encabezado-lista">
+        <h1>Procesos</h1>
+        <a class="boton" th:href="@{/procesos/nuevo}">Nuevo proceso</a>
+    </div>
+
+    <div th:replace="~{fragmentos/comunes :: mensajes}"></div>
+
+    <table>
+        <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Categoría</th>
+            <th>Estado</th>
+            <th>Elementos</th>
+            <th>Acciones</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:if="${#lists.isEmpty(procesos)}">
+            <td colspan="5" class="vacio">Todavía no hay procesos registrados.</td>
+        </tr>
+        <tr th:each="proceso : ${procesos}">
+            <td>
+                <a th:href="@{/procesos/{id}(id=${proceso.id})}" th:text="${proceso.nombre}">Nombre</a>
+            </td>
+            <td th:text="${proceso.categoria}">Categoría</td>
+            <td>
+                <span class="etiqueta"
+                      th:classappend="${proceso.estado.name() == 'PUBLICADO'} ? 'etiqueta-publicado' : 'etiqueta-borrador'"
+                      th:text="${proceso.estado}">BORRADOR</span>
+            </td>
+            <td class="acciones">
+                <a class="boton boton-suave" th:href="@{/procesos/{id}/actividades(id=${proceso.id})}">Actividades</a>
+                <a class="boton boton-suave" th:href="@{/procesos/{id}/gateways(id=${proceso.id})}">Gateways</a>
+                <a class="boton boton-suave" th:href="@{/procesos/{id}/arcos(id=${proceso.id})}">Arcos</a>
+            </td>
+            <td class="acciones">
+                <a class="boton boton-suave" th:href="@{/procesos/editar/{id}(id=${proceso.id})}">Editar</a>
+
+                <form th:if="${proceso.estado.name() == 'BORRADOR'}"
+                      th:action="@{/procesos/publicar/{id}(id=${proceso.id})}" method="post">
+                    <button type="submit" class="boton">Publicar</button>
+                </form>
+
+                <form th:action="@{/procesos/eliminar/{id}(id=${proceso.id})}" method="post"
+                      onsubmit="return confirm('¿Eliminar este proceso?');">
+                    <button type="submit" class="boton boton-peligro">Eliminar</button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+</main>
+
+</body>
+</html>

@@ -12,7 +12,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * Logica de negocio de los procesos (HU-04 Crear proceso).
+ * Logica de negocio de los procesos (HU-04 crear, HU-05 editar, HU-06
+ * eliminar, HU-07 consultar).
+ *
+ * Las escrituras reciben ProcesoDTO y no la entidad: asi el formulario no
+ * puede tocar campos que no le corresponden, como el estado o la empresa.
  *
  * Todas las operaciones reciben el empresaId del usuario autenticado para
  * garantizar que una empresa nunca alcance los procesos de otra.
@@ -93,7 +97,7 @@ public class ProcesoService {
                 .orElseThrow(() -> new IllegalArgumentException("El proceso no existe o no pertenece a su empresa"));
 
         if (proceso.getEstado() == Proceso.EstadoProceso.PUBLICADO) {
-            throw new IllegalArgumentException("El proceso ya esta publicado");
+            throw new IllegalArgumentException("El proceso ya está publicado");
         }
 
         proceso.setEstado(Proceso.EstadoProceso.PUBLICADO);

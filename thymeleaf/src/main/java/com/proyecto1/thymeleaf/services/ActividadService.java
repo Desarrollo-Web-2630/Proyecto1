@@ -12,7 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * Logica de negocio de las actividades (HU-08 Crear actividad).
+ * Logica de negocio de las actividades (HU-08 crear, HU-09 editar, HU-10
+ * eliminar).
  *
  * Una actividad siempre vive dentro de un proceso y de una lane; la lane es la
  * que define el rol responsable, porque las actividades se asignan a funciones

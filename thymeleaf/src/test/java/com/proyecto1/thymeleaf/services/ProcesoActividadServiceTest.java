@@ -2,9 +2,9 @@ package com.proyecto1.thymeleaf.services;
 
 import com.proyecto1.thymeleaf.dto.ActividadRequestDTO;
 import com.proyecto1.thymeleaf.dto.ActividadResponseDTO;
+import com.proyecto1.thymeleaf.dto.EmpresaDTO;
 import com.proyecto1.thymeleaf.dto.ProcesoRequestDTO;
 import com.proyecto1.thymeleaf.dto.ProcesoResponseDTO;
-import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.repository.EmpresaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,8 +17,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Verifica los criterios de aceptacion de la HU-04 (crear proceso) y la
- * HU-08 (crear actividad).
+ * Verifica los criterios de aceptacion de la HU-04 (crear proceso) y las
+ * HU-08 / HU-09 / HU-10 (crear, editar y eliminar actividad).
  */
 @SpringBootTest
 @Transactional
@@ -31,7 +31,7 @@ class ProcesoActividadServiceTest {
     private ActividadService actividadService;
 
     @Autowired
-    private EmpresaRepository empresaRepository;
+    private EmpresaService empresaService;
 
     private Long empresaA;
     private Long empresaB;
@@ -195,11 +195,11 @@ class ProcesoActividadServiceTest {
     // ---------- utilidades ----------
 
     private Long crearEmpresa(String nombre, String nit) {
-        Empresa empresa = new Empresa();
+        EmpresaDTO empresa = new EmpresaDTO();
         empresa.setNombre(nombre);
         empresa.setNit(nit);
         empresa.setCorreo("contacto@" + nit + ".com");
-        return empresaRepository.save(empresa).getId();
+        return empresaService.registrarEmpresa(empresa).getId();
     }
 
     private ProcesoRequestDTO nuevoProceso(String nombre) {

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/comunes :: cabeza('Actividades')}"></head>
+<body>
+
+<nav th:replace="~{fragmentos/comunes :: navegacion}"></nav>
+
+<main class="contenido">
+
+    <div class="encabezado-lista">
+        <h1>Actividades del proceso</h1>
+        <a class="boton" th:href="@{/procesos/{procesoId}/actividades/nueva(procesoId=${procesoId})}">Nueva actividad</a>
+    </div>
+
+    <div th:replace="~{fragmentos/comunes :: mensajes}"></div>
+
+    <table>
+        <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Tipo</th>
+            <th>Lane</th>
+            <th>Posición</th>
+            <th>Acciones</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:if="${#lists.isEmpty(actividades)}">
+            <td colspan="5" class="vacio">Este proceso todavía no tiene actividades.</td>
+        </tr>
+        <tr th:each="actividad : ${actividades}">
+            <td th:text="${actividad.nombre}">Nombre</td>
+            <td th:text="${actividad.tipoActividad}">Tipo</td>
+            <td th:text="${actividad.laneId}">Lane</td>
+            <td th:text="'(' + ${actividad.posicionX} + ', ' + ${actividad.posicionY} + ')'">(0, 0)</td>
+            <td class="acciones">
+                <a class="boton boton-suave"
+                   th:href="@{/procesos/{procesoId}/actividades/editar/{id}(procesoId=${procesoId}, id=${actividad.id})}">Editar</a>
+
+                <form th:action="@{/procesos/{procesoId}/actividades/eliminar/{id}(procesoId=${procesoId}, id=${actividad.id})}"
+                      method="post" onsubmit="return confirm('¿Eliminar esta actividad?');">
+                    <button type="submit" class="boton boton-peligro">Eliminar</button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <p style="margin-top:20px">
+        <a class="boton boton-suave" th:href="@{/procesos}">Volver a procesos</a>
+    </p>
+
+</main>
+
+</body>
+</html>
