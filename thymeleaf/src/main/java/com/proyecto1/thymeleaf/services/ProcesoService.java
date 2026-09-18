@@ -15,16 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Logica de negocio de los procesos (HU-04 crear, HU-05 editar, HU-06
- * eliminar, HU-07 consultar).
- *
- * Las escrituras reciben ProcesoDTO y no la entidad: asi el formulario no
- * puede tocar campos que no le corresponden, como el estado o la empresa.
- *
- * Todas las operaciones reciben el empresaId del usuario autenticado para
- * garantizar que una empresa nunca alcance los procesos de otra.
- */
+// Logica de negocio de los procesos (HU-04 crear, HU-05 editar, HU-06 eliminar, HU-07 consultar).
+
 @Service
 @Transactional
 public class ProcesoService {
