@@ -1,11 +1,10 @@
 package com.proyecto1.thymeleaf.controllers;
 
-
 import com.proyecto1.thymeleaf.dto.GatewayDTO;
 import com.proyecto1.thymeleaf.model.Gateway;
+import com.proyecto1.thymeleaf.security.ContextoSeguridad;
 import com.proyecto1.thymeleaf.services.GatewayService;
 import jakarta.validation.Valid;
-import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,40 +16,37 @@ import java.util.List;
 public class GatewayController {
 
     private final GatewayService gatewayService;
-    private final ModelMapper modelMapper;
-    private final Long EMPRESA_ID_MOCK = 1L;
 
-    public GatewayController(GatewayService gatewayService, ModelMapper modelMapper) {
+    public GatewayController(GatewayService gatewayService) {
         this.gatewayService = gatewayService;
-        this.modelMapper = modelMapper;
     }
 
     @GetMapping
     public ResponseEntity<List<Gateway>> listar(@PathVariable Long procesoId) {
-        return ResponseEntity.ok(gatewayService.listarPorProcesoYEmpresa(procesoId, EMPRESA_ID_MOCK));
+        return ResponseEntity.ok(gatewayService.listarPorProcesoYEmpresa(procesoId, ContextoSeguridad.empresaIdActual()));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Gateway> obtener(@PathVariable Long procesoId, @PathVariable Long id) {
-        return ResponseEntity.ok(gatewayService.obtenerPorIdYEmpresa(id, EMPRESA_ID_MOCK));
+        return ResponseEntity.ok(gatewayService.obtenerPorIdYEmpresa(id, ContextoSeguridad.empresaIdActual()));
     }
 
     @PostMapping
     public ResponseEntity<Gateway> crear(@PathVariable Long procesoId, @Valid @RequestBody GatewayDTO datos) {
-        Gateway creado = gatewayService.crearGateway(datos, procesoId, EMPRESA_ID_MOCK);
+        Gateway creado = gatewayService.crearGateway(datos, procesoId, ContextoSeguridad.empresaIdActual());
         return ResponseEntity.status(HttpStatus.CREATED).body(creado);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<Gateway> actualizar(@PathVariable Long procesoId, @PathVariable Long id,
                                               @Valid @RequestBody GatewayDTO datos) {
-        Gateway actualizado = gatewayService.actualizarGateway(id, datos, EMPRESA_ID_MOCK);
+        Gateway actualizado = gatewayService.actualizarGateway(id, datos, ContextoSeguridad.empresaIdActual());
         return ResponseEntity.ok(actualizado);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long procesoId, @PathVariable Long id) {
-        gatewayService.eliminarGateway(id, EMPRESA_ID_MOCK);
+        gatewayService.eliminarGateway(id, ContextoSeguridad.empresaIdActual());
         return ResponseEntity.noContent().build();
     }
 }

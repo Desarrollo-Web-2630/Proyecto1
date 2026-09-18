@@ -8,14 +8,20 @@ import com.proyecto1.thymeleaf.model.Usuario;
 import com.proyecto1.thymeleaf.model.VerificacionToken;
 import com.proyecto1.thymeleaf.repository.UsuarioRepository;
 import com.proyecto1.thymeleaf.repository.VerificacionTokenRepository;
+import com.proyecto1.thymeleaf.security.UsuarioPrincipal;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -50,6 +56,14 @@ class VerificacionCorreoServiceTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @AfterEach
+    void limpiarContextoDeSeguridad() {
+        // SecurityContextHolder usa un ThreadLocal; sin esto, un test que
+        // autentica a alguien "contamina" al siguiente si JUnit reutiliza el
+        // hilo.
+        SecurityContextHolder.clearContext();
+    }
+
     // ---------- HU-01: administrador inicial ----------
 
     @Test
@@ -66,7 +80,7 @@ class VerificacionCorreoServiceTest {
 
     @Test
     void noSePuedeIniciarSesionAntesDeActivarLaCuenta() {
-        registrarEmpresaDePrueba("Empresa Pendiente", "900" + (System.nanoTime() % 1000000));
+        registrarEmpresaDePrueba("Empresa Pendiente", String.format("900%06d", System.nanoTime() % 1000000));
         Usuario admin = usuarioRepository.findAll().stream()
                 .filter(u -> u.getRolAcceso() == Usuario.RolAcceso.ADMIN)
                 .reduce((first, second) -> second) // el mas reciente
@@ -77,7 +91,7 @@ class VerificacionCorreoServiceTest {
 
     @Test
     void activarCuentaConTokenValidoPermiteIniciarSesionDespues() {
-        Empresa empresa = registrarEmpresaDePrueba("Empresa Activable", "900" + (System.nanoTime() % 1000000));
+        Empresa empresa = registrarEmpresaDePrueba("Empresa Activable", String.format("900%06d", System.nanoTime() % 1000000));
         Usuario admin = usuarioRepository.findByEmpresaId(empresa.getId()).get(0);
         VerificacionToken token = tokenRepository.findAll().stream()
                 .filter(t -> t.getUsuario().getId().equals(admin.getId()))
@@ -91,7 +105,7 @@ class VerificacionCorreoServiceTest {
 
     @Test
     void activarCuentaRechazaUnaContrasenaDebil() {
-        Empresa empresa = registrarEmpresaDePrueba("Empresa Debil", "900" + (System.nanoTime() % 1000000));
+        Empresa empresa = registrarEmpresaDePrueba("Empresa Debil", String.format("900%06d", System.nanoTime() % 1000000));
         Usuario admin = usuarioRepository.findByEmpresaId(empresa.getId()).get(0);
         VerificacionToken token = tokenRepository.findAll().stream()
                 .filter(t -> t.getUsuario().getId().equals(admin.getId()))
@@ -178,10 +192,17 @@ class VerificacionCorreoServiceTest {
     /**
      * Un usuario ya activo y con contrasena real, para probar el endpoint de
      * verificacion simple (sin cambio de contrasena) de forma aislada.
+     *
+     * registrarUsuario ahora exige que quien invita sea un administrador
+     * autenticado, asi que este helper simula esa autenticacion antes de
+     * llamarlo: es exactamente el mismo camino que seguiria una peticion HTTP
+     * real con un JWT de administrador.
      */
     private Usuario crearUsuarioSuelto() {
         Empresa empresa = registrarEmpresaDePrueba("Empresa Base " + System.nanoTime(),
                 String.valueOf(900000000L + (System.nanoTime() % 90000000L)));
+
+        autenticarComo(empresa.getId(), Usuario.RolAcceso.ADMIN);
 
         UsuarioDTO datos = new UsuarioDTO();
         datos.setNombre("Usuario de prueba");
@@ -190,5 +211,12 @@ class VerificacionCorreoServiceTest {
         datos.setRolAcceso(Usuario.RolAcceso.EDITOR);
 
         return usuarioService.registrarUsuario(datos, empresa.getId());
+    }
+
+    private void autenticarComo(Long empresaId, Usuario.RolAcceso rol) {
+        UsuarioPrincipal principal = new UsuarioPrincipal(999L, empresaId, rol, "test@prueba.com");
+        var authentication = new UsernamePasswordAuthenticationToken(
+                principal, null, List.of(new SimpleGrantedAuthority("ROLE_" + rol.name())));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 }

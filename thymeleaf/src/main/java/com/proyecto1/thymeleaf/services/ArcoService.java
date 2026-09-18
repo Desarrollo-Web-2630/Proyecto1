@@ -7,6 +7,7 @@ import com.proyecto1.thymeleaf.model.Proceso;
 import com.proyecto1.thymeleaf.repository.ArcoRepository;
 import com.proyecto1.thymeleaf.repository.ElementoConectableRepository;
 import com.proyecto1.thymeleaf.repository.ProcesoRepository;
+import com.proyecto1.thymeleaf.security.ContextoSeguridad;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -82,9 +83,10 @@ public class ArcoService {
         return arcoRepository.save(arcoExistente);
     }
 
-    // 5. Eliminar (borrado logico via @SQLDelete)
+    // 5. Eliminar (borrado logico via @SQLDelete). HU-13: solo el administrador.
     public void eliminarArco(Long id, Long empresaId) {
         Arco arco = obtenerPorIdYEmpresa(id, empresaId);
+        ContextoSeguridad.exigirAdmin("eliminar arcos");
         arcoRepository.delete(arco);
     }
 
