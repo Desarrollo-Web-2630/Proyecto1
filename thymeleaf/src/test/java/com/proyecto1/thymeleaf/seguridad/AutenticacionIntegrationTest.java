@@ -191,6 +191,53 @@ class AutenticacionIntegrationTest {
     }
 
     @Test
+    void lasRespuestasNuncaExponenElHashDeLaContrasena() throws Exception {
+        String jwt = registrarActivarYObtenerToken("Empresa Sin Fugas", "900444555", "admin@sinfugas.com");
+
+        ProcesoDTO proceso = new ProcesoDTO();
+        proceso.setNombre("Proceso a inspeccionar");
+        proceso.setDescripcion("Se revisa el JSON completo");
+        proceso.setCategoria("Auditoria");
+        mockMvc.perform(post("/api/v1/procesos")
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(proceso)))
+                .andExpect(status().isCreated());
+
+        // Proceso -> empresa -> usuarios -> password: si la entidad se serializa
+        // completa, el hash BCrypt ("$2a$...") sale en la respuesta.
+        String[] cuerpos = {
+                mockMvc.perform(get("/api/v1/procesos").header("Authorization", "Bearer " + jwt))
+                        .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(),
+                mockMvc.perform(get("/api/v1/empresas").header("Authorization", "Bearer " + jwt))
+                        .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(),
+                mockMvc.perform(get("/api/v1/usuarios").header("Authorization", "Bearer " + jwt))
+                        .andExpect(status().isOk()).andReturn().getResponse().getContentAsString()
+        };
+        for (String cuerpo : cuerpos) {
+            org.junit.jupiter.api.Assertions.assertFalse(cuerpo.contains("\"password\""),
+                    "La respuesta expone el campo password: " + cuerpo);
+            org.junit.jupiter.api.Assertions.assertFalse(cuerpo.contains("$2a$") || cuerpo.contains("$2b$"),
+                    "La respuesta expone un hash BCrypt: " + cuerpo);
+        }
+    }
+
+    @Test
+    void unBodyInvalidoDevuelve400ConMensaje() throws Exception {
+        EmpresaDTO datos = new EmpresaDTO();
+        datos.setNombre("X"); // menos de 2 caracteres
+        datos.setNit("abc");  // no numerico
+        datos.setCorreo("no-es-un-correo");
+
+        mockMvc.perform(post("/api/v1/empresas")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(datos)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.mensaje").isNotEmpty());
+    }
+
+    @Test
     void unTokenInventadoNoAutentica() throws Exception {
         mockMvc.perform(get("/api/v1/procesos").header("Authorization", "Bearer token.invalido.falso"))
                 .andExpect(status().isUnauthorized());

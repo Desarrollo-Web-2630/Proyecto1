@@ -147,17 +147,38 @@ public class VerificacionCorreoService {
                 .orElseGet(() -> respuesta(false, "Token no encontrado", ""));
     }
 
+    // Maximo de reenvios por usuario en una hora (limite basico contra abuso)
+    static final int MAX_REENVIOS_POR_HORA = 3;
+
+    /**
+     * La respuesta es la misma exista o no el correo, y tambien cuando se
+     * alcanza el limite: asi este endpoint publico no sirve para averiguar
+     * que correos estan registrados (correo de verificacion, puntos 13 y 14).
+     */
     public VerificacionCorreoResponseDTO reenviarVerificacion(String correo) {
         if (correo == null || correo.isBlank()) {
             return respuesta(false, "Correo invalido", "");
         }
 
-        Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(correo.trim())
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+        String mensajeGenerico = "Si el correo esta registrado, recibira un enlace de verificacion";
 
-        crearYEnviarToken(usuario);
-
-        return respuesta(false, "Se ha enviado un correo de verificacion", usuario.getCorreo());
+        return usuarioRepository.findByCorreoIgnoreCase(correo.trim())
+                .map(usuario -> {
+                    Instant haceUnaHoraEnVigencia = Instant.now().plus(TOKEN_TTL).minus(Duration.ofHours(1));
+                    long recientes = tokenRepository.countByUsuarioIdAndExpiracionAfter(usuario.getId(), haceUnaHoraEnVigencia);
+                    if (recientes >= MAX_REENVIOS_POR_HORA) {
+                        // Se registra internamente pero no se le dice al cliente
+                        // nada distinto: no debe poder distinguir "limite" de "no existe".
+                        return respuesta(false, mensajeGenerico, "");
+                    }
+                    if (Boolean.TRUE.equals(usuario.getActivo())) {
+                        // Ya verificado: tampoco se revela; simplemente no se envia nada.
+                        return respuesta(false, mensajeGenerico, "");
+                    }
+                    crearYEnviarToken(usuario);
+                    return respuesta(false, mensajeGenerico, "");
+                })
+                .orElseGet(() -> respuesta(false, mensajeGenerico, ""));
     }
 
     // Genera un token temporal (no persistido) para pruebas/debug y lo devuelve

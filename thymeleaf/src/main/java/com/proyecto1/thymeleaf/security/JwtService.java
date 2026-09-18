@@ -14,7 +14,7 @@ import java.util.Date;
 import java.util.Optional;
 
 /**
- * Emite y valida los JWT que reemplazan a EMPRESA_ID_MOCK.
+ * Emite y valida los JWT que identifican al usuario y su empresa en cada peticion.
  *
  * El token lleva el id de usuario como subject, y como claims propios el id
  * de empresa y el rol de acceso: son los dos datos que antes se hardcodeaban

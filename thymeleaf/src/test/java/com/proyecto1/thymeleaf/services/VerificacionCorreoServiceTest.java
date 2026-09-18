@@ -25,6 +25,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -76,6 +77,36 @@ class VerificacionCorreoServiceTest {
         // La contrasena hardcodeada de antes era literalmente "DesarrolloWeb123"
         assertFalse(passwordEncoder.matches("DesarrolloWeb123", admin.getPassword()),
                 "No debe quedar ninguna contrasena fija ni predecible");
+    }
+
+    @Test
+    void elNitDeLaEmpresaEsUnico() {
+        registrarEmpresaDePrueba("Primera con NIT", "900123400");
+
+        EmpresaDTO repetida = new EmpresaDTO();
+        repetida.setNombre("Segunda con el mismo NIT");
+        repetida.setNit("900123400");
+        repetida.setCorreo("otra" + System.nanoTime() + "@prueba.com");
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> empresaService.registrarEmpresa(repetida));
+        assertTrue(error.getMessage().contains("NIT"));
+    }
+
+    @Test
+    void laContrasenaSeGuardaCifradaConBcryptNuncaEnClaro() {
+        Empresa empresa = registrarEmpresaDePrueba("Empresa Cifrada", String.format("900%06d", System.nanoTime() % 1000000));
+        Usuario admin = usuarioRepository.findByEmpresaId(empresa.getId()).get(0);
+        VerificacionToken token = tokenRepository.findAll().stream()
+                .filter(t -> t.getUsuario().getId().equals(admin.getId()))
+                .findFirst().orElseThrow();
+
+        verificacionCorreoService.activarCuenta(token.getToken(), "ClaveSegura1");
+
+        String guardada = usuarioRepository.findById(admin.getId()).orElseThrow().getPassword();
+        assertFalse(guardada.equals("ClaveSegura1"), "La contrasena no puede guardarse en claro");
+        assertTrue(guardada.startsWith("$2a$") || guardada.startsWith("$2b$"), "Debe ser un hash BCrypt: " + guardada);
+        assertTrue(passwordEncoder.matches("ClaveSegura1", guardada));
     }
 
     @Test
@@ -177,6 +208,46 @@ class VerificacionCorreoServiceTest {
         verificacionCorreoService.reenviarVerificacion(usuario.getCorreo());
 
         assertEquals(tokensAntes + 1, tokenRepository.count());
+    }
+
+    @Test
+    void reenviarVerificacionNoRevelaSiElCorreoExiste() {
+        Usuario usuario = crearUsuarioSuelto();
+
+        VerificacionCorreoResponseDTO existente = verificacionCorreoService.reenviarVerificacion(usuario.getCorreo());
+        VerificacionCorreoResponseDTO inexistente = verificacionCorreoService.reenviarVerificacion("nadie" + System.nanoTime() + "@nunca.com");
+
+        // Misma respuesta en ambos casos: ni el mensaje ni el correo devuelto delatan la diferencia
+        assertEquals(existente.getMensaje(), inexistente.getMensaje());
+        assertEquals(existente.getCorreo(), inexistente.getCorreo());
+        assertFalse(existente.isVerificado());
+        assertFalse(inexistente.isVerificado());
+    }
+
+    @Test
+    void reenviarVerificacionSeLimitaATresPorHora() {
+        Usuario usuario = crearUsuarioSuelto(); // ya tiene 1 token del registro
+        long tokensAntes = tokenRepository.count();
+
+        verificacionCorreoService.reenviarVerificacion(usuario.getCorreo()); // 2
+        verificacionCorreoService.reenviarVerificacion(usuario.getCorreo()); // 3
+        VerificacionCorreoResponseDTO bloqueado = verificacionCorreoService.reenviarVerificacion(usuario.getCorreo()); // limite
+
+        assertEquals(tokensAntes + 2, tokenRepository.count(), "El cuarto intento en la hora no debe generar token");
+        // Y la respuesta al bloqueado es identica a la normal: no se puede distinguir desde fuera
+        assertEquals("Si el correo esta registrado, recibira un enlace de verificacion", bloqueado.getMensaje());
+    }
+
+    @Test
+    void reenviarVerificacionNoEnviaNadaAUnaCuentaYaActiva() {
+        Usuario usuario = crearUsuarioSuelto();
+        usuario.setActivo(true);
+        usuarioRepository.save(usuario);
+        long tokensAntes = tokenRepository.count();
+
+        verificacionCorreoService.reenviarVerificacion(usuario.getCorreo());
+
+        assertEquals(tokensAntes, tokenRepository.count());
     }
 
     // ---------- utilidades ----------

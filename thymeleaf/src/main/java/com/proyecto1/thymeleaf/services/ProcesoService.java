@@ -5,9 +5,14 @@ import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.model.Proceso;
 import com.proyecto1.thymeleaf.repository.EmpresaRepository;
 import com.proyecto1.thymeleaf.repository.ProcesoRepository;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -32,10 +37,45 @@ public class ProcesoService {
         this.empresaRepository = empresaRepository;
     }
 
-    // 1. Listar los procesos de la empresa del usuario autenticado
+    // 1. Listar los procesos de la empresa: activos por defecto (HU-07)
     @Transactional(readOnly = true)
     public List<Proceso> listarPorEmpresa(Long empresaId) {
-        return procesoRepository.findByEmpresaId(empresaId);
+        return listarPorEmpresa(empresaId, false);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Proceso> listarPorEmpresa(Long empresaId, boolean incluirInactivos) {
+        return incluirInactivos
+                ? procesoRepository.findByEmpresaId(empresaId)
+                : procesoRepository.findByEmpresaIdAndEstadoNot(empresaId, Proceso.EstadoProceso.INACTIVO);
+    }
+
+    /**
+     * HU-07: busqueda por nombre, filtros por estado y categoria, y
+     * paginacion. Cada filtro se aplica solo si viene informado; el
+     * aislamiento por empresa se aplica siempre.
+     */
+    @Transactional(readOnly = true)
+    public Page<Proceso> buscar(Long empresaId, String nombre, Proceso.EstadoProceso estado,
+                                String categoria, boolean incluirInactivos, Pageable pageable) {
+        Specification<Proceso> filtros = (raiz, consulta, cb) -> {
+            List<Predicate> condiciones = new ArrayList<>();
+            condiciones.add(cb.equal(raiz.get("empresa").get("id"), empresaId));
+
+            if (nombre != null && !nombre.isBlank()) {
+                condiciones.add(cb.like(cb.lower(raiz.get("nombre")), "%" + nombre.trim().toLowerCase() + "%"));
+            }
+            if (estado != null) {
+                condiciones.add(cb.equal(raiz.get("estado"), estado));
+            } else if (!incluirInactivos) {
+                condiciones.add(cb.notEqual(raiz.get("estado"), Proceso.EstadoProceso.INACTIVO));
+            }
+            if (categoria != null && !categoria.isBlank()) {
+                condiciones.add(cb.equal(cb.lower(raiz.get("categoria")), categoria.trim().toLowerCase()));
+            }
+            return cb.and(condiciones.toArray(new Predicate[0]));
+        };
+        return procesoRepository.findAll(filtros, pageable);
     }
 
     // 2. Obtener un proceso verificando que pertenezca a la empresa
@@ -82,7 +122,7 @@ public class ProcesoService {
         return procesoRepository.save(procesoExistente);
     }
 
-    // 5. Pasar el proceso de borrador a publicado
+    // 5. Pasar el proceso a publicado
     public Proceso publicarProceso(Long id, Long empresaId) {
         Proceso proceso = obtenerPorIdYEmpresa(id, empresaId);
 
@@ -94,7 +134,24 @@ public class ProcesoService {
         return procesoRepository.save(proceso);
     }
 
-    // 6. Eliminar (borrado logico via @SQLDelete)
+    // 6. Inactivar: sale de los listados por defecto, pero se conserva
+    public Proceso inactivarProceso(Long id, Long empresaId) {
+        Proceso proceso = obtenerPorIdYEmpresa(id, empresaId);
+        proceso.setEstado(Proceso.EstadoProceso.INACTIVO);
+        return procesoRepository.save(proceso);
+    }
+
+    // 7. Reactivar: vuelve a borrador para poder seguir editandolo
+    public Proceso reactivarProceso(Long id, Long empresaId) {
+        Proceso proceso = obtenerPorIdYEmpresa(id, empresaId);
+        if (proceso.getEstado() != Proceso.EstadoProceso.INACTIVO) {
+            throw new IllegalArgumentException("El proceso no está inactivo");
+        }
+        proceso.setEstado(Proceso.EstadoProceso.BORRADOR);
+        return procesoRepository.save(proceso);
+    }
+
+    // 8. Eliminar (borrado logico via @SQLDelete)
     public void eliminarProceso(Long id, Long empresaId) {
         Proceso proceso = obtenerPorIdYEmpresa(id, empresaId);
         procesoRepository.delete(proceso);

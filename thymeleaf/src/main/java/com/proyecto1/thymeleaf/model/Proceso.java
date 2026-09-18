@@ -50,6 +50,9 @@ public class Proceso {
 
     public enum EstadoProceso {
         BORRADOR,
-        PUBLICADO
+        PUBLICADO,
+        // Oculto de los listados por defecto sin borrarlo: distinto del borrado
+        // logico (status=1), que lo saca de toda consulta.
+        INACTIVO
     }
 }
