@@ -13,20 +13,8 @@ import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.List;
 
-/**
- * Logica de negocio de las empresas (HU-01 Registro de empresa).
- *
- * La empresa es la raiz del aislamiento multi-tenant: no recibe empresaId
- * porque ella misma es el tenant.
- *
- * El administrador inicial nunca recibe una contrasena fija ni utilizable al
- * crearse: se le asigna un valor aleatorio, jamas revelado, y queda inactivo
- * hasta que active su cuenta con POST /api/auth/activar-cuenta, donde elige
- * su propia contrasena. Antes de este cambio la contrasena era un literal
- * fijo, igual para todas las empresas y visible en el codigo fuente publico:
- * cualquiera podia iniciar sesion como administrador de cualquier empresa
- * solo sabiendo su correo de contacto.
- */
+// Logica de negocio de las empresas (HU-01 Registro de empresa).
+
 @Service
 @Transactional
 public class EmpresaService {

@@ -15,22 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Logica de negocio de los usuarios (HU-02 registro, HU-03 inicio de sesion).
- *
- * Un usuario siempre pertenece a una empresa; las operaciones reciben el
- * empresaId del usuario autenticado para garantizar el aislamiento
- * multi-tenant.
- *
- * Las lecturas devuelven UsuarioVistaDTO en vez de la entidad, para que la
- * contrasena no salga de esta capa.
- *
- * Un usuario nuevo nace inactivo y recibe un correo de verificacion: aunque
- * aqui el administrador ya eligio su contrasena (a diferencia del admin
- * inicial de EmpresaService, que no tiene ninguna utilizable), igual se exige
- * verificar el correo antes de poder iniciar sesion, para evitar cuentas
- * creadas con un correo mal escrito o que no le pertenece a esa persona.
- */
+// Logica de negocio de los usuarios (HU-02 registro, HU-03 inicio de sesion).
+ 
 @Service
 @Transactional
 public class UsuarioService {
