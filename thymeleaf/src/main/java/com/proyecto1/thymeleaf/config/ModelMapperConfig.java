@@ -7,11 +7,6 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * Conversion entre entidades JPA y DTOs.
- *
- * Se usa la estrategia STRICT a proposito: con la estrategia por defecto
- * ModelMapper adivina correspondencias por parecido de nombre y puede
- * escribir campos que nadie pidio (por ejemplo el id o el status de una
- * entidad). STRICT solo mapea lo que coincide exactamente.
  */
 @Configuration
 public class ModelMapperConfig {
