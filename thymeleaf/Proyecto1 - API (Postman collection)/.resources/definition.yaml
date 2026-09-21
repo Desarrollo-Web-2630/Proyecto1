@@ -1,0 +1,11 @@
+$kind: collection
+description: Colección con los endpoints principales del backend para pruebas en Postman. Variable `baseUrl` usada para la URL base.
+variables:
+  baseUrl: http://localhost:8080
+scripts:
+  - type: http:beforeRequest
+    code: |-
+      // Entrega 2, sin autenticacion: la empresa se elige con este encabezado.
+      var empresaId = pm.environment.get('empresaId') || '1';
+      pm.request.headers.upsert({ key: 'X-Empresa-Id', value: String(empresaId) });
+    language: text/javascript

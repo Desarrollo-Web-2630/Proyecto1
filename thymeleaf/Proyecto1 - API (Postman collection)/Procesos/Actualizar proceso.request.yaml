@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/procesos/1"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "nombre": "Proceso actualizado",
+      "descripcion": "Descripcion nueva",
+      "categoria": "Operativo"
+    }
+order: 4000

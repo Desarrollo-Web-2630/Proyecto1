@@ -6,7 +6,7 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 @Entity
-@Table(name = "arco")
+@Table(name = "arcos")
 @Getter
 @Setter
 @NoArgsConstructor

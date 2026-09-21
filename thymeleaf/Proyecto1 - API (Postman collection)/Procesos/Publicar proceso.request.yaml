@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/procesos/1/publicar"
+method: POST
+order: 5000
