@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/usuarios"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "nombre": "Mariana Osorio",
+      "correo": "mariana-osoriov@javeriana.edu.co",
+      "password": "Password1A",
+      "rolAcceso": "EDITOR",
+      "empresaId": 1
+    }
+order: 2000

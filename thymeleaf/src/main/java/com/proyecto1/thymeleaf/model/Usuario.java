@@ -28,6 +28,9 @@ public class Usuario {
     @Column(nullable = false, unique = true)
     private String correo;
 
+    // Nunca sale en ninguna respuesta JSON, aunque la entidad se serialice
+    // completa por accidente (por ejemplo, Proceso -> empresa -> usuarios).
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @Column(nullable = false)
     private String password;
 
@@ -38,6 +41,8 @@ public class Usuario {
     @Column(nullable = false)
     private Boolean activo = true;
 
+    // Referencia inversa: nunca se serializa (ver Empresa.usuarios).
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "empresa_id", nullable = false)
     private Empresa empresa;

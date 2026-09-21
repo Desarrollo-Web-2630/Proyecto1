@@ -1,15 +1,28 @@
 package com.proyecto1.thymeleaf.model;
 
-import jakarta.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.SQLRestriction;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "proceso", uniqueConstraints = @UniqueConstraint(columnNames = {"nombre", "empresa_id"}))
@@ -42,6 +55,8 @@ public class Proceso {
     @JoinColumn(name = "empresa_id", nullable = false)
     private Empresa empresa;
 
+    // Coleccion inversa: nunca se serializa (Empresa.usuarios).
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @OneToMany(mappedBy = "proceso", fetch = FetchType.LAZY)
     private List<Actividad> actividades = new ArrayList<>();
 
@@ -50,6 +65,7 @@ public class Proceso {
 
     public enum EstadoProceso {
         BORRADOR,
-        PUBLICADO
+        PUBLICADO,
+        INACTIVO
     }
 }

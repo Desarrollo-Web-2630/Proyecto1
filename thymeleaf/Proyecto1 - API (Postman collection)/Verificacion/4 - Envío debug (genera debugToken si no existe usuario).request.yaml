@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/debug/email"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "to": "mariana-osoriov@javeriana.edu.co",
+      "name": "Mariana"
+    }
+order: 4000
