@@ -23,7 +23,7 @@ public class Gateway {
     private String nombre;
 
     @Enumerated(EnumType.STRING)
-    private TipoGateway tipo; // <--- AQUÍ SE USA EL ENUM
+    private TipoGateway tipo;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "proceso_id", nullable = false)

@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/procesos/1/gateways"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "nombre": "Decision 1",
+      "tipoGateway": "EXCLUSIVE"
+    }
+order: 2000
