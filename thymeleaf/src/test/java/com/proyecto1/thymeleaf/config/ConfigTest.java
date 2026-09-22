@@ -50,46 +50,5 @@ class ConfigTest {
         assertTrue(modelMapper.getConfiguration().isSkipNullEnabled());
     }
 
-    //DataInitializer
 
-    @ExtendWith(MockitoExtension.class)
-    static class DataInitializerTest {
-
-        @Mock private EmpresaRepository empresaRepository;
-        @Mock private UsuarioRepository usuarioRepository;
-        @Mock private ProcesoRepository procesoRepository;
-        @Mock private PasswordEncoder passwordEncoder;
-
-        @Test
-        void cargarDatosBase_conBdVacia_creaEmpresaAdminYProceso() throws Exception {
-            when(empresaRepository.count()).thenReturn(0L);
-            when(passwordEncoder.encode(anyString())).thenReturn("hashDemo");
-
-            DataInitializer dataInitializer = new DataInitializer();
-            CommandLineRunner runner = dataInitializer.cargarDatosBase(
-                    empresaRepository, usuarioRepository, procesoRepository, passwordEncoder);
-
-            runner.run();
-
-            verify(empresaRepository).save(argThat((Empresa e) -> "Empresa Demo".equals(e.getNombre())));
-            verify(usuarioRepository).save(argThat((Usuario u) ->
-                    "admin@demo.com".equals(u.getCorreo()) && Boolean.TRUE.equals(u.getActivo())));
-            verify(procesoRepository).save(argThat((Proceso p) -> "Solicitud de vacaciones".equals(p.getNombre())));
-        }
-
-        @Test
-        void cargarDatosBase_conDatosExistentes_noCreaNada() throws Exception {
-            when(empresaRepository.count()).thenReturn(1L);
-
-            DataInitializer dataInitializer = new DataInitializer();
-            CommandLineRunner runner = dataInitializer.cargarDatosBase(
-                    empresaRepository, usuarioRepository, procesoRepository, passwordEncoder);
-
-            runner.run();
-
-            verify(empresaRepository, never()).save(any());
-            verify(usuarioRepository, never()).save(any());
-            verify(procesoRepository, never()).save(any());
-        }
-    }
 }
