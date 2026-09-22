@@ -49,6 +49,4 @@ class ConfigTest {
         assertEquals(AccessLevel.PRIVATE, modelMapper.getConfiguration().getFieldAccessLevel());
         assertTrue(modelMapper.getConfiguration().isSkipNullEnabled());
     }
-
-
 }
