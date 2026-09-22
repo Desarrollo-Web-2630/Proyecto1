@@ -2,6 +2,7 @@ package com.proyecto1.thymeleaf.config;
 
 import com.proyecto1.thymeleaf.model.*;
 import com.proyecto1.thymeleaf.repository.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.context.annotation.Bean;
@@ -11,6 +12,9 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class DataInitializer {
+
+    @Value("${app.demo.admin-password}")
+    private String demoAdminPassword;
 
     public DataInitializer() {
     }
@@ -32,7 +36,7 @@ public class DataInitializer {
             Usuario admin = new Usuario();
             admin.setNombre("Admin Demo");
             admin.setCorreo("admin@demo.com");
-            admin.setPassword(encoder.encode("Demo1234"));
+            admin.setPassword(encoder.encode(demoAdminPassword));
             admin.setRolAcceso(Usuario.RolAcceso.ADMIN);
             admin.setActivo(true);
             admin.setEmpresa(empresa);
