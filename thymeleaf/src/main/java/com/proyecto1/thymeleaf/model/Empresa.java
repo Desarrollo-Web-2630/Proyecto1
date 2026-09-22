@@ -6,6 +6,9 @@ import java.util.List;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -23,31 +26,28 @@ import lombok.Setter;
 @Table(name = "empresa")
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
 @SQLRestriction("status = 0")
 @SQLDelete(sql = "UPDATE empresa SET status = 1 WHERE id = ?")
 public class Empresa {
-
+ 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
+ 
     @Column(nullable = false)
     private String nombre;
-
+ 
     @Column(nullable = false, unique = true)
     private String nit;
-
+ 
     @Column(nullable = false)
     private String correo;
-
+ 
     @Column(nullable = false)
     private Integer status = 0;
-
-    // empresa -> usuarios -> usuario.empresa -> usuarios -> ... hasta que
-    // Jackson corta por profundidad, con decenas de KB por respuesta.
-    @com.fasterxml.jackson.annotation.JsonIgnore
-    @OneToMany(mappedBy = "empresa", fetch = FetchType.LAZY)
+ 
+    // Eliminar en cascada
+    @JsonIgnore
+    @OneToMany(mappedBy = "empresa", fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     private List<Usuario> usuarios = new ArrayList<>();
 }
