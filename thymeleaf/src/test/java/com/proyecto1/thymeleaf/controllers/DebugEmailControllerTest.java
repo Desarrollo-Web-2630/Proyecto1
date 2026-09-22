@@ -47,12 +47,12 @@ class DebugEmailControllerTest {
         body.put("to", "ana@demo.com");
         body.put("link", "ignore");
 
-        doNothing().when(verificacionCorreoService).reenviarVerificacion("ana@demo.com");
+        doReturn(null).when(verificacionCorreoService).reenviarVerificacion("ana@demo.com");
 
         mockMvc.perform(post("/api/v1/debug/email")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
-                .andExpect(status().isAccepted())
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ok").value(true));
     }
 
@@ -69,7 +69,7 @@ class DebugEmailControllerTest {
         mockMvc.perform(post("/api/v1/debug/email")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
-                .andExpect(status().isAccepted())
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.debugToken").value("token-debug-123"));
 
         verify(correoService).enviarCorreoVerificacion(eq("noexiste@demo.com"), anyString(), contains("token-debug-123"));
@@ -84,7 +84,7 @@ class DebugEmailControllerTest {
         mockMvc.perform(post("/api/v1/debug/email")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
-                .andExpect(status().isAccepted());
+                .andExpect(status().isOk());
 
         verify(correoService).enviarCorreoVerificacion(eq("ana@demo.com"), anyString(), eq("http://localhost:8080/verificar?token=xyz"));
     }

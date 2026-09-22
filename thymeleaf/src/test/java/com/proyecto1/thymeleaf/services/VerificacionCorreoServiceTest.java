@@ -44,7 +44,6 @@ class VerificacionCorreoServiceTest {
         usuario.setNombre("Ana");
     }
 
-    // ---------- crearYEnviarToken ----------
 
     @Test
     void crearYEnviarToken_guardaTokenYEnviaCorreo() {
@@ -54,7 +53,6 @@ class VerificacionCorreoServiceTest {
         verify(correoService).enviarCorreoVerificacion(eq("ana@demo.com"), eq("Ana"), contains("verificar-correo?token="));
     }
 
-    // ---------- verificarCorreo ----------
 
     @Test
     void verificarCorreo_conTokenNulo_devuelveNoVerificado() {
@@ -94,7 +92,7 @@ class VerificacionCorreoServiceTest {
 
     @Test
     void verificarCorreo_noEnBDPeroSiEnDebug_devuelveVerificado() {
-        when(tokenRepository.findByToken("token-debug")).thenReturn(Optional.empty());
+        when(tokenRepository.findByToken(anyString())).thenReturn(Optional.empty());
         String tokenDebug = verificacionCorreoService.generarTokenDebug("debug@demo.com");
 
         VerificacionCorreoResponseDTO respuesta = verificacionCorreoService.verificarCorreo(tokenDebug);
@@ -109,7 +107,6 @@ class VerificacionCorreoServiceTest {
         assertFalse(verificacionCorreoService.verificarCorreo("inexistente").isVerificado());
     }
 
-    // ---------- activarCuenta ----------
 
     @Test
     void activarCuenta_conTokenNulo_devuelveNoVerificado() {
@@ -148,7 +145,6 @@ class VerificacionCorreoServiceTest {
         assertFalse(verificacionCorreoService.activarCuenta("abc", "Clave1234").isVerificado());
     }
 
-    // ---------- reenviarVerificacion ----------
 
     @Test
     void reenviarVerificacion_conCorreoVacio_devuelveMensajeGenerico() {
@@ -199,7 +195,6 @@ class VerificacionCorreoServiceTest {
         verify(correoService).enviarCorreoVerificacion(eq("ana@demo.com"), eq("Ana"), anyString());
     }
 
-    // ---------- generarTokenDebug ----------
 
     @Test
     void generarTokenDebug_devuelveUnTokenNoVacio() {
