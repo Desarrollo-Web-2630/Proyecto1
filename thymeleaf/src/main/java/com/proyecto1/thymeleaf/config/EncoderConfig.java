@@ -6,9 +6,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 /**
- * Solo el encoder de contrasenas. Las reglas de autenticacion y autorizacion
- * viven en SecurityConfig; antes estaban mezcladas aqui con una regla que
- * dejaba toda la API abierta sin autenticacion.
+ * Solo el encoder de contrasenas (BCrypt), que viene de spring-security-crypto.
+ * En esta entrega no hay autenticacion ni autorizacion: Spring Security
+ * completo (filtros, login, tokens) es de la entrega final.
  */
 @Configuration
 public class EncoderConfig {

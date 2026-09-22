@@ -1,31 +1,25 @@
 package com.proyecto1.thymeleaf.services;
 
-import com.proyecto1.thymeleaf.dto.VerificacionCorreoResponseDTO;
-import com.proyecto1.thymeleaf.model.Usuario;
-import com.proyecto1.thymeleaf.model.VerificacionToken;
-import com.proyecto1.thymeleaf.repository.UsuarioRepository;
-import com.proyecto1.thymeleaf.repository.VerificacionTokenRepository;
-import com.proyecto1.thymeleaf.util.PasswordUtil;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-/**
- * Verificacion de cuentas por correo (HU-01, HU-02, HU-03).
- *
- * Todo usuario nuevo (el administrador que crea registrarEmpresa, o el
- * companero que un admin agrega via UsuarioService) nace con activo=false y
- * recibe un token de un solo uso por correo. Sin verificar, login() lo
- * rechaza. Este servicio concentra la generacion/envio de ese token para que
- * ambos puntos de registro y el reenvio manual compartan la misma logica.
- */
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.proyecto1.thymeleaf.dto.VerificacionCorreoResponseDTO;
+import com.proyecto1.thymeleaf.model.Usuario;
+import com.proyecto1.thymeleaf.model.VerificacionToken;
+import com.proyecto1.thymeleaf.repository.UsuarioRepository;
+import com.proyecto1.thymeleaf.repository.VerificacionTokenRepository;
+import com.proyecto1.thymeleaf.util.PasswordUtil;
+
+// Verificacion de cuentas por correo (HU-01, HU-02, HU-03).
+
 @Service
 @Transactional
 public class VerificacionCorreoService {
@@ -147,14 +141,9 @@ public class VerificacionCorreoService {
                 .orElseGet(() -> respuesta(false, "Token no encontrado", ""));
     }
 
-    // Maximo de reenvios por usuario en una hora (limite basico contra abuso)
     static final int MAX_REENVIOS_POR_HORA = 3;
 
-    /**
-     * La respuesta es la misma exista o no el correo, y tambien cuando se
-     * alcanza el limite: asi este endpoint publico no sirve para averiguar
-     * que correos estan registrados (correo de verificacion, puntos 13 y 14).
-     */
+    
     public VerificacionCorreoResponseDTO reenviarVerificacion(String correo) {
         if (correo == null || correo.isBlank()) {
             return respuesta(false, "Correo invalido", "");

@@ -2,7 +2,7 @@ package com.proyecto1.thymeleaf.controllers;
 
 import com.proyecto1.thymeleaf.dto.ArcoDTO;
 import com.proyecto1.thymeleaf.dto.ArcoRespuestaDTO;
-import com.proyecto1.thymeleaf.security.ContextoSeguridad;
+import com.proyecto1.thymeleaf.util.EmpresaActual;
 import com.proyecto1.thymeleaf.services.ArcoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -26,32 +26,32 @@ public class ArcoController {
     @GetMapping
     public ResponseEntity<List<ArcoRespuestaDTO>> listar(@PathVariable Long procesoId) {
         return ResponseEntity.ok(arcoService
-                .listarPorProcesoYEmpresa(procesoId, ContextoSeguridad.empresaIdActual())
+                .listarPorProcesoYEmpresa(procesoId, EmpresaActual.id())
                 .stream().map(ArcoRespuestaDTO::desde).toList());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ArcoRespuestaDTO> obtener(@PathVariable Long procesoId, @PathVariable Long id) {
         return ResponseEntity.ok(ArcoRespuestaDTO.desde(
-                arcoService.obtenerPorIdYEmpresa(id, ContextoSeguridad.empresaIdActual())));
+                arcoService.obtenerPorIdYEmpresa(id, EmpresaActual.id())));
     }
 
     @PostMapping
     public ResponseEntity<ArcoRespuestaDTO> crear(@PathVariable Long procesoId, @Valid @RequestBody ArcoDTO datos) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ArcoRespuestaDTO.desde(
-                arcoService.crearArco(datos, procesoId, ContextoSeguridad.empresaIdActual())));
+                arcoService.crearArco(datos, procesoId, EmpresaActual.id())));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ArcoRespuestaDTO> actualizar(@PathVariable Long procesoId, @PathVariable Long id,
                                                        @Valid @RequestBody ArcoDTO datos) {
         return ResponseEntity.ok(ArcoRespuestaDTO.desde(
-                arcoService.actualizarArco(id, datos, ContextoSeguridad.empresaIdActual())));
+                arcoService.actualizarArco(id, datos, EmpresaActual.id())));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> eliminar(@PathVariable Long procesoId, @PathVariable Long id) {
-        Long empresaId = ContextoSeguridad.empresaIdActual();
+        Long empresaId = EmpresaActual.id();
         String advertencia = arcoService.advertenciaAlEliminar(id, empresaId);
         arcoService.eliminarArco(id, empresaId);
         Map<String, String> response = new HashMap<>();

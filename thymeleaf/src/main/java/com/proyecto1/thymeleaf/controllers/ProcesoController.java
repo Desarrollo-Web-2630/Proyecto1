@@ -3,7 +3,7 @@ package com.proyecto1.thymeleaf.controllers;
 import com.proyecto1.thymeleaf.dto.ProcesoDTO;
 import com.proyecto1.thymeleaf.dto.ProcesoRespuestaDTO;
 import com.proyecto1.thymeleaf.model.Proceso;
-import com.proyecto1.thymeleaf.security.ContextoSeguridad;
+import com.proyecto1.thymeleaf.util.EmpresaActual;
 import com.proyecto1.thymeleaf.services.ProcesoService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -29,7 +29,7 @@ public class ProcesoController {
     @GetMapping
     public ResponseEntity<List<ProcesoRespuestaDTO>> listar(@RequestParam(defaultValue = "false") boolean incluirInactivos) {
         List<ProcesoRespuestaDTO> procesos = procesoService
-                .listarPorEmpresa(ContextoSeguridad.empresaIdActual(), incluirInactivos)
+                .listarPorEmpresa(EmpresaActual.id(), incluirInactivos)
                 .stream().map(ProcesoRespuestaDTO::desde).toList();
         return ResponseEntity.ok(procesos);
     }
@@ -48,7 +48,7 @@ public class ProcesoController {
         // Tope de tamano de pagina para que nadie pida 10 millones de filas de golpe
         int tamano = Math.min(Math.max(size, 1), 100);
         Page<ProcesoRespuestaDTO> resultado = procesoService.buscar(
-                        ContextoSeguridad.empresaIdActual(), nombre, estado, categoria, incluirInactivos,
+                        EmpresaActual.id(), nombre, estado, categoria, incluirInactivos,
                         PageRequest.of(Math.max(page, 0), tamano, Sort.by("nombre").ascending()))
                 .map(ProcesoRespuestaDTO::desde);
         return ResponseEntity.ok(resultado);
@@ -56,43 +56,43 @@ public class ProcesoController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ProcesoRespuestaDTO> obtener(@PathVariable Long id) {
-        Proceso proceso = procesoService.obtenerPorIdYEmpresa(id, ContextoSeguridad.empresaIdActual());
+        Proceso proceso = procesoService.obtenerPorIdYEmpresa(id, EmpresaActual.id());
         return ResponseEntity.ok(ProcesoRespuestaDTO.desde(proceso));
     }
 
     @PostMapping
     public ResponseEntity<ProcesoRespuestaDTO> crear(@Valid @RequestBody ProcesoDTO datos) {
-        Proceso creado = procesoService.crearProceso(datos, ContextoSeguridad.empresaIdActual());
+        Proceso creado = procesoService.crearProceso(datos, EmpresaActual.id());
         return ResponseEntity.status(HttpStatus.CREATED).body(ProcesoRespuestaDTO.desde(creado));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ProcesoRespuestaDTO> actualizar(@PathVariable Long id, @Valid @RequestBody ProcesoDTO datos) {
-        Proceso actualizado = procesoService.actualizarProceso(id, datos, ContextoSeguridad.empresaIdActual());
+        Proceso actualizado = procesoService.actualizarProceso(id, datos, EmpresaActual.id());
         return ResponseEntity.ok(ProcesoRespuestaDTO.desde(actualizado));
     }
 
     @PostMapping("/{id}/publicar")
     public ResponseEntity<ProcesoRespuestaDTO> publicar(@PathVariable Long id) {
         return ResponseEntity.ok(ProcesoRespuestaDTO.desde(
-                procesoService.publicarProceso(id, ContextoSeguridad.empresaIdActual())));
+                procesoService.publicarProceso(id, EmpresaActual.id())));
     }
 
     @PostMapping("/{id}/inactivar")
     public ResponseEntity<ProcesoRespuestaDTO> inactivar(@PathVariable Long id) {
         return ResponseEntity.ok(ProcesoRespuestaDTO.desde(
-                procesoService.inactivarProceso(id, ContextoSeguridad.empresaIdActual())));
+                procesoService.inactivarProceso(id, EmpresaActual.id())));
     }
 
     @PostMapping("/{id}/reactivar")
     public ResponseEntity<ProcesoRespuestaDTO> reactivar(@PathVariable Long id) {
         return ResponseEntity.ok(ProcesoRespuestaDTO.desde(
-                procesoService.reactivarProceso(id, ContextoSeguridad.empresaIdActual())));
+                procesoService.reactivarProceso(id, EmpresaActual.id())));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
-        procesoService.eliminarProceso(id, ContextoSeguridad.empresaIdActual());
+        procesoService.eliminarProceso(id, EmpresaActual.id());
         return ResponseEntity.noContent().build();
     }
 }

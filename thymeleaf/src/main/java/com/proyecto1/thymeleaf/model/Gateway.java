@@ -6,34 +6,18 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 @Entity
-@Table(name = "gateways")
+@Table(name = "gateway")
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @SQLRestriction("status = 0")
-@SQLDelete(sql = "UPDATE gateways SET status = 1 WHERE id = ?")
-public class Gateway {
+@SQLDelete(sql = "UPDATE gateway SET status = 1 WHERE id = ?")
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    private String nombre;
+public class Gateway extends ElementoConectable {
 
     @Enumerated(EnumType.STRING)
-    private TipoGateway tipo; // <--- AQUÍ SE USA EL ENUM
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "proceso_id", nullable = false)
-    private Proceso proceso;
-
     @Column(nullable = false)
-    @Builder.Default
-    private Integer status = 0;
-
-    // DEFINICIÓN DEL ENUM DENTRO DE LA CLASE GATEWAY
+    private TipoGateway tipo;
+ 
     public enum TipoGateway {
         EXCLUSIVO,
         PARALELO,

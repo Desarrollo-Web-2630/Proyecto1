@@ -8,39 +8,18 @@ import lombok.Setter;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
+
 @Entity
-@Table(name = "actividad", uniqueConstraints = @UniqueConstraint(columnNames = {"nombre", "proceso_id"}))
+@Table(name = "actividad")
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
 @SQLRestriction("status = 0")
 @SQLDelete(sql = "UPDATE actividad SET status = 1 WHERE id = ?")
-public class Actividad {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(nullable = false)
-    private String nombre;
+public class Actividad extends ElementoConectable {
 
     @Column(nullable = false)
     private String tipoActividad;
 
-    @Column(nullable = false)
-    private Integer posicionX;
-
-    @Column(nullable = false)
-    private Integer posicionY;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "proceso_id", nullable = false)
-    private Proceso proceso;
-
     @Column(name = "lane_id", nullable = false)
     private Long laneId;
-
-    @Column(nullable = false)
-    private Integer status = 0;
 }
