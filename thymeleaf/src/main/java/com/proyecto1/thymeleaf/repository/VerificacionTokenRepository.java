@@ -1,9 +1,10 @@
 package com.proyecto1.thymeleaf.repository;
 
-import com.proyecto1.thymeleaf.model.VerificacionToken;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.Optional;
+import com.proyecto1.thymeleaf.model.VerificacionToken;
 
 public interface VerificacionTokenRepository extends JpaRepository<VerificacionToken, Long> {
 
@@ -11,8 +12,5 @@ public interface VerificacionTokenRepository extends JpaRepository<VerificacionT
 
     void deleteByToken(String token);
 
-    // Cuantos tokens de este usuario expiran despues de un instante dado. Como
-    // todos se crean con la misma vigencia, sirve para saber cuantos se
-    // generaron en la ultima hora sin agregar una columna de fecha.
     long countByUsuarioIdAndExpiracionAfter(Long usuarioId, java.time.Instant instante);
 }

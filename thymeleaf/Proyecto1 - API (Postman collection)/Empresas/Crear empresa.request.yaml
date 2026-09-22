@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/empresas"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "nombre": "Mi Empresa S.A.",
+      "nit": "900123456-7",
+      "correo": "contacto@miempresa.com"
+    }
+order: 3000

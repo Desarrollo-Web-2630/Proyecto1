@@ -1,6 +1,7 @@
 package com.proyecto1.thymeleaf.services;
 
-import com.proyecto1.thymeleaf.dto.ActividadDTO;
+import com.proyecto1.thymeleaf.dto.ActividadRequestDTO;
+import com.proyecto1.thymeleaf.dto.ActividadResponseDTO;
 import com.proyecto1.thymeleaf.model.Actividad;
 import com.proyecto1.thymeleaf.model.Proceso;
 import com.proyecto1.thymeleaf.repository.ActividadRepository;
@@ -32,81 +33,98 @@ public class ActividadService {
 
     // 1. Listar las actividades de un proceso verificando la empresa
     @Transactional(readOnly = true)
-    public List<Actividad> listarPorProcesoYEmpresa(Long procesoId, Long empresaId) {
+    public List<ActividadResponseDTO> listarPorProcesoYEmpresa(Long procesoId, Long empresaId) {
         validarAccesoProceso(procesoId, empresaId);
-        return actividadRepository.findByProcesoId(procesoId);
+        return actividadRepository.findByProcesoId(procesoId)
+                .stream()
+                .map(this::toResponseDTO)
+                .toList();
     }
 
     // 2. Listar las actividades de una lane concreta del proceso
     @Transactional(readOnly = true)
-    public List<Actividad> listarPorLane(Long procesoId, Long laneId, Long empresaId) {
+    public List<ActividadResponseDTO> listarPorLane(Long procesoId, Long laneId, Long empresaId) {
         validarAccesoProceso(procesoId, empresaId);
-        return actividadRepository.findByProcesoIdAndLaneId(procesoId, laneId);
+        return actividadRepository.findByProcesoIdAndLaneId(procesoId, laneId)
+                .stream()
+                .map(this::toResponseDTO)
+                .toList();
     }
 
     // 3. Obtener una actividad verificando que pertenezca a la empresa
     @Transactional(readOnly = true)
-    public Actividad obtenerPorIdYEmpresa(Long id, Long empresaId) {
-        return actividadRepository.findByIdAndProcesoEmpresaId(id, empresaId)
+    public ActividadResponseDTO obtenerPorIdYEmpresa(Long id, Long empresaId) {
+        Actividad actividad = actividadRepository.findByIdAndProcesoEmpresaId(id, empresaId)
                 .orElseThrow(() -> new IllegalArgumentException("La actividad no existe o no pertenece a su empresa"));
+        return toResponseDTO(actividad);
     }
 
     // 4. Crear una actividad dentro de un proceso autorizado
-    public Actividad crearActividad(ActividadDTO datos, Long procesoId, Long empresaId) {
+    public ActividadResponseDTO crearActividad(ActividadRequestDTO request, Long procesoId, Long empresaId) {
+        validarDatosObligatorios(request);
         Proceso proceso = validarAccesoProceso(procesoId, empresaId);
-        validarDatosObligatorios(datos);
 
-        String nombre = datos.getNombre().trim();
+        String nombre = request.getNombre().trim();
         if (actividadRepository.existsByNombreAndProcesoId(nombre, procesoId)) {
             throw new IllegalArgumentException("Ya existe una actividad llamada '" + nombre + "' en el proceso");
         }
 
         Actividad actividad = new Actividad();
         actividad.setNombre(nombre);
-        actividad.setTipoActividad(datos.getTipoActividad().trim());
-        actividad.setLaneId(datos.getLaneId());
-        actividad.setPosicionX(datos.getPosicionX());
-        actividad.setPosicionY(datos.getPosicionY());
+        actividad.setTipoActividad(request.getTipoActividad().trim());
+        actividad.setPosicionX(request.getPosicionX());
+        actividad.setPosicionY(request.getPosicionY());
+        actividad.setLaneId(request.getLaneId());
         actividad.setProceso(proceso);
 
-        return actividadRepository.save(actividad);
+        Actividad guardada = actividadRepository.save(actividad);
+        return toResponseDTO(guardada);
     }
 
-    // 5. Editar nombre, tipo, lane y posicion (HU-09).
-    //    Cambiar la lane cambia el responsable, no es un movimiento estetico.
-    public Actividad actualizarActividad(Long id, ActividadDTO datos, Long empresaId) {
-        Actividad actividadExistente = obtenerPorIdYEmpresa(id, empresaId);
-        validarDatosObligatorios(datos);
+    // 5. Actualizar nombre, tipo y lane de una actividad
+    public ActividadResponseDTO actualizarActividad(Long id, ActividadRequestDTO request, Long empresaId) {
+        Actividad actividadExistente = actividadRepository.findByIdAndProcesoEmpresaId(id, empresaId)
+                .orElseThrow(() -> new IllegalArgumentException("La actividad no existe o no pertenece a su empresa"));
 
         Long procesoId = actividadExistente.getProceso().getId();
-        String nombre = datos.getNombre().trim();
+        String nombre = request.getNombre().trim();
         if (actividadRepository.existsByNombreAndProcesoIdAndIdNot(nombre, procesoId, id)) {
             throw new IllegalArgumentException("Ya existe una actividad llamada '" + nombre + "' en el proceso");
         }
 
         actividadExistente.setNombre(nombre);
-        actividadExistente.setTipoActividad(datos.getTipoActividad().trim());
-        actividadExistente.setLaneId(datos.getLaneId());
-        actividadExistente.setPosicionX(datos.getPosicionX());
-        actividadExistente.setPosicionY(datos.getPosicionY());
+        actividadExistente.setTipoActividad(request.getTipoActividad().trim());
+        actividadExistente.setLaneId(request.getLaneId());
+        actividadExistente.setPosicionX(request.getPosicionX());
+        actividadExistente.setPosicionY(request.getPosicionY());
 
-        return actividadRepository.save(actividadExistente);
+        Actividad guardada = actividadRepository.save(actividadExistente);
+        return toResponseDTO(guardada);
     }
 
     // 6. Mover la actividad en el diagrama sin tocar el resto de sus datos
-    public Actividad moverActividad(Long id, Integer posicionX, Integer posicionY, Long empresaId) {
-        Actividad actividad = obtenerPorIdYEmpresa(id, empresaId);
-        validarPosicion(posicionX, posicionY);
+    public ActividadResponseDTO moverActividad(Long id, Integer posicionX, Integer posicionY, Long empresaId) {
+        Actividad actividad = actividadRepository.findByIdAndProcesoEmpresaId(id, empresaId)
+                .orElseThrow(() -> new IllegalArgumentException("La actividad no existe o no pertenece a su empresa"));
+
+        if (posicionX == null || posicionY == null) {
+            throw new IllegalArgumentException("La posicion de la actividad en el diagrama es obligatoria");
+        }
+        if (posicionX < 0 || posicionY < 0) {
+            throw new IllegalArgumentException("La posicion de la actividad no puede ser negativa");
+        }
 
         actividad.setPosicionX(posicionX);
         actividad.setPosicionY(posicionY);
 
-        return actividadRepository.save(actividad);
+        Actividad guardada = actividadRepository.save(actividad);
+        return toResponseDTO(guardada);
     }
 
     // 7. Eliminar (borrado logico via @SQLDelete)
     public void eliminarActividad(Long id, Long empresaId) {
-        Actividad actividad = obtenerPorIdYEmpresa(id, empresaId);
+        Actividad actividad = actividadRepository.findByIdAndProcesoEmpresaId(id, empresaId)
+                .orElseThrow(() -> new IllegalArgumentException("La actividad no existe o no pertenece a su empresa"));
         actividadRepository.delete(actividad);
     }
 
@@ -116,31 +134,32 @@ public class ActividadService {
                 .orElseThrow(() -> new IllegalArgumentException("Proceso no encontrado o no pertenece a su empresa"));
     }
 
-    /**
-     * El DTO ya trae las anotaciones de validacion, pero el servicio no puede
-     * confiar en que siempre lo llamen desde un formulario validado.
-     */
-    private void validarDatosObligatorios(ActividadDTO datos) {
-        if (datos.getNombre() == null || datos.getNombre().isBlank()) {
+    private void validarDatosObligatorios(ActividadRequestDTO request) {
+        if (request.getNombre() == null || request.getNombre().isBlank()) {
             throw new IllegalArgumentException("El nombre de la actividad es obligatorio");
         }
-        if (datos.getTipoActividad() == null || datos.getTipoActividad().isBlank()) {
+        if (request.getTipoActividad() == null || request.getTipoActividad().isBlank()) {
             throw new IllegalArgumentException("El tipo de actividad es obligatorio");
         }
-        // La lane es la que define el rol responsable de la actividad
-        if (datos.getLaneId() == null) {
+        if (request.getLaneId() == null) {
             throw new IllegalArgumentException("La actividad debe estar asociada a una lane");
         }
-        validarPosicion(datos.getPosicionX(), datos.getPosicionY());
+        if (request.getPosicionX() == null || request.getPosicionY() == null) {
+            throw new IllegalArgumentException("La posicion de la actividad en el diagrama es obligatoria");
+        }
+        if (request.getPosicionX() < 0 || request.getPosicionY() < 0) {
+            throw new IllegalArgumentException("La posicion de la actividad no puede ser negativa");
+        }
     }
 
-    // La actividad debe quedar donde el usuario la ubico en el diagrama
-    private void validarPosicion(Integer posicionX, Integer posicionY) {
-        if (posicionX == null || posicionY == null) {
-            throw new IllegalArgumentException("La posición de la actividad en el diagrama es obligatoria");
-        }
-        if (posicionX < 0 || posicionY < 0) {
-            throw new IllegalArgumentException("La posición de la actividad no puede ser negativa");
-        }
+    private ActividadResponseDTO toResponseDTO(Actividad actividad) {
+        return new ActividadResponseDTO(
+                actividad.getId(),
+                actividad.getNombre(),
+                actividad.getTipoActividad(),
+                actividad.getPosicionX(),
+                actividad.getPosicionY(),
+                actividad.getLaneId()
+        );
     }
 }

@@ -2,13 +2,19 @@
   "info": {
     "name": "Proyecto1 - API (Postman collection)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Colección con los endpoints principales del backend para pruebas en Postman. Variable `baseUrl` usada para la URL base."
+    "description": "Colección con los endpoints principales del backend para pruebas en Postman. Variable `baseUrl` usada para la URL base. La variable `examplePassword` está vacía a propósito: complétala en tu Postman Environment local (nunca en la Collection) antes de correr las requests."
   },
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:8080",
       "type": "string"
+    },
+    {
+      "key": "examplePassword",
+      "value": "",
+      "type": "string",
+      "description": "Definir en tu Environment local, nunca commitear un valor real aquí."
     }
   ],
   "item": [
@@ -44,7 +50,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Mariana Osorio\",\n  \"correo\": \"mariana-osoriov@javeriana.edu.co\",\n  \"password\": \"Password1A\",\n  \"rolAcceso\": \"EDITOR\",\n  \"empresaId\": 1\n}"
+              "raw": "{\n  \"nombre\": \"Mariana Osorio\",\n  \"correo\": \"mariana-osoriov@javeriana.edu.co\",\n  \"password\": \"{{examplePassword}}\",\n  \"rolAcceso\": \"EDITOR\",\n  \"empresaId\": 1\n}"
             },
             "url": "{{baseUrl}}/api/v1/usuarios"
           }
@@ -114,9 +120,9 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"token\": \"{{token}}\",\n  \"nuevaPassword\": \"ClaveSegura123\"\n}"
+              "raw": "{\n  \"token\": \"{{token}}\",\n  \"nuevaPassword\": \"{{examplePassword}}\"\n}"
             },
-            "description": "El token llega por correo (o al log si APP_MAIL_ENABLED=false). Pegalo en la variable de entorno {{token}}. Despues de esto, inicia sesion con ese correo y ClaveSegura123."
+            "description": "El token llega por correo (o al log si APP_MAIL_ENABLED=false). Pegalo en la variable de entorno {{token}}. Despues de esto, inicia sesion con ese correo y el valor que hayas puesto en {{examplePassword}}."
           }
         }
       ]
@@ -186,7 +192,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Juan Perez\",\n  \"correo\": \"juan.perez@example.com\",\n  \"password\": \"DevPass123\",\n  \"rolAcceso\": \"EDITOR\"\n}"
+              "raw": "{\n  \"nombre\": \"Juan Perez\",\n  \"correo\": \"juan.perez@example.com\",\n  \"password\": \"{{examplePassword}}\",\n  \"rolAcceso\": \"EDITOR\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/usuarios"
           }
@@ -203,7 +209,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"correo\": \"juan.perez@example.com\",\n  \"password\": \"DevPass123\"\n}"
+              "raw": "{\n  \"correo\": \"juan.perez@example.com\",\n  \"password\": \"{{examplePassword}}\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/usuarios/login"
           }
