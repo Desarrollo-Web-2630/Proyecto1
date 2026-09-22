@@ -1,92 +1,103 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" 
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  
+
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
     <version>3.3.2</version>
-    <relativePath/> <!-- lookup parent from repository -->
+    <relativePath/>
   </parent>
-  
+
   <groupId>com.proyecto1</groupId>
   <artifactId>thymeleaf</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <name>thymeleaf</name>
   <description>Editor de procesos empresariales server-side</description>
-  
+
   <properties>
     <java.version>17</java.version>
+    <!-- Requerido por SonarCloud: identifica tu organización -->
+    <sonar.organization>desarrollo-web-2630</sonar.organization>
+    <!-- SonarQube necesita saber dónde está el reporte de cobertura -->
+    <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+    <sonar.java.source>${java.version}</sonar.java.source>
+    <!-- En la 1a entrega no hay Controllers: excluye ese paquete futuro del análisis
+        para no arrastrar deuda técnica de código que aún no existe -->
+    <sonar.exclusions>**/ThymeleafApplication.java</sonar.exclusions>
   </properties>
-  
+
   <dependencies>
     <!-- JPA & Persistence -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa</artifactId>
     </dependency>
-    
-    <!-- Web & Thymeleaf -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-    <!-- Thymeleaf removed for backend-only build -->
-    <!-- Solo BCrypt para cifrar contrasenas. Spring Security completo (filtros,
-         login, JWT) es de la entrega final; con el starter en el classpath y sin
-         configuracion propia, Spring bloquea todo con su pantalla de login. -->
+
     <dependency>
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-crypto</artifactId>
     </dependency>
 
-    <!-- Verificar correo -->
+    <!-- Se conserva: la lógica de envío de correo de verificación vive en el
+        Service para esta entrega, aunque el endpoint REST se exponga en la 2a -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-mail</artifactId>
     </dependency>
-    
-    <!-- Validation (Requerido para la Entrega 1) -->
+
+    <!-- Validation: sigue siendo útil para @Valid dentro de los DTO de Service -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-validation</artifactId>
     </dependency>
-    
-    <!-- H2 Database (tests) -->
+
+    <!-- H2 (pruebas / perfil local) -->
     <dependency>
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
       <scope>runtime</scope>
     </dependency>
 
-    <!-- PostgreSQL: lo exige application.properties, sin el driver la app no arranca -->
+    <!-- PostgreSQL -->
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
       <scope>runtime</scope>
     </dependency>
-    
-    <!-- Lombok -->
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+
+    <!-- Lombok: SIN versión explícita -> la gestiona el BOM del parent.
+        Fijarla a mano en dos sitios (dependency + annotationProcessorPath)
+        es el code smell clásico de "versiones duplicadas que pueden desincronizarse" -->
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
-      <version>1.18.38</version>
       <scope>provided</scope>
     </dependency>
 
-    <!-- ModelMapper: conversion entre entidades y DTOs -->
+    <!-- ModelMapper -->
     <dependency>
       <groupId>org.modelmapper</groupId>
       <artifactId>modelmapper</artifactId>
       <version>3.1.1</version>
     </dependency>
-    
-    <!-- Testing Standard -->
+
+    <!-- Testing -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.platform</groupId>
+      <artifactId>junit-platform-launcher</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -96,17 +107,16 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.13.0</version>
         <configuration>
           <annotationProcessorPaths>
             <path>
               <groupId>org.projectlombok</groupId>
               <artifactId>lombok</artifactId>
-              <version>1.18.38</version>
             </path>
           </annotationProcessorPaths>
         </configuration>
       </plugin>
+
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
@@ -118,6 +128,36 @@
             </exclude>
           </excludes>
         </configuration>
+      </plugin>
+
+      <!-- JaCoCo: genera el jacoco.xml que SonarQube lee para cobertura -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>0.8.12</version>
+        <executions>
+          <execution>
+            <id>prepare-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <phase>test</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- SonarQube: se invoca con `mvnw verify sonar:sonar`, no necesita
+          <executions> propias porque no es parte del ciclo normal de build -->
+      <plugin>
+        <groupId>org.sonarsource.scanner.maven</groupId>
+        <artifactId>sonar-maven-plugin</artifactId>
+        <version>3.11.0.3922</version>
       </plugin>
     </plugins>
   </build>
