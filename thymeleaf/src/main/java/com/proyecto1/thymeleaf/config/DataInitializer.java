@@ -23,6 +23,10 @@ public class DataInitializer {
 
     private static final Logger log = LoggerFactory.getLogger(DataInitializer.class);
 
+    // Reutilizado (S2119): crear SecureRandom en cada llamada es costoso
+    // y desperdicia el pool de entropia.
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
     @Value("${app.demo.admin-password:}")
     private String demoAdminPassword;
 
@@ -68,7 +72,7 @@ public class DataInitializer {
 
     private static String passwordDescartable() {
         byte[] bytes = new byte[32];
-        new SecureRandom().nextBytes(bytes);
+        SECURE_RANDOM.nextBytes(bytes);
         return Base64.getEncoder().encodeToString(bytes);
     }
 }
