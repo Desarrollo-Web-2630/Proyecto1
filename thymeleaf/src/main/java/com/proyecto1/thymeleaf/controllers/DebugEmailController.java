@@ -54,7 +54,10 @@ public class DebugEmailController {
                     String token = verificacionCorreoService.generarTokenDebug(to);
                     String enlace = verificacionCorreoService.getBackendBaseUrl() + "/api/auth/verificar-correo?token=" + token;
                     correoService.enviarCorreoVerificacion(to, name, enlace);
-                    return ResponseEntity.accepted().body(Map.of("ok", true, "to", to, "debugToken", token));
+                    // 201: a diferencia de las otras dos ramas (que solo disparan un envío
+                    // async sin crear nada), aquí sí se genera y devuelve un recurso nuevo:
+                    // el token de depuración.
+                    return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("ok", true, "to", to, "debugToken", token));
                 }
             } else {
                 correoService.enviarCorreoVerificacion(to, name, link);

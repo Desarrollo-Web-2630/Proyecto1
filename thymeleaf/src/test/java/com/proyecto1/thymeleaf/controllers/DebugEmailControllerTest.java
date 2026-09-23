@@ -57,7 +57,7 @@ class DebugEmailControllerTest {
     }
 
     @Test
-    void enviarPrueba_conUsuarioNoEncontrado_generaTokenDebugYDevuelve202() throws Exception {
+    void enviarPrueba_conUsuarioNoEncontrado_generaTokenDebugYDevuelve201() throws Exception {
         Map<String, String> body = new HashMap<>();
         body.put("to", "noexiste@demo.com");
 
@@ -69,7 +69,7 @@ class DebugEmailControllerTest {
         mockMvc.perform(post("/api/v1/debug/email")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.debugToken").value("token-debug-123"));
 
         verify(correoService).enviarCorreoVerificacion(eq("noexiste@demo.com"), anyString(), contains("token-debug-123"));
