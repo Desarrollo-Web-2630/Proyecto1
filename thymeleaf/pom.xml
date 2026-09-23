@@ -27,6 +27,11 @@
     <!-- En la 1a entrega no hay Controllers: excluye ese paquete futuro del análisis
         para no arrastrar deuda técnica de código que aún no existe -->
     <sonar.exclusions>**/ThymeleafApplication.java</sonar.exclusions>
+    <!-- Pruebas de carga (JMeter): se cambian con -Dcarga.usuarios=50 etc. -->
+    <carga.usuarios>20</carga.usuarios>
+    <carga.rampa>10</carga.rampa>
+    <carga.repeticiones>5</carga.repeticiones>
+    <maven.build.timestamp.format>yyyyMMdd-HHmmss</maven.build.timestamp.format>
   </properties>
 
   <dependencies>
@@ -87,6 +92,14 @@
       <groupId>org.modelmapper</groupId>
       <artifactId>modelmapper</artifactId>
       <version>3.1.1</version>
+    </dependency>
+
+    <!-- Swagger / OpenAPI: documentacion interactiva de la API en
+         http://localhost:8080/swagger-ui.html (se genera sola desde los controladores) -->
+    <dependency>
+      <groupId>org.springdoc</groupId>
+      <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+      <version>2.6.0</version>
     </dependency>
 
     <!-- Testing -->
@@ -158,6 +171,32 @@
         <groupId>org.sonarsource.scanner.maven</groupId>
         <artifactId>sonar-maven-plugin</artifactId>
         <version>3.11.0.3922</version>
+      </plugin>
+      <!-- JMeter: pruebas de carga. No forma parte del build normal; se corre a
+           mano con `mvnw jmeter:jmeter jmeter:results` (descarga JMeter solo la
+           primera vez). Los planes .jmx viven en src/test/jmeter y el reporte
+           HTML queda en target/jmeter/reports -->
+      <plugin>
+        <groupId>com.lazerycode.jmeter</groupId>
+        <artifactId>jmeter-maven-plugin</artifactId>
+        <version>3.8.0</version>
+        <configuration>
+          <testFilesDirectory>${project.basedir}/src/test/jmeter</testFilesDirectory>
+          <generateReports>true</generateReports>
+          <!-- Carpeta nueva por corrida: JMeter se niega a escribir el reporte HTML
+               en una carpeta que ya tiene contenido -->
+          <reportDirectory>${project.build.directory}/jmeter/reports/${maven.build.timestamp}</reportDirectory>
+          <!-- Los goals se invocan desde la linea de comandos (execution id default-cli);
+               sin esto, jmeter:jmeter busca una execution llamada 'configuration' -->
+          <selectedConfiguration>default-cli</selectedConfiguration>
+          <ignoreResultFailures>true</ignoreResultFailures>
+          <!-- Llegan al plan .jmx como propiedades de JMeter: ${__P(usuarios,20)} -->
+          <propertiesUser>
+            <usuarios>${carga.usuarios}</usuarios>
+            <rampa>${carga.rampa}</rampa>
+            <repeticiones>${carga.repeticiones}</repeticiones>
+          </propertiesUser>
+        </configuration>
       </plugin>
     </plugins>
   </build>
