@@ -5,14 +5,11 @@ import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.model.Proceso;
 import com.proyecto1.thymeleaf.repository.EmpresaRepository;
 import com.proyecto1.thymeleaf.repository.ProcesoRepository;
-import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 
 // Logica de negocio de los procesos (HU-04 crear, HU-05 editar, HU-06 eliminar, HU-07 consultar).
@@ -44,30 +41,15 @@ public class ProcesoService {
 
     /**
      * HU-07: busqueda por nombre, filtros por estado y categoria, y
-     * paginacion. Cada filtro se aplica solo si viene informado; el
-     * aislamiento por empresa se aplica siempre.
+     * paginacion. Delega directo al @Query del repositorio (no usa
+     * Specification): cada filtro se aplica solo si viene informado, y el
+     * aislamiento por empresa se aplica siempre dentro del propio JPQL.
      */
     @Transactional(readOnly = true)
     public Page<Proceso> buscar(Long empresaId, String nombre, Proceso.EstadoProceso estado,
                                 String categoria, boolean incluirInactivos, Pageable pageable) {
-        Specification<Proceso> filtros = (raiz, consulta, cb) -> {
-            List<Predicate> condiciones = new ArrayList<>();
-            condiciones.add(cb.equal(raiz.get("empresa").get("id"), empresaId));
-
-            if (nombre != null && !nombre.isBlank()) {
-                condiciones.add(cb.like(cb.lower(raiz.get("nombre")), "%" + nombre.trim().toLowerCase() + "%"));
-            }
-            if (estado != null) {
-                condiciones.add(cb.equal(raiz.get("estado"), estado));
-            } else if (!incluirInactivos) {
-                condiciones.add(cb.notEqual(raiz.get("estado"), Proceso.EstadoProceso.INACTIVO));
-            }
-            if (categoria != null && !categoria.isBlank()) {
-                condiciones.add(cb.equal(cb.lower(raiz.get("categoria")), categoria.trim().toLowerCase()));
-            }
-            return cb.and(condiciones.toArray(new Predicate[0]));
-        };
-        return procesoRepository.findAll(filtros, pageable);
+        return procesoRepository.buscar(empresaId, nombre, estado, incluirInactivos,
+                Proceso.EstadoProceso.INACTIVO, categoria, pageable);
     }
 
     // 2. Obtener un proceso verificando que pertenezca a la empresa
@@ -149,10 +131,6 @@ public class ProcesoService {
         procesoRepository.delete(proceso);
     }
 
-    /**
-     * El DTO ya trae las anotaciones de validacion, pero el servicio no puede
-     * confiar en que siempre lo llamen desde un formulario validado.
-     */
     private String normalizar(String valor, String mensajeSiFalta) {
         if (valor == null || valor.isBlank()) {
             throw new IllegalArgumentException(mensajeSiFalta);

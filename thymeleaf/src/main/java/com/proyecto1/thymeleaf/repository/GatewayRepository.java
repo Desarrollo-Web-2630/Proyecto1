@@ -2,15 +2,19 @@ package com.proyecto1.thymeleaf.repository;
 
 import com.proyecto1.thymeleaf.model.Gateway;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface GatewayRepository extends JpaRepository<Gateway, Long> {
 
-    List<Gateway> findByProcesoId(Long procesoId);
+@Query("SELECT g FROM Gateway g WHERE g.proceso.id = :procesoId AND g.status = 0")
+List<Gateway> findByProcesoId(@Param("procesoId") Long procesoId);
 
-    Optional<Gateway> findByIdAndProcesoEmpresaId(Long id, Long empresaId);
-
+@Query("SELECT g FROM Gateway g WHERE g.id = :id " +
+        "AND g.proceso.empresa.id = :empresaId AND g.status = 0")
+Optional<Gateway> findByIdAndProcesoEmpresaId(@Param("id") Long id,
+                                                @Param("empresaId") Long empresaId);
 }

@@ -45,17 +45,19 @@ public class DebugEmailController {
                 // intentar reenvío por BD; si falla, generar token debug y devolverlo en la respuesta
                 try {
                     verificacionCorreoService.reenviarVerificacion(to);
-                    return ResponseEntity.ok(Map.of("ok", true, "to", to));
+                    // 202: se aceptó la solicitud de reenvío, el correo se procesa async
+                    // (no se crea ni devuelve un recurso persistente, por eso no es 200/201).
+                    return ResponseEntity.accepted().body(Map.of("ok", true, "to", to));
                 } catch (IllegalArgumentException iae) {
                     log.warn("Usuario no encontrado para debug email, creando token debug", iae);
                     String token = verificacionCorreoService.generarTokenDebug(to);
                     String enlace = verificacionCorreoService.getBackendBaseUrl() + "/api/auth/verificar-correo?token=" + token;
                     correoService.enviarCorreoVerificacion(to, name, enlace);
-                    return ResponseEntity.ok(Map.of("ok", true, "to", to, "debugToken", token));
+                    return ResponseEntity.accepted().body(Map.of("ok", true, "to", to, "debugToken", token));
                 }
             } else {
                 correoService.enviarCorreoVerificacion(to, name, link);
-                return ResponseEntity.ok(Map.of("ok", true, "to", to));
+                return ResponseEntity.accepted().body(Map.of("ok", true, "to", to));
             }
         } catch (Exception e) {
             log.error("Error enviando correo de prueba", e);

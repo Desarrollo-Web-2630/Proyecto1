@@ -24,10 +24,7 @@ import java.util.Map;
  * de un servicio (nombre duplicado, proceso no encontrado, contrasena debil:
  * el grueso de las validaciones de negocio) sale como 500 con la pagina
  * generica de Spring Boot, aunque la causa sea del cliente.
- *
- * Los mensajes devueltos son los que ya escriben los servicios. Nunca se
- * devuelve el mensaje crudo de una excepcion inesperada ni su stacktrace:
- * eso solo va al log.
+
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {

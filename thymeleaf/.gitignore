@@ -34,3 +34,4 @@ build/
 
 ### Local Environment Variables ###
 .env
+postman_environment.json
