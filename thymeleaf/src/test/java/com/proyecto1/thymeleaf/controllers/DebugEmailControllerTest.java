@@ -52,7 +52,7 @@ class DebugEmailControllerTest {
         mockMvc.perform(post("/api/v1/debug/email")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
-                .andExpect(status().isOk())
+                .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.ok").value(true));
     }
 
@@ -84,7 +84,7 @@ class DebugEmailControllerTest {
         mockMvc.perform(post("/api/v1/debug/email")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
-                .andExpect(status().isOk());
+                .andExpect(status().isAccepted());
 
         verify(correoService).enviarCorreoVerificacion(eq("ana@demo.com"), anyString(), eq("http://localhost:8080/verificar?token=xyz"));
     }

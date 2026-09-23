@@ -24,6 +24,10 @@
     <!-- SonarQube necesita saber dónde está el reporte de cobertura -->
     <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     <sonar.java.source>${java.version}</sonar.java.source>
+    <!-- Sin esto Sonar avisa "Missing 'sonar.java.test.binaries' property" y
+        pierde precision analizando tests (no encuentra los .class compilados) -->
+    <sonar.java.binaries>${project.build.outputDirectory}</sonar.java.binaries>
+    <sonar.java.test.binaries>${project.build.testOutputDirectory}</sonar.java.test.binaries>
     <!-- En la 1a entrega no hay Controllers: excluye ese paquete futuro del análisis
         para no arrastrar deuda técnica de código que aún no existe -->
     <sonar.exclusions>**/ThymeleafApplication.java</sonar.exclusions>
