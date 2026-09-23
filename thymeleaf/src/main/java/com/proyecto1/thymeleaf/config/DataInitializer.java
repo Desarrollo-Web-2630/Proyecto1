@@ -2,18 +2,28 @@ package com.proyecto1.thymeleaf.config;
 
 import com.proyecto1.thymeleaf.model.*;
 import com.proyecto1.thymeleaf.repository.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-// Inicializador de datos - crea empresa, admin y elementos si la BD está vacía
+import java.security.SecureRandom;
+import java.util.Base64;
+
+// Inicializador de datos - crea empresa, admin y elementos si la BD está vacía.
+// La contrasena del admin viene de DEMO_ADMIN_PASSWORD; si no esta definida, el
+// admin queda inactivo con una contrasena aleatoria que nadie conoce (nunca una
+// fija en el codigo) y se activa por el flujo normal de verificacion de correo.
 
 @Configuration
 public class DataInitializer {
 
-    @Value("${app.demo.admin-password}")
+    private static final Logger log = LoggerFactory.getLogger(DataInitializer.class);
+
+    @Value("${app.demo.admin-password:}")
     private String demoAdminPassword;
 
     public DataInitializer() {
@@ -36,9 +46,14 @@ public class DataInitializer {
             Usuario admin = new Usuario();
             admin.setNombre("Admin Demo");
             admin.setCorreo("admin@demo.com");
-            admin.setPassword(encoder.encode(demoAdminPassword));
+            boolean conPassword = demoAdminPassword != null && !demoAdminPassword.isBlank();
+            admin.setPassword(encoder.encode(conPassword ? demoAdminPassword : passwordDescartable()));
             admin.setRolAcceso(Usuario.RolAcceso.ADMIN);
-            admin.setActivo(true);
+            admin.setActivo(conPassword);
+            if (!conPassword) {
+                log.warn("DEMO_ADMIN_PASSWORD no esta definida: admin@demo.com queda inactivo. "
+                        + "Activalo con POST /api/auth/reenviar-verificacion y POST /api/auth/activar-cuenta.");
+            }
             admin.setEmpresa(empresa);
             usuarioRepo.save(admin);
 
@@ -49,5 +64,11 @@ public class DataInitializer {
             proceso.setEmpresa(empresa);
             procesoRepo.save(proceso);
         };
+    }
+
+    private static String passwordDescartable() {
+        byte[] bytes = new byte[32];
+        new SecureRandom().nextBytes(bytes);
+        return Base64.getEncoder().encodeToString(bytes);
     }
 }

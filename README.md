@@ -188,11 +188,11 @@ Asegúrate de tener instaladas las siguientes herramientas en tu entorno de desa
 El backend es una API REST (Spring Boot 3, Java 17). No tiene frontend: se
 prueba con Postman o con cualquier cliente HTTP.
 
-**Entrega 2: sin autenticacion.** Toda la API es publica. La empresa de cada
+**Primera entrega: sin autenticacion.** Toda la API es publica. La empresa de cada
 peticion se indica con el encabezado `X-Empresa-Id` (si no viene, se usa `1`).
 Esto no es seguridad, solo permite probar por empresa; la autenticacion real
-(JWT, roles, aislamiento por token) es de la entrega 3 y ya esta hecha en la
-rama `respaldo-seguridad-entrega3`.
+(JWT, roles, aislamiento por token) es de la entrega final; la version con JWT
+quedo en el historial de `main` (commit `7fb8a02`).
 
 ### Perfiles
 
@@ -216,27 +216,51 @@ Queda en `http://localhost:8080`. Con `APP_MAIL_ENABLED=false` (el valor por
 defecto) el enlace de verificacion **se imprime en la consola** en vez de
 enviarse por correo; copialo de ahi.
 
+Al arrancar con la base vacia, el inicializador crea la empresa `Empresa Demo`
+(id 1), el usuario `admin@demo.com` y el proceso `Solicitud de vacaciones`.
+Para poder iniciar sesion con ese admin, define `DEMO_ADMIN_PASSWORD` antes de
+arrancar (`$env:DEMO_ADMIN_PASSWORD = "..."` en PowerShell, `export` en Linux);
+si no, queda inactivo y se activa como cualquier otro usuario:
+`POST /api/auth/reenviar-verificacion` con `{"correo":"admin@demo.com"}`,
+token de la consola, y `POST /api/auth/activar-cuenta`.
+
 ### Arrancar contra PostgreSQL
 
 ```bash
 cd thymeleaf
-cp .env.example .env      # y rellena tus valores
+export DB_HOST=... DB_PORT=... DB_NAME=... DB_USER=... DB_PASSWORD=...
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=postman
 ```
+
+En PowerShell las variables se definen con `$env:DB_HOST = "..."`.
 
 ### Variables de entorno
 
 | Variable | Obligatoria | Descripcion |
 |---|---|---|
 | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Si (sin perfil / `postman`) | Conexion a PostgreSQL. Nunca se versionan valores reales. |
+| `DEMO_ADMIN_PASSWORD` | No | Contrasena del admin de demo `admin@demo.com` que crea el inicializador de datos. Si no se define, ese admin queda inactivo y se activa con `reenviar-verificacion` + `activar-cuenta`. |
 | `APP_MAIL_ENABLED` | No (`false`) | `true` envia correos reales; `false` imprime el enlace en el log. |
 | `APP_MAIL_FROM` | No | Remitente. |
 | `APP_MAIL_FAIL_ON_ERROR` | No (`false`) | `true` hace que un fallo SMTP aborte el registro; `false` lo registra y sigue. |
 | `APP_BACKEND_BASE_URL` | No (`http://localhost:8080`) | Base del enlace que va en el correo. |
 | `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` | Solo si `APP_MAIL_ENABLED=true` | SMTP. Con Gmail, `MAIL_PASSWORD` es una *contrasena de aplicacion*. |
 
-`.env.example` trae la lista completa con valores de ejemplo. **Nunca subas
-un `.env` real ni credenciales a git.**
+**Nunca subas un `.env` real ni credenciales a git.**
+
+## Documentacion de la API (Swagger / OpenAPI)
+
+Con el backend arrancado, la documentacion interactiva queda en:
+
+- `http://localhost:8080/swagger-ui.html`: pagina Swagger UI con todos los
+  endpoints, sus parametros, el JSON que reciben y el que devuelven. Cada uno
+  tiene el boton **Try it out** para ejecutarlo desde el navegador.
+- `http://localhost:8080/v3/api-docs`: el contrato OpenAPI en JSON (se puede
+  importar en Postman con *Import > Link*).
+
+Se genera sola con `springdoc-openapi` a partir de los controladores; no hay
+que mantener nada a mano. El encabezado `X-Empresa-Id` aparece en todos los
+endpoints de `/api/v1/` (lo agrega `config/OpenApiConfig.java`).
 
 ## Probar con Postman
 
@@ -300,3 +324,37 @@ Content-Type: application/json
 
 { "nombre": "Compras", "descripcion": "Solicitud y aprobacion de compras", "categoria": "Operaciones" }
 ```
+
+## Pruebas de carga (JMeter)
+
+El plan `thymeleaf/src/test/jmeter/plan-carga.jmx` lanza usuarios concurrentes
+contra `GET /api/v1/procesos`, `GET /api/v1/procesos/buscar` y
+`POST /api/v1/procesos`, y verifica que respondan 200/201. No hace falta
+instalar JMeter: el plugin de Maven lo descarga la primera vez.
+
+1. Arranca el backend en otra terminal (`./mvnw spring-boot:run -Dspring-boot.run.profiles=h2`).
+2. Ejecuta, desde `thymeleaf`:
+
+```bash
+./mvnw jmeter:configure jmeter:jmeter jmeter:results
+```
+
+En PowerShell: `.\mvnw jmeter:configure jmeter:jmeter jmeter:results`.
+
+Por defecto son 20 usuarios, rampa de 10 s y 5 repeticiones (20 x 5 x 3
+endpoints = 300 peticiones). Se cambian sin tocar el plan:
+
+```bash
+./mvnw jmeter:configure jmeter:jmeter jmeter:results -Dcarga.usuarios=50 -Dcarga.rampa=20 -Dcarga.repeticiones=10
+```
+
+Resultados:
+
+- Consola: total de peticiones, errores y tiempos de respuesta.
+- `thymeleaf/target/jmeter/results/*.csv`: una fila por peticion.
+- `thymeleaf/target/jmeter/reports/<fecha-hora>/plan-carga/index.html`: reporte
+  HTML con graficas (abrirlo en el navegador). Cada corrida crea su carpeta.
+
+Para editar el plan con la interfaz grafica de JMeter, ejecuta `./mvnw jmeter:configure`
+y abre `plan-carga.jmx` con `target/jmeter/apache-jmeter-*/bin/jmeter` (o con un
+JMeter instalado aparte).
