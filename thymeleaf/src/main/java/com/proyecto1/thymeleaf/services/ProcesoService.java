@@ -1,26 +1,19 @@
 package com.proyecto1.thymeleaf.services;
 
-import com.proyecto1.thymeleaf.dto.ProcesoRequestDTO;
-import com.proyecto1.thymeleaf.dto.ProcesoResponseDTO;
+import com.proyecto1.thymeleaf.dto.ProcesoDTO;
 import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.model.Proceso;
 import com.proyecto1.thymeleaf.repository.EmpresaRepository;
 import com.proyecto1.thymeleaf.repository.ProcesoRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-/**
- * Logica de negocio de los procesos (HU-04 crear, HU-05 editar, HU-06
- * eliminar, HU-07 consultar).
- *
- * Las escrituras reciben ProcesoDTO y no la entidad: asi el formulario no
- * puede tocar campos que no le corresponden, como el estado o la empresa.
- *
- * Todas las operaciones reciben el empresaId del usuario autenticado para
- * garantizar que una empresa nunca alcance los procesos de otra.
- */
+// Logica de negocio de los procesos (HU-04 crear, HU-05 editar, HU-06 eliminar, HU-07 consultar).
+
 @Service
 @Transactional
 public class ProcesoService {
@@ -33,104 +26,115 @@ public class ProcesoService {
         this.empresaRepository = empresaRepository;
     }
 
-    // 1. Listar los procesos de la empresa del usuario autenticado
+    // 1. Listar los procesos de la empresa: activos por defecto (HU-07)
     @Transactional(readOnly = true)
-    public List<ProcesoResponseDTO> listarPorEmpresa(Long empresaId) {
-        return procesoRepository.findByEmpresaId(empresaId)
-                .stream()
-                .map(this::toResponseDTO)
-                .toList();
+    public List<Proceso> listarPorEmpresa(Long empresaId) {
+        return listarPorEmpresa(empresaId, false);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Proceso> listarPorEmpresa(Long empresaId, boolean incluirInactivos) {
+        return incluirInactivos
+                ? procesoRepository.findByEmpresaId(empresaId)
+                : procesoRepository.findByEmpresaIdAndEstadoNot(empresaId, Proceso.EstadoProceso.INACTIVO);
+    }
+
+    /**
+     * HU-07: busqueda por nombre, filtros por estado y categoria, y
+     * paginacion. Delega directo al @Query del repositorio (no usa
+     * Specification): cada filtro se aplica solo si viene informado, y el
+     * aislamiento por empresa se aplica siempre dentro del propio JPQL.
+     */
+    @Transactional(readOnly = true)
+    public Page<Proceso> buscar(Long empresaId, String nombre, Proceso.EstadoProceso estado,
+                                String categoria, boolean incluirInactivos, Pageable pageable) {
+        return procesoRepository.buscar(empresaId, nombre, estado, incluirInactivos,
+                Proceso.EstadoProceso.INACTIVO, categoria, pageable);
     }
 
     // 2. Obtener un proceso verificando que pertenezca a la empresa
     @Transactional(readOnly = true)
-    public ProcesoResponseDTO obtenerPorIdYEmpresa(Long id, Long empresaId) {
-        Proceso proceso = procesoRepository.findByIdAndEmpresaId(id, empresaId)
+    public Proceso obtenerPorIdYEmpresa(Long id, Long empresaId) {
+        return procesoRepository.findByIdAndEmpresaId(id, empresaId)
                 .orElseThrow(() -> new IllegalArgumentException("El proceso no existe o no pertenece a su empresa"));
-        return toResponseDTO(proceso);
     }
 
     // 3. Crear un proceso asociado a la empresa del usuario autenticado
-    public ProcesoResponseDTO crearProceso(ProcesoRequestDTO request, Long empresaId) {
-        validarDatosObligatorios(request);
-
+    public Proceso crearProceso(ProcesoDTO datos, Long empresaId) {
         Empresa empresa = empresaRepository.findById(empresaId)
                 .orElseThrow(() -> new IllegalArgumentException("La empresa no existe"));
 
-        String nombre = request.getNombre().trim();
+        String nombre = normalizar(datos.getNombre(), "El nombre del proceso es obligatorio");
         if (procesoRepository.existsByNombreAndEmpresaId(nombre, empresaId)) {
             throw new IllegalArgumentException("Ya existe un proceso llamado '" + nombre + "' en la empresa");
         }
 
         Proceso proceso = new Proceso();
         proceso.setNombre(nombre);
-        proceso.setDescripcion(request.getDescripcion().trim());
-        proceso.setCategoria(request.getCategoria().trim());
+        proceso.setDescripcion(normalizar(datos.getDescripcion(), "La descripción del proceso es obligatoria"));
+        proceso.setCategoria(normalizar(datos.getCategoria(), "La categoría del proceso es obligatoria"));
         proceso.setEmpresa(empresa);
+        // El proceso siempre nace en borrador: el formulario no decide el estado
         proceso.setEstado(Proceso.EstadoProceso.BORRADOR);
 
-        Proceso guardado = procesoRepository.save(proceso);
-        return toResponseDTO(guardado);
+        return procesoRepository.save(proceso);
     }
 
     // 4. Actualizar la informacion basica de un proceso
-    public ProcesoResponseDTO actualizarProceso(Long id, ProcesoRequestDTO request, Long empresaId) {
-        Proceso procesoExistente = procesoRepository.findByIdAndEmpresaId(id, empresaId)
-                .orElseThrow(() -> new IllegalArgumentException("El proceso no existe o no pertenece a su empresa"));
+    public Proceso actualizarProceso(Long id, ProcesoDTO datos, Long empresaId) {
+        Proceso procesoExistente = obtenerPorIdYEmpresa(id, empresaId);
 
-        String nombre = request.getNombre().trim();
+        String nombre = normalizar(datos.getNombre(), "El nombre del proceso es obligatorio");
         if (procesoRepository.existsByNombreAndEmpresaIdAndIdNot(nombre, empresaId, id)) {
             throw new IllegalArgumentException("Ya existe un proceso llamado '" + nombre + "' en la empresa");
         }
 
         procesoExistente.setNombre(nombre);
-        procesoExistente.setDescripcion(request.getDescripcion().trim());
-        procesoExistente.setCategoria(request.getCategoria().trim());
+        procesoExistente.setDescripcion(normalizar(datos.getDescripcion(), "La descripción del proceso es obligatoria"));
+        procesoExistente.setCategoria(normalizar(datos.getCategoria(), "La categoría del proceso es obligatoria"));
 
-        Proceso guardado = procesoRepository.save(procesoExistente);
-        return toResponseDTO(guardado);
+        return procesoRepository.save(procesoExistente);
     }
 
-    // 5. Pasar el proceso de borrador a publicado
-    public ProcesoResponseDTO publicarProceso(Long id, Long empresaId) {
-        Proceso proceso = procesoRepository.findByIdAndEmpresaId(id, empresaId)
-                .orElseThrow(() -> new IllegalArgumentException("El proceso no existe o no pertenece a su empresa"));
+    // 5. Pasar el proceso a publicado
+    public Proceso publicarProceso(Long id, Long empresaId) {
+        Proceso proceso = obtenerPorIdYEmpresa(id, empresaId);
 
         if (proceso.getEstado() == Proceso.EstadoProceso.PUBLICADO) {
             throw new IllegalArgumentException("El proceso ya está publicado");
         }
 
         proceso.setEstado(Proceso.EstadoProceso.PUBLICADO);
-        Proceso guardado = procesoRepository.save(proceso);
-        return toResponseDTO(guardado);
+        return procesoRepository.save(proceso);
     }
 
-    // 6. Eliminar (borrado logico via @SQLDelete)
+    // 6. Inactivar: sale de los listados por defecto, pero se conserva
+    public Proceso inactivarProceso(Long id, Long empresaId) {
+        Proceso proceso = obtenerPorIdYEmpresa(id, empresaId);
+        proceso.setEstado(Proceso.EstadoProceso.INACTIVO);
+        return procesoRepository.save(proceso);
+    }
+
+    // 7. Reactivar: vuelve a borrador para poder seguir editandolo
+    public Proceso reactivarProceso(Long id, Long empresaId) {
+        Proceso proceso = obtenerPorIdYEmpresa(id, empresaId);
+        if (proceso.getEstado() != Proceso.EstadoProceso.INACTIVO) {
+            throw new IllegalArgumentException("El proceso no está inactivo");
+        }
+        proceso.setEstado(Proceso.EstadoProceso.BORRADOR);
+        return procesoRepository.save(proceso);
+    }
+
+    // 8. Eliminar (borrado logico via @SQLDelete)
     public void eliminarProceso(Long id, Long empresaId) {
-        Proceso proceso = procesoRepository.findByIdAndEmpresaId(id, empresaId)
-                .orElseThrow(() -> new IllegalArgumentException("El proceso no existe o no pertenece a su empresa"));
+        Proceso proceso = obtenerPorIdYEmpresa(id, empresaId);
         procesoRepository.delete(proceso);
     }
 
-    private void validarDatosObligatorios(ProcesoRequestDTO request) {
-        if (request.getNombre() == null || request.getNombre().isBlank()) {
-            throw new IllegalArgumentException("El nombre del proceso es obligatorio");
+    private String normalizar(String valor, String mensajeSiFalta) {
+        if (valor == null || valor.isBlank()) {
+            throw new IllegalArgumentException(mensajeSiFalta);
         }
-        if (request.getDescripcion() == null || request.getDescripcion().isBlank()) {
-            throw new IllegalArgumentException("La descripcion del proceso es obligatoria");
-        }
-        if (request.getCategoria() == null || request.getCategoria().isBlank()) {
-            throw new IllegalArgumentException("La categoria del proceso es obligatoria");
-        }
-    }
-
-    private ProcesoResponseDTO toResponseDTO(Proceso proceso) {
-        return new ProcesoResponseDTO(
-                proceso.getId(),
-                proceso.getNombre(),
-                proceso.getDescripcion(),
-                proceso.getCategoria(),
-                proceso.getEstado().name()
-        );
+        return valor.trim();
     }
 }

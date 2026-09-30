@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/usuarios"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "nombre": "Juan Perez",
+      "correo": "juan.perez@example.com",
+      "password": "DevPass123",
+      "rolAcceso": "EDITOR"
+    }
+order: 3000

@@ -1,0 +1,14 @@
+$kind: http-request
+description: El token llega por correo (o al log si APP_MAIL_ENABLED=false). Pegalo en la variable de entorno {{token}}. Despues de esto, inicia sesion con ese correo y ClaveSegura123.
+url: "{{baseUrl}}/api/auth/activar-cuenta"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "token": "{{token}}",
+      "nuevaPassword": "ClaveSegura123"
+    }
+order: 6000

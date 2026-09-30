@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/procesos"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "nombre": "Proceso de venta",
+      "descripcion": "Flujo de venta de producto",
+      "categoria": "Comercial"
+    }
+order: 3000

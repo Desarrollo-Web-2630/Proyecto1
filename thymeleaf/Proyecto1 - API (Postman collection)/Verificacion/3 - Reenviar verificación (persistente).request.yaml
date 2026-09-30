@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/api/auth/reenviar-verificacion"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "correo": "mariana-osoriov@javeriana.edu.co"
+    }
+order: 3000

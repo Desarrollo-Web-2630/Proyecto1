@@ -1,0 +1,9 @@
+# Use this workspace to collaborate
+workspace:
+  id: e4b6324a-81d2-4453-b413-991587e4d56f
+
+localResources:
+  collections:
+    - ../thymeleaf/Proyecto1 - API (Postman collection)
+  environments:
+    - ../thymeleaf/postman_environment.json

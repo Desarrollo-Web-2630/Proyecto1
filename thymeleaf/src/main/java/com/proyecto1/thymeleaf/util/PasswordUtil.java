@@ -11,6 +11,10 @@ public final class PasswordUtil {
     private static final int ITERACIONES = 120_000;
     private static final int LONGITUD_HASH = 256;
 
+    // Reutilizado en vez de instanciarse en cada llamada (S2119): crear
+    // SecureRandom repetidamente es costoso y desperdicia el pool de entropia.
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
     private PasswordUtil() {
     }
 
@@ -59,16 +63,18 @@ public final class PasswordUtil {
             return false;
         }
 
-        boolean tieneMayuscula = valor.matches(".*[A-Z].*");
-        boolean tieneMinuscula = valor.matches(".*[a-z].*");
-        boolean tieneNumero = valor.matches(".*\\d.*");
+        // Sin regex ".*X.*" (backtracking super-lineal, S5852): se recorre
+        // el string una sola vez por cada condicion, sin motor de regex.
+        boolean tieneMayuscula = valor.chars().anyMatch(Character::isUpperCase);
+        boolean tieneMinuscula = valor.chars().anyMatch(Character::isLowerCase);
+        boolean tieneNumero = valor.chars().anyMatch(Character::isDigit);
 
         return tieneMayuscula && tieneMinuscula && tieneNumero;
     }
 
     private static byte[] generarSal() {
         byte[] sal = new byte[LONGITUD_SAL];
-        new SecureRandom().nextBytes(sal);
+        SECURE_RANDOM.nextBytes(sal);
         return sal;
     }
 

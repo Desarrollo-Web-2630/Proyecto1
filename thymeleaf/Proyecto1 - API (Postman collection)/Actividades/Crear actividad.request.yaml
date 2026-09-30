@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/procesos/1/actividades"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "nombre": "Tarea 1",
+      "tipoActividad": "Manual",
+      "laneId": 1,
+      "posicionX": 100,
+      "posicionY": 200
+    }
+order: 2000

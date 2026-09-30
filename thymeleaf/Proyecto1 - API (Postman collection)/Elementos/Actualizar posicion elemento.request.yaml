@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/procesos/1/elementos/10/posicion?x=150&y=250"
+method: PATCH
+order: 2000

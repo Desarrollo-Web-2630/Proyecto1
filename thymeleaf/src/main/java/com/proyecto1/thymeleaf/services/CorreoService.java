@@ -41,17 +41,18 @@ public class CorreoService {
     }
 
     public void enviarCorreoVerificacion(String destinatario, String nombre, String enlaceVerificacion) {
-        log.info("Intentando enviar correo de verificación para {}", destinatario);
+        log.info("Intentando enviar correo de verificación para {}", sanitizarParaLog(destinatario));
 
         if (!mailEnabled) {
-            log.info("Correo desactivado. Enlace de verificación para {}: {}", destinatario, enlaceVerificacion);
+            log.info("Correo desactivado. Enlace de verificación para {}: {}",
+                    sanitizarParaLog(destinatario), sanitizarParaLog(enlaceVerificacion));
             return;
         }
 
         JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
         if (mailSender == null) {
             String mensaje = "No hay configuración SMTP disponible para enviar correos";
-            log.warn("{} | destinatario={}", mensaje, destinatario);
+            log.warn("{} | destinatario={}", mensaje, sanitizarParaLog(destinatario));
             if (failOnError) {
                 throw new IllegalStateException(mensaje);
             }
@@ -66,9 +67,10 @@ public class CorreoService {
 
         try {
             mailSender.send(mensaje);
-            log.info("Correo de verificación enviado a {}", destinatario);
+            log.info("Correo de verificación enviado a {}", sanitizarParaLog(destinatario));
         } catch (MailException e) {
-            log.error("No se pudo enviar el correo a {}. Enlace: {}", destinatario, enlaceVerificacion, e);
+            log.error("No se pudo enviar el correo a {}. Enlace: {}",
+                    sanitizarParaLog(destinatario), sanitizarParaLog(enlaceVerificacion), e);
             if (failOnError) {
                 throw new IllegalStateException("No se pudo enviar el correo de verificación", e);
             }
@@ -83,5 +85,13 @@ public class CorreoService {
                 + enlaceVerificacion + "\n\n"
                 + "Si no pediste esta cuenta, puedes ignorar este mensaje.\n\n"
                 + "Equipo del sistema";
+    }
+
+    /**
+     * Evita Log Injection (CWE-117): un destinatario o enlace con \r o \n
+     * podria forjar lineas falsas en el log si se escribieran tal cual.
+     */
+    private static String sanitizarParaLog(String valor) {
+        return valor == null ? "" : valor.replaceAll("[\r\n]", "_");
     }
 }

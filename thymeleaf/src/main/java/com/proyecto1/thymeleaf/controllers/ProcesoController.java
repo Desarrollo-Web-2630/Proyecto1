@@ -1,20 +1,22 @@
 package com.proyecto1.thymeleaf.controllers;
 
-import com.proyecto1.thymeleaf.dto.ProcesoRequestDTO;
-import com.proyecto1.thymeleaf.dto.ProcesoResponseDTO;
+import com.proyecto1.thymeleaf.dto.ProcesoDTO;
+import com.proyecto1.thymeleaf.dto.ProcesoRespuestaDTO;
+import com.proyecto1.thymeleaf.model.Proceso;
+import com.proyecto1.thymeleaf.util.EmpresaActual;
 import com.proyecto1.thymeleaf.services.ProcesoService;
-import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.validation.BindingResult;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
 
-@Controller
-@RequestMapping("/procesos")
+@RestController
+@RequestMapping("/api/v1/procesos")
 public class ProcesoController {
 
     private final ProcesoService procesoService;
@@ -23,152 +25,74 @@ public class ProcesoController {
         this.procesoService = procesoService;
     }
 
+    // Activos por defecto; ?incluirInactivos=true para verlos todos (HU-07)
     @GetMapping
-    public String listarProcesos(Model model, HttpSession session, RedirectAttributes redirectAttributes) {
-        Long empresaId = obtenerEmpresaId(session, redirectAttributes);
-        if (empresaId == null) {
-            return "redirect:/usuarios/login";
-        }
+    public ResponseEntity<List<ProcesoRespuestaDTO>> listar(@RequestParam(defaultValue = "false") boolean incluirInactivos) {
+        List<ProcesoRespuestaDTO> procesos = procesoService
+                .listarPorEmpresa(EmpresaActual.id(), incluirInactivos)
+                .stream().map(ProcesoRespuestaDTO::desde).toList();
+        return ResponseEntity.ok(procesos);
+    }
 
-        List<ProcesoResponseDTO> procesos = procesoService.listarPorEmpresa(empresaId);
-        model.addAttribute("procesos", procesos);
-        return "procesos/lista";
+    /**
+     * HU-07: busqueda por nombre, filtros por estado y categoria, paginacion.
+     * Ejemplo: /api/v1/procesos/buscar?nombre=compra&estado=PUBLICADO&page=0&size=10
+     */
+    @GetMapping("/buscar")
+    public ResponseEntity<Page<ProcesoRespuestaDTO>> buscar(@RequestParam(required = false) String nombre,
+                                                            @RequestParam(required = false) Proceso.EstadoProceso estado,
+                                                            @RequestParam(required = false) String categoria,
+                                                            @RequestParam(defaultValue = "false") boolean incluirInactivos,
+                                                            @RequestParam(defaultValue = "0") int page,
+                                                            @RequestParam(defaultValue = "10") int size) {
+        // Tope de tamano de pagina para que nadie pida 10 millones de filas de golpe
+        int tamano = Math.min(Math.max(size, 1), 100);
+        Page<ProcesoRespuestaDTO> resultado = procesoService.buscar(
+                        EmpresaActual.id(), nombre, estado, categoria, incluirInactivos,
+                        PageRequest.of(Math.max(page, 0), tamano, Sort.by("nombre").ascending()))
+                .map(ProcesoRespuestaDTO::desde);
+        return ResponseEntity.ok(resultado);
     }
 
     @GetMapping("/{id}")
-    public String verProceso(@PathVariable Long id,
-                            Model model,
-                            HttpSession session,
-                            RedirectAttributes redirectAttributes) {
-        Long empresaId = obtenerEmpresaId(session, redirectAttributes);
-        if (empresaId == null) {
-            return "redirect:/usuarios/login";
-        }
-        try {
-            model.addAttribute("proceso", procesoService.obtenerPorIdYEmpresa(id, empresaId));
-            return "procesos/detalle";
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
-            return "redirect:/procesos";
-        }
+    public ResponseEntity<ProcesoRespuestaDTO> obtener(@PathVariable Long id) {
+        Proceso proceso = procesoService.obtenerPorIdYEmpresa(id, EmpresaActual.id());
+        return ResponseEntity.ok(ProcesoRespuestaDTO.desde(proceso));
     }
 
-    @GetMapping("/nuevo")
-    public String mostrarFormularioCrear(Model model) {
-        model.addAttribute("proceso", new ProcesoRequestDTO());
-        return "procesos/formulario";
+    @PostMapping
+    public ResponseEntity<ProcesoRespuestaDTO> crear(@Valid @RequestBody ProcesoDTO datos) {
+        Proceso creado = procesoService.crearProceso(datos, EmpresaActual.id());
+        return ResponseEntity.status(HttpStatus.CREATED).body(ProcesoRespuestaDTO.desde(creado));
     }
 
-    @PostMapping("/guardar")
-    public String guardarProceso(@Valid @ModelAttribute("proceso") ProcesoRequestDTO proceso,
-                                BindingResult resultado,
-                                Model model,
-                                HttpSession session,
-                                RedirectAttributes redirectAttributes) {
-        Long empresaId = obtenerEmpresaId(session, redirectAttributes);
-        if (empresaId == null) {
-            return "redirect:/usuarios/login";
-        }
-        if (resultado.hasErrors()) {
-            return "procesos/formulario";
-        }
-        try {
-            procesoService.crearProceso(proceso, empresaId);
-            redirectAttributes.addFlashAttribute("mensajeExito", "Proceso creado con exito.");
-        } catch (Exception e) {
-            model.addAttribute("mensajeError", e.getMessage());
-            return "procesos/formulario";
-        }
-        return "redirect:/procesos";
+    @PutMapping("/{id}")
+    public ResponseEntity<ProcesoRespuestaDTO> actualizar(@PathVariable Long id, @Valid @RequestBody ProcesoDTO datos) {
+        Proceso actualizado = procesoService.actualizarProceso(id, datos, EmpresaActual.id());
+        return ResponseEntity.ok(ProcesoRespuestaDTO.desde(actualizado));
     }
 
-    @GetMapping("/editar/{id}")
-    public String mostrarFormularioEditar(@PathVariable Long id,
-                                        Model model,
-                                        HttpSession session,
-                                        RedirectAttributes redirectAttributes) {
-        Long empresaId = obtenerEmpresaId(session, redirectAttributes);
-        if (empresaId == null) {
-            return "redirect:/usuarios/login";
-        }
-        try {
-            ProcesoResponseDTO proceso = procesoService.obtenerPorIdYEmpresa(id, empresaId);
-            ProcesoRequestDTO requestDTO = new ProcesoRequestDTO();
-            requestDTO.setNombre(proceso.getNombre());
-            requestDTO.setDescripcion(proceso.getDescripcion());
-            requestDTO.setCategoria(proceso.getCategoria());
-            model.addAttribute("proceso", requestDTO);
-            return "procesos/formulario";
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
-            return "redirect:/procesos";
-        }
+    @PostMapping("/{id}/publicar")
+    public ResponseEntity<ProcesoRespuestaDTO> publicar(@PathVariable Long id) {
+        return ResponseEntity.ok(ProcesoRespuestaDTO.desde(
+                procesoService.publicarProceso(id, EmpresaActual.id())));
     }
 
-    @PostMapping("/actualizar/{id}")
-    public String actualizarProceso(@PathVariable Long id,
-                                    @Valid @ModelAttribute("proceso") ProcesoRequestDTO proceso,
-                                    BindingResult resultado,
-                                    Model model,
-                                    HttpSession session,
-                                    RedirectAttributes redirectAttributes) {
-        Long empresaId = obtenerEmpresaId(session, redirectAttributes);
-        if (empresaId == null) {
-            return "redirect:/usuarios/login";
-        }
-        if (resultado.hasErrors()) {
-            return "procesos/formulario";
-        }
-        try {
-            procesoService.actualizarProceso(id, proceso, empresaId);
-            redirectAttributes.addFlashAttribute("mensajeExito", "Proceso actualizado con exito.");
-        } catch (Exception e) {
-            model.addAttribute("mensajeError", e.getMessage());
-            return "procesos/formulario";
-        }
-        return "redirect:/procesos";
+    @PostMapping("/{id}/inactivar")
+    public ResponseEntity<ProcesoRespuestaDTO> inactivar(@PathVariable Long id) {
+        return ResponseEntity.ok(ProcesoRespuestaDTO.desde(
+                procesoService.inactivarProceso(id, EmpresaActual.id())));
     }
 
-    @PostMapping("/publicar/{id}")
-    public String publicarProceso(@PathVariable Long id,
-                                HttpSession session,
-                                RedirectAttributes redirectAttributes) {
-        Long empresaId = obtenerEmpresaId(session, redirectAttributes);
-        if (empresaId == null) {
-            return "redirect:/usuarios/login";
-        }
-        try {
-            procesoService.publicarProceso(id, empresaId);
-            redirectAttributes.addFlashAttribute("mensajeExito", "Proceso publicado con exito.");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
-        }
-        return "redirect:/procesos";
+    @PostMapping("/{id}/reactivar")
+    public ResponseEntity<ProcesoRespuestaDTO> reactivar(@PathVariable Long id) {
+        return ResponseEntity.ok(ProcesoRespuestaDTO.desde(
+                procesoService.reactivarProceso(id, EmpresaActual.id())));
     }
 
-    @PostMapping("/eliminar/{id}")
-    public String eliminarProceso(@PathVariable Long id,
-                                HttpSession session,
-                                RedirectAttributes redirectAttributes) {
-        Long empresaId = obtenerEmpresaId(session, redirectAttributes);
-        if (empresaId == null) {
-            return "redirect:/usuarios/login";
-        }
-        try {
-            procesoService.eliminarProceso(id, empresaId);
-            redirectAttributes.addFlashAttribute("mensajeExito", "Proceso eliminado correctamente.");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
-        }
-        return "redirect:/procesos";
-    }
-
-    private Long obtenerEmpresaId(HttpSession session, RedirectAttributes redirectAttributes) {
-        Object empresaId = session.getAttribute("empresaId");
-        if (empresaId == null) {
-            redirectAttributes.addFlashAttribute("mensajeError", "Debe iniciar sesion para acceder a su empresa.");
-            return null;
-        }
-        return Long.valueOf(empresaId.toString());
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+        procesoService.eliminarProceso(id, EmpresaActual.id());
+        return ResponseEntity.noContent().build();
     }
 }
