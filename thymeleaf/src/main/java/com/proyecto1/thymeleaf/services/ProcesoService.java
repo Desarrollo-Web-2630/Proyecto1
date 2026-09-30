@@ -3,7 +3,6 @@ package com.proyecto1.thymeleaf.services;
 import com.proyecto1.thymeleaf.dto.ProcesoDTO;
 import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.model.Proceso;
-import com.proyecto1.thymeleaf.repository.EmpresaRepository;
 import com.proyecto1.thymeleaf.repository.ProcesoRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,11 +18,11 @@ import java.util.List;
 public class ProcesoService {
 
     private final ProcesoRepository procesoRepository;
-    private final EmpresaRepository empresaRepository;
+    private final EmpresaService empresaService;
 
-    public ProcesoService(ProcesoRepository procesoRepository, EmpresaRepository empresaRepository) {
+    public ProcesoService(ProcesoRepository procesoRepository, EmpresaService empresaService) {
         this.procesoRepository = procesoRepository;
-        this.empresaRepository = empresaRepository;
+        this.empresaService = empresaService;
     }
 
     // 1. Listar los procesos de la empresa: activos por defecto (HU-07)
@@ -61,8 +60,7 @@ public class ProcesoService {
 
     // 3. Crear un proceso asociado a la empresa del usuario autenticado
     public Proceso crearProceso(ProcesoDTO datos, Long empresaId) {
-        Empresa empresa = empresaRepository.findById(empresaId)
-                .orElseThrow(() -> new IllegalArgumentException("La empresa no existe"));
+        Empresa empresa = empresaService.obtenerPorId(empresaId);
 
         String nombre = normalizar(datos.getNombre(), "El nombre del proceso es obligatorio");
         if (procesoRepository.existsByNombreAndEmpresaId(nombre, empresaId)) {

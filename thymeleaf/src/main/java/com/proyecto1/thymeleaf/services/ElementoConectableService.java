@@ -2,7 +2,6 @@ package com.proyecto1.thymeleaf.services;
 
 import com.proyecto1.thymeleaf.model.ElementoConectable;
 import com.proyecto1.thymeleaf.repository.ElementoConectableRepository;
-import com.proyecto1.thymeleaf.repository.ProcesoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,11 +12,11 @@ import java.util.List;
 public class ElementoConectableService {
 
     private final ElementoConectableRepository elementoRepository;
-    private final ProcesoRepository procesoRepository;
+    private final ProcesoService procesoService;
 
-    public ElementoConectableService(ElementoConectableRepository elementoRepository, ProcesoRepository procesoRepository) {
+    public ElementoConectableService(ElementoConectableRepository elementoRepository, ProcesoService procesoService) {
         this.elementoRepository = elementoRepository;
-        this.procesoRepository = procesoRepository;
+        this.procesoService = procesoService;
     }
 
     @Transactional(readOnly = true)
@@ -36,8 +35,7 @@ public class ElementoConectableService {
     }
 
     private void validarAccesoProceso(Long procesoId, Long empresaId) {
-        procesoRepository.findByIdAndEmpresaId(procesoId, empresaId)
-                .orElseThrow(() -> new IllegalArgumentException("Proceso no encontrado o sin acceso"));
+        procesoService.obtenerPorIdYEmpresa(procesoId, empresaId);
     }
     // Obtener por ID validando la empresa
     @Transactional(readOnly = true)

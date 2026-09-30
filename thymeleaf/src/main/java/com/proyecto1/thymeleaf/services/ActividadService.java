@@ -5,7 +5,6 @@ import com.proyecto1.thymeleaf.dto.ActividadResponseDTO;
 import com.proyecto1.thymeleaf.model.Actividad;
 import com.proyecto1.thymeleaf.model.Proceso;
 import com.proyecto1.thymeleaf.repository.ActividadRepository;
-import com.proyecto1.thymeleaf.repository.ProcesoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,11 +23,11 @@ import java.util.List;
 public class ActividadService {
 
     private final ActividadRepository actividadRepository;
-    private final ProcesoRepository procesoRepository;
+    private final ProcesoService procesoService;
 
-    public ActividadService(ActividadRepository actividadRepository, ProcesoRepository procesoRepository) {
+    public ActividadService(ActividadRepository actividadRepository, ProcesoService procesoService) {
         this.actividadRepository = actividadRepository;
-        this.procesoRepository = procesoRepository;
+        this.procesoService = procesoService;
     }
 
     // 1. Listar las actividades de un proceso verificando la empresa
@@ -130,8 +129,7 @@ public class ActividadService {
 
     // Metodo auxiliar privado para validar que el proceso pertenece a la empresa
     private Proceso validarAccesoProceso(Long procesoId, Long empresaId) {
-        return procesoRepository.findByIdAndEmpresaId(procesoId, empresaId)
-                .orElseThrow(() -> new IllegalArgumentException("Proceso no encontrado o no pertenece a su empresa"));
+        return procesoService.obtenerPorIdYEmpresa(procesoId, empresaId);
     }
 
     private void validarDatosObligatorios(ActividadRequestDTO request) {
