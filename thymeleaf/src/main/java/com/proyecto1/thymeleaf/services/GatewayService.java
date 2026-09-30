@@ -4,7 +4,6 @@ import com.proyecto1.thymeleaf.dto.GatewayDTO;
 import com.proyecto1.thymeleaf.model.Gateway;
 import com.proyecto1.thymeleaf.model.Proceso;
 import com.proyecto1.thymeleaf.repository.GatewayRepository;
-import com.proyecto1.thymeleaf.repository.ProcesoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,11 +18,11 @@ import java.util.List;
 public class GatewayService {
 
     private final GatewayRepository gatewayRepository;
-    private final ProcesoRepository procesoRepository;
+    private final ProcesoService procesoService;
 
-    public GatewayService(GatewayRepository gatewayRepository, ProcesoRepository procesoRepository) {
+    public GatewayService(GatewayRepository gatewayRepository, ProcesoService procesoService) {
         this.gatewayRepository = gatewayRepository;
-        this.procesoRepository = procesoRepository;
+        this.procesoService = procesoService;
     }
 
     // 1. Listar gateways de un proceso verificando la empresa
@@ -73,8 +72,7 @@ public class GatewayService {
 
     // Método auxiliar privado para validar que el proceso pertenece a la empresa
     private Proceso validarAccesoProceso(Long procesoId, Long empresaId) {
-        return procesoRepository.findByIdAndEmpresaId(procesoId, empresaId)
-                .orElseThrow(() -> new IllegalArgumentException("Proceso no encontrado o no pertenece a su empresa"));
+        return procesoService.obtenerPorIdYEmpresa(procesoId, empresaId);
     }
 
     private void validarDatosObligatorios(GatewayDTO datos) {

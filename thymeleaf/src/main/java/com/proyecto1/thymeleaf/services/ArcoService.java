@@ -5,8 +5,6 @@ import com.proyecto1.thymeleaf.model.Arco;
 import com.proyecto1.thymeleaf.model.ElementoConectable;
 import com.proyecto1.thymeleaf.model.Proceso;
 import com.proyecto1.thymeleaf.repository.ArcoRepository;
-import com.proyecto1.thymeleaf.repository.ElementoConectableRepository;
-import com.proyecto1.thymeleaf.repository.ProcesoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,15 +21,15 @@ import java.util.List;
 public class ArcoService {
 
     private final ArcoRepository arcoRepository;
-    private final ElementoConectableRepository elementoRepository;
-    private final ProcesoRepository procesoRepository;
+    private final ElementoConectableService elementoService;
+    private final ProcesoService procesoService;
 
     public ArcoService(ArcoRepository arcoRepository,
-                       ElementoConectableRepository elementoRepository,
-                       ProcesoRepository procesoRepository) {
+                       ElementoConectableService elementoService,
+                       ProcesoService procesoService) {
         this.arcoRepository = arcoRepository;
-        this.elementoRepository = elementoRepository;
-        this.procesoRepository = procesoRepository;
+        this.elementoService = elementoService;
+        this.procesoService = procesoService;
     }
 
     // 1. Listar los arcos de un proceso verificando la empresa
@@ -158,13 +156,10 @@ public class ArcoService {
 
     // Metodo auxiliar privado para validar que el proceso pertenece a la empresa
     private Proceso validarAccesoProceso(Long procesoId, Long empresaId) {
-        return procesoRepository.findByIdAndEmpresaId(procesoId, empresaId)
-                .orElseThrow(() -> new IllegalArgumentException("Proceso no encontrado o no pertenece a su empresa"));
+        return procesoService.obtenerPorIdYEmpresa(procesoId, empresaId);
     }
 
     private ElementoConectable obtenerElemento(Long elementoId, Long empresaId) {
-        return elementoRepository.findByIdAndProcesoEmpresaId(elementoId, empresaId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "El elemento " + elementoId + " no existe o no pertenece a su empresa"));
+        return elementoService.obtenerPorIdYEmpresa(elementoId, empresaId);
     }
 }

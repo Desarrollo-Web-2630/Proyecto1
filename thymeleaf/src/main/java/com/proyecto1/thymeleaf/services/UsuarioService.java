@@ -4,10 +4,10 @@ import com.proyecto1.thymeleaf.dto.UsuarioDTO;
 import com.proyecto1.thymeleaf.dto.UsuarioVistaDTO;
 import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.model.Usuario;
-import com.proyecto1.thymeleaf.repository.EmpresaRepository;
 import com.proyecto1.thymeleaf.repository.UsuarioRepository;
 import com.proyecto1.thymeleaf.util.PasswordUtil;
 import org.modelmapper.ModelMapper;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,18 +22,18 @@ import java.util.Optional;
 public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
-    private final EmpresaRepository empresaRepository;
+    private final EmpresaService empresaService;
     private final ModelMapper modelMapper;
     private final PasswordEncoder passwordEncoder;
     private final VerificacionCorreoService verificacionCorreoService;
 
     public UsuarioService(UsuarioRepository usuarioRepository,
-                        EmpresaRepository empresaRepository,
-                        ModelMapper modelMapper,
-                        PasswordEncoder passwordEncoder,
-                        VerificacionCorreoService verificacionCorreoService) {
+                          @Lazy EmpresaService empresaService,
+                          ModelMapper modelMapper,
+                          PasswordEncoder passwordEncoder,
+                          VerificacionCorreoService verificacionCorreoService) {
         this.usuarioRepository = usuarioRepository;
-        this.empresaRepository = empresaRepository;
+        this.empresaService = empresaService;
         this.modelMapper = modelMapper;
         this.passwordEncoder = passwordEncoder;
         this.verificacionCorreoService = verificacionCorreoService;
@@ -43,8 +43,7 @@ public class UsuarioService {
     public Usuario registrarUsuario(UsuarioDTO datos, Long empresaId) {
         validarDatosObligatorios(datos);
 
-        Empresa empresa = empresaRepository.findById(empresaId)
-                .orElseThrow(() -> new IllegalArgumentException("La empresa no existe"));
+        Empresa empresa = empresaService.obtenerPorId(empresaId);
 
         String correo = normalizarCorreo(datos.getCorreo());
         String nombre = normalizarNombre(datos.getNombre());
@@ -122,6 +121,21 @@ public class UsuarioService {
     public void eliminarUsuario(Long id, Long empresaId) {
         Usuario usuario = obtenerPorIdYEmpresa(id, empresaId);
         usuarioRepository.delete(usuario);
+    }
+
+    // Metodo auxiliar para que otros servicios verifiquen unicidad de correo
+    public boolean existePorCorreo(String correo) {
+        return usuarioRepository.existsByCorreoIgnoreCase(correo);
+    }
+
+    // Metodo auxiliar para buscar usuario por correo
+    public Optional<Usuario> buscarPorCorreo(String correo) {
+        return usuarioRepository.findByCorreoIgnoreCase(correo);
+    }
+
+    // Metodo auxiliar para crear usuarios internos (ej: admin de empresa)
+    public Usuario guardarUsuario(Usuario usuario) {
+        return usuarioRepository.save(usuario);
     }
 
     private void validarDatosObligatorios(UsuarioDTO datos) {

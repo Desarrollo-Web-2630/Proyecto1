@@ -25,9 +25,9 @@ public class EmpresaService {
     private final VerificacionCorreoService verificacionCorreoService;
 
     public EmpresaService(EmpresaRepository empresaRepository,
-                         UsuarioRepository usuarioRepository,
-                         PasswordEncoder passwordEncoder,
-                         VerificacionCorreoService verificacionCorreoService) {
+                          UsuarioRepository usuarioRepository,
+                          PasswordEncoder passwordEncoder,
+                          VerificacionCorreoService verificacionCorreoService) {
         this.empresaRepository = empresaRepository;
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
