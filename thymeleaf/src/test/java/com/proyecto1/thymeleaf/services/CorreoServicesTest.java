@@ -1,6 +1,5 @@
 package com.proyecto1.thymeleaf.services;
 
-import com.proyecto1.thymeleaf.repository.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,17 +16,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-/**
- * CorreoService tiene 4 caminos relevantes según la configuración:
- * 1. Correo desactivado (app.mail.enabled=false): solo se loguea, nunca se llama al MailSender.
- * 2. Correo activado pero sin SMTP configurado: falla silencioso o lanza, según app.mail.fail-on-error.
- * 3. Correo activado con SMTP: envío exitoso.
- * 4. Correo activado con SMTP: el envío falla (MailException) y se respeta fail-on-error.
- */
 @ExtendWith(MockitoExtension.class)
 class CorreoServiceTest {
 
-    @Mock private UsuarioRepository usuarioRepository;
+    @Mock private UsuarioService usuarioService;
     @Mock private ObjectProvider<JavaMailSender> mailSenderProvider;
     @Mock private JavaMailSender mailSender;
 
@@ -124,13 +116,13 @@ class CorreoServiceTest {
 
     @Test
     void correoExiste_conCorreoRegistrado_devuelveTrue() {
-        when(usuarioRepository.existsByCorreoIgnoreCase(DESTINATARIO)).thenReturn(true);
+        when(usuarioService.existePorCorreo(DESTINATARIO)).thenReturn(true);
         assertTrue(correoService.correoExiste(DESTINATARIO));
     }
 
     @Test
     void correoExiste_conCorreoNoRegistrado_devuelveFalse() {
-        when(usuarioRepository.existsByCorreoIgnoreCase(DESTINATARIO)).thenReturn(false);
+        when(usuarioService.existePorCorreo(DESTINATARIO)).thenReturn(false);
         assertFalse(correoService.correoExiste(DESTINATARIO));
     }
 
@@ -138,13 +130,9 @@ class CorreoServiceTest {
     void correoExiste_conValorNuloOBlanco_devuelveFalseSinConsultarRepositorio() {
         assertFalse(correoService.correoExiste(null));
         assertFalse(correoService.correoExiste("   "));
-        verifyNoInteractions(usuarioRepository);
+        verifyNoInteractions(usuarioService);
     }
 
-    /**
-     * Mockito's ArgumentCaptor no se puede instanciar directo con "new" en todas las
-     * versiones sin @Captor; este pequeño wrapper evita el warning de generics.
-     */
     private static class ArgumentCaptorHolder<T> {
         private final org.mockito.ArgumentCaptor<T> captor;
 

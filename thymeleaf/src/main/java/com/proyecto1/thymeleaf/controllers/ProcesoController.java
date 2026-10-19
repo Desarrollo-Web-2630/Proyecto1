@@ -34,10 +34,6 @@ public class ProcesoController {
         return ResponseEntity.ok(procesos);
     }
 
-    /**
-     * HU-07: busqueda por nombre, filtros por estado y categoria, paginacion.
-     * Ejemplo: /api/v1/procesos/buscar?nombre=compra&estado=PUBLICADO&page=0&size=10
-     */
     @GetMapping("/buscar")
     public ResponseEntity<Page<ProcesoRespuestaDTO>> buscar(@RequestParam(required = false) String nombre,
                                                             @RequestParam(required = false) Proceso.EstadoProceso estado,

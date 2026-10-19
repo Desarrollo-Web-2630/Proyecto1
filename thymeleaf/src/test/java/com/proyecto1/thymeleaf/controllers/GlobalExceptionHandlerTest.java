@@ -21,10 +21,6 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-/**
- * Unitario directo (sin MockMvc): es mas simple y confiable construir cada
- * tipo de excepcion a mano que forzarlas todas via una peticion HTTP real.
- */
 class GlobalExceptionHandlerTest {
 
     private final GlobalExceptionHandler handler = new GlobalExceptionHandler();

@@ -38,12 +38,6 @@ public class ProcesoService {
                 : procesoRepository.findByEmpresaIdAndEstadoNot(empresaId, Proceso.EstadoProceso.INACTIVO);
     }
 
-    /**
-     * HU-07: busqueda por nombre, filtros por estado y categoria, y
-     * paginacion. Delega directo al @Query del repositorio (no usa
-     * Specification): cada filtro se aplica solo si viene informado, y el
-     * aislamiento por empresa se aplica siempre dentro del propio JPQL.
-     */
     @Transactional(readOnly = true)
     public Page<Proceso> buscar(Long empresaId, String nombre, Proceso.EstadoProceso estado,
                                 String categoria, boolean incluirInactivos, Pageable pageable) {

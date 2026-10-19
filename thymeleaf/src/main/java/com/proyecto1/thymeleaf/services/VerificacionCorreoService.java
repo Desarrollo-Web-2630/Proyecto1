@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.proyecto1.thymeleaf.dto.VerificacionCorreoResponseDTO;
 import com.proyecto1.thymeleaf.model.Usuario;
 import com.proyecto1.thymeleaf.model.VerificacionToken;
-import com.proyecto1.thymeleaf.repository.UsuarioRepository;
 import com.proyecto1.thymeleaf.repository.VerificacionTokenRepository;
 import com.proyecto1.thymeleaf.util.PasswordUtil;
 
@@ -24,7 +24,7 @@ import com.proyecto1.thymeleaf.util.PasswordUtil;
 @Transactional
 public class VerificacionCorreoService {
 
-    private final UsuarioRepository usuarioRepository;
+    private final UsuarioService usuarioService;
     private final VerificacionTokenRepository tokenRepository;
     private final CorreoService correoService;
     private final PasswordEncoder passwordEncoder;
@@ -37,21 +37,16 @@ public class VerificacionCorreoService {
     // store temporal para tokens generados en modo debug cuando la persistencia falla
     private final ConcurrentMap<String, String> debugTokens = new ConcurrentHashMap<>();
 
-    public VerificacionCorreoService(UsuarioRepository usuarioRepository,
+    public VerificacionCorreoService(@Lazy UsuarioService usuarioService,
                                      VerificacionTokenRepository tokenRepository,
                                      CorreoService correoService,
                                      PasswordEncoder passwordEncoder) {
-        this.usuarioRepository = usuarioRepository;
+        this.usuarioService = usuarioService;
         this.tokenRepository = tokenRepository;
         this.correoService = correoService;
         this.passwordEncoder = passwordEncoder;
     }
 
-    /**
-     * Genera un token de un solo uso para el usuario dado y le envia el
-     * correo con el enlace de verificacion. Se usa tanto al registrar
-     * (empresa o usuario) como al reenviar manualmente.
-     */
     public void crearYEnviarToken(Usuario usuario) {
         String token = UUID.randomUUID().toString().replace("-", "");
         Instant expiracion = Instant.now().plus(TOKEN_TTL);
@@ -63,12 +58,6 @@ public class VerificacionCorreoService {
         correoService.enviarCorreoVerificacion(usuario.getCorreo(), usuario.getNombre(), enlace);
     }
 
-    /**
-     * Verificacion simple: solo marca activo=true. Sirve cuando el usuario ya
-     * tiene una contrasena utilizable, por ejemplo un companero que un
-     * administrador agrego con UsuarioService, donde el admin ya eligio la
-     * contrasena.
-     */
     public VerificacionCorreoResponseDTO verificarCorreo(String token) {
         if (token == null || token.isBlank()) {
             return respuesta(false, "Token invalido", "");
@@ -85,7 +74,7 @@ public class VerificacionCorreoService {
 
                     Usuario usuario = t.getUsuario();
                     usuario.setActivo(true);
-                    usuarioRepository.save(usuario);
+                    usuarioService.guardarUsuario(usuario);
 
                     t.setUsado(true);
                     tokenRepository.save(t);
@@ -102,14 +91,6 @@ public class VerificacionCorreoService {
                 });
     }
 
-    /**
-     * Activacion con contrasena propia: es el unico camino para activar al
-     * administrador que crea registrarEmpresa, porque a ese usuario nadie le
-     * asigno una contrasena real al crearlo (se le puso una aleatoria
-     * descartable, jamas revelada). Sin este paso esa cuenta queda
-     * inutilizable para siempre, que es exactamente la idea: nadie puede
-     * iniciar sesion con una contrasena que nunca existio de forma usable.
-     */
     public VerificacionCorreoResponseDTO activarCuenta(String token, String nuevaPassword) {
         if (token == null || token.isBlank()) {
             return respuesta(false, "Token invalido", "");
@@ -131,7 +112,7 @@ public class VerificacionCorreoService {
                     Usuario usuario = t.getUsuario();
                     usuario.setPassword(passwordEncoder.encode(nuevaPassword.trim()));
                     usuario.setActivo(true);
-                    usuarioRepository.save(usuario);
+                    usuarioService.guardarUsuario(usuario);
 
                     t.setUsado(true);
                     tokenRepository.save(t);
@@ -143,7 +124,6 @@ public class VerificacionCorreoService {
 
     static final int MAX_REENVIOS_POR_HORA = 3;
 
-    
     public VerificacionCorreoResponseDTO reenviarVerificacion(String correo) {
         if (correo == null || correo.isBlank()) {
             return respuesta(false, "Correo invalido", "");
@@ -151,7 +131,7 @@ public class VerificacionCorreoService {
 
         String mensajeGenerico = "Si el correo esta registrado, recibira un enlace de verificacion";
 
-        return usuarioRepository.findByCorreoIgnoreCase(correo.trim())
+        return usuarioService.buscarPorCorreo(correo.trim())
                 .map(usuario -> {
                     Instant haceUnaHoraEnVigencia = Instant.now().plus(TOKEN_TTL).minus(Duration.ofHours(1));
                     long recientes = tokenRepository.countByUsuarioIdAndExpiracionAfter(usuario.getId(), haceUnaHoraEnVigencia);

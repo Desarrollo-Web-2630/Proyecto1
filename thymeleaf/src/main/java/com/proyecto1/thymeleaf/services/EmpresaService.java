@@ -4,7 +4,6 @@ import com.proyecto1.thymeleaf.dto.EmpresaDTO;
 import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.model.Usuario;
 import com.proyecto1.thymeleaf.repository.EmpresaRepository;
-import com.proyecto1.thymeleaf.repository.UsuarioRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,16 +19,16 @@ import java.util.List;
 public class EmpresaService {
 
     private final EmpresaRepository empresaRepository;
-    private final UsuarioRepository usuarioRepository;
+    private final UsuarioService usuarioService;
     private final PasswordEncoder passwordEncoder;
     private final VerificacionCorreoService verificacionCorreoService;
 
     public EmpresaService(EmpresaRepository empresaRepository,
-                          UsuarioRepository usuarioRepository,
+                          UsuarioService usuarioService,
                           PasswordEncoder passwordEncoder,
                           VerificacionCorreoService verificacionCorreoService) {
         this.empresaRepository = empresaRepository;
-        this.usuarioRepository = usuarioRepository;
+        this.usuarioService = usuarioService;
         this.passwordEncoder = passwordEncoder;
         this.verificacionCorreoService = verificacionCorreoService;
     }
@@ -57,7 +56,7 @@ public class EmpresaService {
         if (empresaRepository.existsByNit(nit)) {
             throw new IllegalArgumentException("Ya existe una empresa registrada con el NIT '" + nit + "'");
         }
-        if (usuarioRepository.existsByCorreoIgnoreCase(correo)) {
+        if (usuarioService.existePorCorreo(correo)) {
             throw new IllegalArgumentException("Ya existe un usuario registrado con el correo '" + correo + "'");
         }
 
@@ -79,7 +78,7 @@ public class EmpresaService {
         administrador.setRolAcceso(Usuario.RolAcceso.ADMIN);
         administrador.setActivo(false);
         administrador.setEmpresa(empresaGuardada);
-        Usuario administradorGuardado = usuarioRepository.save(administrador);
+        Usuario administradorGuardado = usuarioService.guardarUsuario(administrador);
 
         verificacionCorreoService.crearYEnviarToken(administradorGuardado);
 
@@ -99,7 +98,7 @@ public class EmpresaService {
         }
 
         if (!correo.equalsIgnoreCase(empresaExistente.getCorreo())
-                && usuarioRepository.existsByCorreoIgnoreCase(correo)) {
+                && usuarioService.existePorCorreo(correo)) {
             throw new IllegalArgumentException("El correo de contacto ya esta asociado a otra empresa");
         }
 

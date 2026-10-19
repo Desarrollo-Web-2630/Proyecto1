@@ -11,12 +11,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Datos del formulario de registro de usuario (HU-02).
- *
- * Este DTO es de entrada: lleva la contrasena porque el formulario la pide.
- * Para mostrar usuarios en pantalla se usa UsuarioVistaDTO, que no la expone.
- */
 @Getter
 @Setter
 @NoArgsConstructor

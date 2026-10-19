@@ -7,12 +7,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Datos del formulario de arco (HU-11, HU-12).
- *
- * Origen y destino viajan como id porque el formulario los elige de una lista
- * desplegable. La HU-12 exige poder cambiarlos al editar, no solo al crear.
- */
 @Getter
 @Setter
 @NoArgsConstructor

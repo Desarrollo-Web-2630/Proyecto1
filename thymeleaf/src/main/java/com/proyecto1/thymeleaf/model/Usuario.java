@@ -40,7 +40,6 @@ public class Usuario {
 
     @Column(nullable = false)
     private Boolean activo = true;
-    
 
     // Referencia inversa: nunca se serializa (ver Empresa.usuarios).
     @com.fasterxml.jackson.annotation.JsonIgnore

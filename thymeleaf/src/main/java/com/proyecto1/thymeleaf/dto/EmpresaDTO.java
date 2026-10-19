@@ -9,9 +9,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Datos del formulario de empresa (HU-01).
- */
 @Getter
 @Setter
 @NoArgsConstructor

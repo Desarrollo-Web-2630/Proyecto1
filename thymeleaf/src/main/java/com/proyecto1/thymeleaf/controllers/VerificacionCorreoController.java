@@ -35,12 +35,6 @@ public class VerificacionCorreoController {
         return verificacionCorreoService.verificarCorreo(tokenFinal);
     }
 
-    /**
-     * Activa la cuenta y fija la contrasena en un solo paso. Es el unico
-     * camino de activacion para el administrador que crea POST /empresas,
-     * porque a ese usuario no se le asigna ninguna contrasena utilizable al
-     * registrarse (HU-01: "nunca usar contrasenas fijas").
-     */
     @PostMapping("/activar-cuenta")
     public VerificacionCorreoResponseDTO activarCuenta(@Valid @RequestBody ActivarCuentaRequestDTO request) {
         return verificacionCorreoService.activarCuenta(request.getToken(), request.getNuevaPassword());

@@ -8,9 +8,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Datos del formulario de inicio de sesion (HU-03).
- */
 @Getter
 @Setter
 @NoArgsConstructor

@@ -9,13 +9,6 @@ import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Documentacion Swagger/OpenAPI. Springdoc genera el contrato a partir de los
- * controladores; aqui solo se agregan el titulo y el encabezado X-Empresa-Id,
- * que todos los endpoints de negocio leen para saber de que empresa se trata
- * y que de otro modo no apareceria en la documentacion (no es un parametro
- * declarado en los metodos, lo lee {@link EmpresaActual} de la peticion).
- */
 @Configuration
 public class OpenApiConfig {
 

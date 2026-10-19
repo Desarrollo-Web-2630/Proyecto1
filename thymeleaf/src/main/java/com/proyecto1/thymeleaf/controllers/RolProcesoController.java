@@ -24,13 +24,6 @@ import com.proyecto1.thymeleaf.util.EmpresaActual;
 
 import jakarta.validation.Valid;
 
-/**
- * Roles de proceso de la empresa (HU-17 a HU-20).
- *
- * El rol de proceso es la funcion que se dibuja como lane; no es el rol de
- * acceso del usuario (Usuario.rolAcceso). Los permisos por rol de acceso
- * ("solo el admin crea y elimina") se aplican cuando exista autenticacion.
- */
 @RestController
 @RequestMapping("/api/v1/roles-proceso")
 public class RolProcesoController {
@@ -47,10 +40,6 @@ public class RolProcesoController {
         return ResponseEntity.ok(rolProcesoService.listarPorEmpresa(EmpresaActual.id()));
     }
 
-    /**
-     * HU-20: busqueda por nombre y paginacion.
-     * Ejemplo: /api/v1/roles-proceso/buscar?nombre=anal&page=0&size=10
-     */
     @GetMapping("/buscar")
     public ResponseEntity<Page<RolProcesoRespuestaDTO>> buscar(@RequestParam(required = false) String nombre,
                                                                @RequestParam(defaultValue = "0") int page,

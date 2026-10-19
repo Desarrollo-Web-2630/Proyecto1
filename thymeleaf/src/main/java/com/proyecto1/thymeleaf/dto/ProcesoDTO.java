@@ -7,12 +7,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Datos del formulario de proceso (HU-04, HU-05).
- *
- * No lleva estado ni empresa: el estado lo fija el servicio (siempre nace en
- * BORRADOR) y la empresa sale del usuario autenticado, no del formulario.
- */
 @Getter
 @Setter
 @NoArgsConstructor

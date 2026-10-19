@@ -6,13 +6,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Usuario tal como se muestra en pantalla.
- *
- * Existe para no llevar la entidad Usuario a la vista: la entidad carga la
- * contrasena y la empresa completa, y ninguna de las dos tiene por que salir
- * del servidor.
- */
 @Getter
 @Setter
 @NoArgsConstructor

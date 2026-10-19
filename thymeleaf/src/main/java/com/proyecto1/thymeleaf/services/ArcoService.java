@@ -10,12 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-/**
- * Logica de negocio de los arcos (HU-11 crear, HU-12 editar, HU-13 eliminar).
- *
- * Un arco es el flujo de secuencia que une dos elementos conectables dentro
- * del mismo proceso y fija el orden de ejecucion.
- */
 @Service
 @Transactional
 public class ArcoService {
@@ -86,10 +80,6 @@ public class ArcoService {
         arcoRepository.delete(arco);
     }
 
-    /**
-     * HU-13: quitar un arco puede dejar un elemento inalcanzable. Devuelve el
-     * aviso que debe mostrarse, o null si el diagrama queda sano.
-     */
     @Transactional(readOnly = true)
     public String advertenciaAlEliminar(Long id, Long empresaId) {
         Arco arco = obtenerPorIdYEmpresa(id, empresaId);
@@ -105,10 +95,6 @@ public class ArcoService {
         return sueltos.isEmpty() ? null : "Al eliminar este arco, " + String.join(" y ", sueltos) + ".";
     }
 
-    /**
-     * HU-10: al borrar una actividad hay que arrastrar sus arcos, porque un
-     * flujo de secuencia sin los dos extremos no es valido en BPMN.
-     */
     public int eliminarArcosDeElemento(Long elementoId) {
         List<Arco> conectados = new java.util.ArrayList<>(arcoRepository.findByOrigenId(elementoId));
         conectados.addAll(arcoRepository.findByDestinoId(elementoId));

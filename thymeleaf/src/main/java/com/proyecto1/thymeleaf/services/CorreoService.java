@@ -1,10 +1,10 @@
 package com.proyecto1.thymeleaf.services;
 
-import com.proyecto1.thymeleaf.repository.UsuarioRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -15,7 +15,7 @@ public class CorreoService {
 
     private static final Logger log = LoggerFactory.getLogger(CorreoService.class);
 
-    private final UsuarioRepository usuarioRepository;
+    private final UsuarioService usuarioService;
     private final ObjectProvider<JavaMailSender> mailSenderProvider;
 
     @Value("${app.mail.enabled:false}")
@@ -27,9 +27,9 @@ public class CorreoService {
     @Value("${app.mail.from:no-reply@empresa.local}")
     private String remitente;
 
-    public CorreoService(UsuarioRepository usuarioRepository,
+    public CorreoService(@Lazy UsuarioService usuarioService,
                          ObjectProvider<JavaMailSender> mailSenderProvider) {
-        this.usuarioRepository = usuarioRepository;
+        this.usuarioService = usuarioService;
         this.mailSenderProvider = mailSenderProvider;
     }
 
@@ -37,7 +37,7 @@ public class CorreoService {
         if (correo == null || correo.isBlank()) {
             return false;
         }
-        return usuarioRepository.existsByCorreoIgnoreCase(correo.trim());
+        return usuarioService.existePorCorreo(correo.trim());
     }
 
     public void enviarCorreoVerificacion(String destinatario, String nombre, String enlaceVerificacion) {
@@ -87,10 +87,6 @@ public class CorreoService {
                 + "Equipo del sistema";
     }
 
-    /**
-     * Evita Log Injection (CWE-117): un destinatario o enlace con \r o \n
-     * podria forjar lineas falsas en el log si se escribieran tal cual.
-     */
     private static String sanitizarParaLog(String valor) {
         return valor == null ? "" : valor.replaceAll("[\r\n]", "_");
     }

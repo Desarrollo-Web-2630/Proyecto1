@@ -9,7 +9,6 @@ import org.springframework.data.repository.query.Param;
 
 import com.proyecto1.thymeleaf.model.Actividad;
 
-
 public interface ActividadRepository extends JpaRepository<Actividad, Long> {
 
 @Query("SELECT a FROM Actividad a WHERE a.proceso.id = :procesoId AND a.status = 0")

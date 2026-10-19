@@ -9,10 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-/**
- * Logica de negocio de los gateways (HU-14 crear, HU-15 editar, HU-16
- * eliminar).
- */
 @Service
 @Transactional
 public class GatewayService {

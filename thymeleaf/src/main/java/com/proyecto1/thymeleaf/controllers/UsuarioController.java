@@ -45,12 +45,6 @@ public class UsuarioController {
         return ResponseEntity.status(HttpStatus.CREATED).body(modelMapper.map(creado, UsuarioVistaDTO.class));
     }
 
-    /**
-     * HU-03 (entrega 2): valida correo + contrasena + cuenta activa y devuelve
-     * el usuario. Falla con 401 sin cuerpo, sin distinguir "correo no existe"
-     * de "contrasena incorrecta" ni de "cuenta inactiva". La emision de un
-     * token de sesion es de la entrega 3.
-     */
     @PostMapping("/login")
     public ResponseEntity<UsuarioVistaDTO> login(@Valid @RequestBody LoginDTO login) {
         Optional<Usuario> usuario = usuarioService.login(login.getCorreo(), login.getPassword());

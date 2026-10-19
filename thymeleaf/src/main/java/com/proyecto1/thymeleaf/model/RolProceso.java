@@ -16,19 +16,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Rol de proceso (HU-17 a HU-20): la funcion responsable de una actividad
- * (Analista, Supervisor, Auditor...), NO la persona. En el diagrama se dibuja
- * como lane.
- *
- * El rol pertenece a la EMPRESA y no a un proceso, de modo que puede usarse en
- * varios procesos. No se confunde con Usuario.rolAcceso (admin/editor/lectura),
- * que dice que puede hacer un usuario en el sistema.
- *
- * El nombre es unico por empresa, pero esa regla se valida en el servicio y no
- * con un UniqueConstraint: el borrado es logico y una restriccion en la base
- * impediria volver a crear un rol con el nombre de uno eliminado.
- */
 @Entity
 @Table(name = "rol_proceso")
 @Getter

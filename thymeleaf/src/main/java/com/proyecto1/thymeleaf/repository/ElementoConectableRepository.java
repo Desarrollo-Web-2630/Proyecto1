@@ -9,7 +9,6 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-
 public interface ElementoConectableRepository extends JpaRepository<ElementoConectable, Long> {
 
 @Query("SELECT e FROM ElementoConectable e WHERE e.proceso.id = :procesoId AND e.status = 0")
@@ -20,9 +19,4 @@ List<ElementoConectable> findByProcesoId(@Param("procesoId") Long procesoId);
 Optional<ElementoConectable> findByIdAndProcesoEmpresaId(@Param("id") Long id,
                                                             @Param("empresaId") Long empresaId);
 }
-
-
-
-
-
 

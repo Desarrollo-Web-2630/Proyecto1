@@ -3,7 +3,6 @@ package com.proyecto1.thymeleaf.services;
 import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.dto.EmpresaDTO;
 import com.proyecto1.thymeleaf.repository.EmpresaRepository;
-import com.proyecto1.thymeleaf.repository.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,7 +22,7 @@ import static org.mockito.Mockito.*;
 class EmpresaServiceTest {
 
     @Mock private EmpresaRepository empresaRepository;
-    @Mock private UsuarioRepository usuarioRepository;
+    @Mock private UsuarioService usuarioService;
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private VerificacionCorreoService verificacionCorreoService;
 
@@ -64,9 +63,9 @@ class EmpresaServiceTest {
     @Test
     void registrarEmpresa_conDatosValidos_creaEmpresaYAdminInactivo() {
         when(empresaRepository.existsByNit("900123456-7")).thenReturn(false);
-        when(usuarioRepository.existsByCorreoIgnoreCase("contacto@demo.com")).thenReturn(false);
+        when(usuarioService.existePorCorreo("contacto@demo.com")).thenReturn(false);
         when(empresaRepository.save(any(Empresa.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(usuarioRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(usuarioService.guardarUsuario(any())).thenAnswer(inv -> inv.getArgument(0));
         when(passwordEncoder.encode(anyString())).thenReturn("hashDescartable");
 
         Empresa resultado = empresaService.registrarEmpresa(datosValidos);
@@ -84,7 +83,7 @@ class EmpresaServiceTest {
     @Test
     void registrarEmpresa_conCorreoYaUsadoPorUsuario_lanzaExcepcion() {
         when(empresaRepository.existsByNit("900123456-7")).thenReturn(false);
-        when(usuarioRepository.existsByCorreoIgnoreCase("contacto@demo.com")).thenReturn(true);
+        when(usuarioService.existePorCorreo("contacto@demo.com")).thenReturn(true);
         assertThrows(IllegalArgumentException.class, () -> empresaService.registrarEmpresa(datosValidos));
     }
 

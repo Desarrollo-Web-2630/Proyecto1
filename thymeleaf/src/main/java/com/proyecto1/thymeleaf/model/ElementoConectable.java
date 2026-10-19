@@ -12,7 +12,6 @@ import org.hibernate.annotations.SQLRestriction;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-
 @Entity
 @Table(name = "elemento_conectable")
 @Inheritance(strategy = InheritanceType.JOINED)

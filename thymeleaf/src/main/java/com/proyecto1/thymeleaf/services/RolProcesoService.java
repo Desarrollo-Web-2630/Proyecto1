@@ -15,14 +15,6 @@ import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.model.RolProceso;
 import com.proyecto1.thymeleaf.repository.RolProcesoRepository;
 
-/**
- * Logica de negocio de los roles de proceso (HU-17 crear, HU-18 editar,
- * HU-19 eliminar, HU-20 consultar).
- *
- * El rol pertenece a la empresa (no a un proceso) y las actividades se asignan
- * a funciones, no a personas. Todas las operaciones se hacen sobre la empresa
- * de la peticion: un rol de otra empresa "no existe" para quien lo pide.
- */
 @Service
 @Transactional
 public class RolProcesoService {

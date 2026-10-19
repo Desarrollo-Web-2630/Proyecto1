@@ -9,12 +9,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Datos del formulario de actividad (HU-08, HU-09).
- *
- * La lane es obligatoria porque es la que define el rol responsable: las
- * actividades se asignan a funciones y no a personas.
- */
 @Getter
 @Setter
 @NoArgsConstructor

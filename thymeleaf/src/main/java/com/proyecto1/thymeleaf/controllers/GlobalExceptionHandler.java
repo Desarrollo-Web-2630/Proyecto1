@@ -19,13 +19,6 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/**
- * Manejo centralizado de errores. Sin esto, cualquier IllegalArgumentException
- * de un servicio (nombre duplicado, proceso no encontrado, contrasena debil:
- * el grueso de las validaciones de negocio) sale como 500 con la pagina
- * generica de Spring Boot, aunque la causa sea del cliente.
-
- */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 

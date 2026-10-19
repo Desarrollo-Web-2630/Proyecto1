@@ -8,12 +8,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Activa una cuenta pendiente de verificacion y fija su contrasena real en un
- * solo paso. Es el unico camino para activar al administrador creado por
- * EmpresaService.registrarEmpresa, ya que a ese usuario no se le asigna una
- * contrasena utilizable al crearlo.
- */
 @Getter
 @Setter
 @NoArgsConstructor

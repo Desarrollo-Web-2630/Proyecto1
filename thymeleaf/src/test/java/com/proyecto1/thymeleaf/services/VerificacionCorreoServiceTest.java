@@ -3,7 +3,6 @@ package com.proyecto1.thymeleaf.services;
 import com.proyecto1.thymeleaf.dto.VerificacionCorreoResponseDTO;
 import com.proyecto1.thymeleaf.model.Usuario;
 import com.proyecto1.thymeleaf.model.VerificacionToken;
-import com.proyecto1.thymeleaf.repository.UsuarioRepository;
 import com.proyecto1.thymeleaf.repository.VerificacionTokenRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,7 +24,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class VerificacionCorreoServiceTest {
 
-    @Mock private UsuarioRepository usuarioRepository;
+    @Mock private UsuarioService usuarioService;
     @Mock private VerificacionTokenRepository tokenRepository;
     @Mock private CorreoService correoService;
     @Mock private PasswordEncoder passwordEncoder;
@@ -44,7 +43,6 @@ class VerificacionCorreoServiceTest {
         usuario.setNombre("Ana");
     }
 
-
     @Test
     void crearYEnviarToken_guardaTokenYEnviaCorreo() {
         verificacionCorreoService.crearYEnviarToken(usuario);
@@ -52,7 +50,6 @@ class VerificacionCorreoServiceTest {
         verify(tokenRepository).save(any(VerificacionToken.class));
         verify(correoService).enviarCorreoVerificacion(eq("ana@demo.com"), eq("Ana"), contains("verificar-correo?token="));
     }
-
 
     @Test
     void verificarCorreo_conTokenNulo_devuelveNoVerificado() {
@@ -70,7 +67,7 @@ class VerificacionCorreoServiceTest {
         assertTrue(respuesta.isVerificado());
         assertTrue(usuario.getActivo());
         assertTrue(token.isUsado());
-        verify(usuarioRepository).save(usuario);
+        verify(usuarioService).guardarUsuario(usuario);
     }
 
     @Test
@@ -106,7 +103,6 @@ class VerificacionCorreoServiceTest {
         when(tokenRepository.findByToken("inexistente")).thenReturn(Optional.empty());
         assertFalse(verificacionCorreoService.verificarCorreo("inexistente").isVerificado());
     }
-
 
     @Test
     void activarCuenta_conTokenNulo_devuelveNoVerificado() {
@@ -145,7 +141,6 @@ class VerificacionCorreoServiceTest {
         assertFalse(verificacionCorreoService.activarCuenta("abc", "Clave1234").isVerificado());
     }
 
-
     @Test
     void reenviarVerificacion_conCorreoVacio_devuelveMensajeGenerico() {
         assertFalse(verificacionCorreoService.reenviarVerificacion(" ").isVerificado());
@@ -153,7 +148,7 @@ class VerificacionCorreoServiceTest {
 
     @Test
     void reenviarVerificacion_conCorreoInexistente_devuelveMensajeGenerico() {
-        when(usuarioRepository.findByCorreoIgnoreCase("noexiste@demo.com")).thenReturn(Optional.empty());
+        when(usuarioService.buscarPorCorreo("noexiste@demo.com")).thenReturn(Optional.empty());
 
         VerificacionCorreoResponseDTO respuesta = verificacionCorreoService.reenviarVerificacion("noexiste@demo.com");
 
@@ -164,7 +159,7 @@ class VerificacionCorreoServiceTest {
     @Test
     void reenviarVerificacion_conUsuarioYaActivo_noEnviaNada() {
         usuario.setActivo(true);
-        when(usuarioRepository.findByCorreoIgnoreCase("ana@demo.com")).thenReturn(Optional.of(usuario));
+        when(usuarioService.buscarPorCorreo("ana@demo.com")).thenReturn(Optional.of(usuario));
         when(tokenRepository.countByUsuarioIdAndExpiracionAfter(eq(1L), any(Instant.class))).thenReturn(0L);
 
         verificacionCorreoService.reenviarVerificacion("ana@demo.com");
@@ -175,7 +170,7 @@ class VerificacionCorreoServiceTest {
     @Test
     void reenviarVerificacion_conLimiteAlcanzado_noEnviaNada() {
         usuario.setActivo(false);
-        when(usuarioRepository.findByCorreoIgnoreCase("ana@demo.com")).thenReturn(Optional.of(usuario));
+        when(usuarioService.buscarPorCorreo("ana@demo.com")).thenReturn(Optional.of(usuario));
         when(tokenRepository.countByUsuarioIdAndExpiracionAfter(eq(1L), any(Instant.class)))
                 .thenReturn((long) VerificacionCorreoService.MAX_REENVIOS_POR_HORA);
 
@@ -187,14 +182,13 @@ class VerificacionCorreoServiceTest {
     @Test
     void reenviarVerificacion_conUsuarioInactivoYSinLimite_enviaNuevoToken() {
         usuario.setActivo(false);
-        when(usuarioRepository.findByCorreoIgnoreCase("ana@demo.com")).thenReturn(Optional.of(usuario));
+        when(usuarioService.buscarPorCorreo("ana@demo.com")).thenReturn(Optional.of(usuario));
         when(tokenRepository.countByUsuarioIdAndExpiracionAfter(eq(1L), any(Instant.class))).thenReturn(0L);
 
         verificacionCorreoService.reenviarVerificacion("ana@demo.com");
 
         verify(correoService).enviarCorreoVerificacion(eq("ana@demo.com"), eq("Ana"), anyString());
     }
-
 
     @Test
     void generarTokenDebug_devuelveUnTokenNoVacio() {

@@ -9,9 +9,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Datos del formulario de gateway (HU-14, HU-15).
- */
 @Getter
 @Setter
 @NoArgsConstructor

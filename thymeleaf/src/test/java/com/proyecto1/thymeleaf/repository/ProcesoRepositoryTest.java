@@ -14,7 +14,6 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-
 @DataJpaTest
 @ActiveProfiles("h2")
 class ProcesoRepositoryTest {
