@@ -6,8 +6,6 @@ import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.model.ElementoConectable;
 import com.proyecto1.thymeleaf.model.Proceso;
 import com.proyecto1.thymeleaf.repository.ArcoRepository;
-import com.proyecto1.thymeleaf.repository.ElementoConectableRepository;
-import com.proyecto1.thymeleaf.repository.ProcesoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,8 +24,8 @@ import static org.mockito.Mockito.*;
 class ArcoServiceTest {
 
     @Mock private ArcoRepository arcoRepository;
-    @Mock private ElementoConectableRepository elementoRepository;
-    @Mock private ProcesoRepository procesoRepository;
+    @Mock private ElementoConectableService elementoService;
+    @Mock private ProcesoService procesoService;
 
     @InjectMocks
     private ArcoService arcoService;
@@ -67,9 +65,9 @@ class ArcoServiceTest {
 
     @Test
     void crearArco_conDatosValidos_seGuarda() {
-        when(procesoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(proceso));
-        when(elementoRepository.findByIdAndProcesoEmpresaId(10L, 1L)).thenReturn(Optional.of(origen));
-        when(elementoRepository.findByIdAndProcesoEmpresaId(20L, 1L)).thenReturn(Optional.of(destino));
+        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenReturn(proceso);
+        when(elementoService.obtenerPorIdYEmpresa(10L, 1L)).thenReturn(origen);
+        when(elementoService.obtenerPorIdYEmpresa(20L, 1L)).thenReturn(destino);
         when(arcoRepository.findByOrigenId(10L)).thenReturn(List.of());
         when(arcoRepository.save(any(Arco.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -99,9 +97,9 @@ class ArcoServiceTest {
         otroProceso.setId(2L);
         destino.setProceso(otroProceso);
 
-        when(procesoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(proceso));
-        when(elementoRepository.findByIdAndProcesoEmpresaId(10L, 1L)).thenReturn(Optional.of(origen));
-        when(elementoRepository.findByIdAndProcesoEmpresaId(20L, 1L)).thenReturn(Optional.of(destino));
+        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenReturn(proceso);
+        when(elementoService.obtenerPorIdYEmpresa(10L, 1L)).thenReturn(origen);
+        when(elementoService.obtenerPorIdYEmpresa(20L, 1L)).thenReturn(destino);
 
         assertThrows(IllegalArgumentException.class, () -> arcoService.crearArco(datos, 1L, 1L));
     }
@@ -112,9 +110,9 @@ class ArcoServiceTest {
         existente.setId(99L);
         existente.setDestino(destino);
 
-        when(procesoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(proceso));
-        when(elementoRepository.findByIdAndProcesoEmpresaId(10L, 1L)).thenReturn(Optional.of(origen));
-        when(elementoRepository.findByIdAndProcesoEmpresaId(20L, 1L)).thenReturn(Optional.of(destino));
+        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenReturn(proceso);
+        when(elementoService.obtenerPorIdYEmpresa(10L, 1L)).thenReturn(origen);
+        when(elementoService.obtenerPorIdYEmpresa(20L, 1L)).thenReturn(destino);
         when(arcoRepository.findByOrigenId(10L)).thenReturn(List.of(existente));
 
         assertThrows(IllegalArgumentException.class, () -> arcoService.crearArco(datos, 1L, 1L));

@@ -5,7 +5,6 @@ import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.model.Gateway;
 import com.proyecto1.thymeleaf.model.Proceso;
 import com.proyecto1.thymeleaf.repository.GatewayRepository;
-import com.proyecto1.thymeleaf.repository.ProcesoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,7 +22,7 @@ import static org.mockito.Mockito.*;
 class GatewayServiceTest {
 
     @Mock private GatewayRepository gatewayRepository;
-    @Mock private ProcesoRepository procesoRepository;
+    @Mock private ProcesoService procesoService;
 
     @InjectMocks
     private GatewayService gatewayService;
@@ -46,7 +45,7 @@ class GatewayServiceTest {
 
     @Test
     void crearGateway_conDatosValidos_seGuarda() {
-        when(procesoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(proceso));
+        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenReturn(proceso);
         when(gatewayRepository.save(any(Gateway.class))).thenAnswer(inv -> inv.getArgument(0));
 
         Gateway resultado = gatewayService.crearGateway(datos, 1L, 1L);
@@ -57,20 +56,20 @@ class GatewayServiceTest {
 
     @Test
     void crearGateway_conProcesoDeOtraEmpresa_lanzaExcepcion() {
-        when(procesoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.empty());
+        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenThrow(new IllegalArgumentException("El proceso no existe o no pertenece a su empresa"));
         assertThrows(IllegalArgumentException.class, () -> gatewayService.crearGateway(datos, 1L, 1L));
     }
 
     @Test
     void crearGateway_sinNombre_lanzaExcepcion() {
-        when(procesoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(proceso));
+        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenReturn(proceso);
         datos.setNombre(" ");
         assertThrows(IllegalArgumentException.class, () -> gatewayService.crearGateway(datos, 1L, 1L));
     }
 
     @Test
     void crearGateway_sinTipo_lanzaExcepcion() {
-        when(procesoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(proceso));
+        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenReturn(proceso);
         datos.setTipo(null);
         assertThrows(IllegalArgumentException.class, () -> gatewayService.crearGateway(datos, 1L, 1L));
     }

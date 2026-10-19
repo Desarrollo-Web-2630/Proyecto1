@@ -3,7 +3,6 @@ package com.proyecto1.thymeleaf.services;
 import com.proyecto1.thymeleaf.dto.ProcesoDTO;
 import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.model.Proceso;
-import com.proyecto1.thymeleaf.repository.EmpresaRepository;
 import com.proyecto1.thymeleaf.repository.ProcesoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,7 +24,7 @@ import static org.mockito.Mockito.*;
 class ProcesoServiceTest {
 
     @Mock private ProcesoRepository procesoRepository;
-    @Mock private EmpresaRepository empresaRepository;
+    @Mock private EmpresaService empresaService;
 
     @InjectMocks
     private ProcesoService procesoService;
@@ -46,7 +45,7 @@ class ProcesoServiceTest {
 
     @Test
     void crearProceso_conDatosValidos_naceEnBorrador() {
-        when(empresaRepository.findById(1L)).thenReturn(Optional.of(empresa));
+        when(empresaService.obtenerPorId(1L)).thenReturn(empresa);
         when(procesoRepository.existsByNombreAndEmpresaId("Solicitud de vacaciones", 1L)).thenReturn(false);
         when(procesoRepository.save(any(Proceso.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -58,13 +57,13 @@ class ProcesoServiceTest {
 
     @Test
     void crearProceso_conEmpresaInexistente_lanzaExcepcion() {
-        when(empresaRepository.findById(1L)).thenReturn(Optional.empty());
+        when(empresaService.obtenerPorId(1L)).thenThrow(new IllegalArgumentException("La empresa no existe"));
         assertThrows(IllegalArgumentException.class, () -> procesoService.crearProceso(datosValidos, 1L));
     }
 
     @Test
     void crearProceso_conNombreDuplicadoEnLaEmpresa_lanzaExcepcion() {
-        when(empresaRepository.findById(1L)).thenReturn(Optional.of(empresa));
+        when(empresaService.obtenerPorId(1L)).thenReturn(empresa);
         when(procesoRepository.existsByNombreAndEmpresaId("Solicitud de vacaciones", 1L)).thenReturn(true);
         assertThrows(IllegalArgumentException.class, () -> procesoService.crearProceso(datosValidos, 1L));
     }
@@ -72,14 +71,14 @@ class ProcesoServiceTest {
     @Test
     void crearProceso_conDescripcionVacia_lanzaExcepcion() {
         datosValidos.setDescripcion(" ");
-        when(empresaRepository.findById(1L)).thenReturn(Optional.of(empresa));
+        when(empresaService.obtenerPorId(1L)).thenReturn(empresa);
         assertThrows(IllegalArgumentException.class, () -> procesoService.crearProceso(datosValidos, 1L));
     }
 
     @Test
     void crearProceso_conCategoriaVacia_lanzaExcepcion() {
         datosValidos.setCategoria(" ");
-        when(empresaRepository.findById(1L)).thenReturn(Optional.of(empresa));
+        when(empresaService.obtenerPorId(1L)).thenReturn(empresa);
         assertThrows(IllegalArgumentException.class, () -> procesoService.crearProceso(datosValidos, 1L));
     }
 

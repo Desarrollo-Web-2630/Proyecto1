@@ -4,7 +4,6 @@ import com.proyecto1.thymeleaf.model.ElementoConectable;
 import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.model.Proceso;
 import com.proyecto1.thymeleaf.repository.ElementoConectableRepository;
-import com.proyecto1.thymeleaf.repository.ProcesoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,7 +22,7 @@ import static org.mockito.Mockito.*;
 class ElementoConectableServiceTest {
 
     @Mock private ElementoConectableRepository elementoRepository;
-    @Mock private ProcesoRepository procesoRepository;
+    @Mock private ProcesoService procesoService;
 
     @InjectMocks
     private ElementoConectableService elementoConectableService;
@@ -44,7 +43,7 @@ class ElementoConectableServiceTest {
 
     @Test
     void listarElementosPorProcesoYEmpresa_delegaAlRepositorio() {
-        when(procesoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(proceso));
+        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenReturn(proceso);
         when(elementoRepository.findByProcesoId(1L)).thenReturn(List.of(new ElementoDePrueba()));
 
         assertEquals(1, elementoConectableService.listarElementosPorProcesoYEmpresa(1L, 1L).size());
@@ -52,7 +51,7 @@ class ElementoConectableServiceTest {
 
     @Test
     void listarElementosPorProcesoYEmpresa_conProcesoDeOtraEmpresa_lanzaExcepcion() {
-        when(procesoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.empty());
+        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenThrow(new IllegalArgumentException("El proceso no existe o no pertenece a su empresa"));
         assertThrows(IllegalArgumentException.class,
                 () -> elementoConectableService.listarElementosPorProcesoYEmpresa(1L, 1L));
     }

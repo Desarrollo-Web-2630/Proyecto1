@@ -5,7 +5,6 @@ import com.proyecto1.thymeleaf.dto.ActividadRequestDTO;
 import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.model.Proceso;
 import com.proyecto1.thymeleaf.repository.ActividadRepository;
-import com.proyecto1.thymeleaf.repository.ProcesoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,7 +22,7 @@ import static org.mockito.Mockito.*;
 class ActividadServiceTest {
 
     @Mock private ActividadRepository actividadRepository;
-    @Mock private ProcesoRepository procesoRepository;
+    @Mock private ProcesoService procesoService;
 
     @InjectMocks
     private ActividadService actividadService;
@@ -49,7 +48,7 @@ class ActividadServiceTest {
 
     @Test
     void crearActividad_conDatosValidos_seGuarda() {
-        when(procesoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(proceso));
+        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenReturn(proceso);
         when(actividadRepository.existsByNombreAndProcesoId("Radicar solicitud", 1L)).thenReturn(false);
         when(actividadRepository.save(any(Actividad.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -60,7 +59,7 @@ class ActividadServiceTest {
 
     @Test
     void crearActividad_conNombreDuplicadoEnElProceso_lanzaExcepcion() {
-        when(procesoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(proceso));
+        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenReturn(proceso);
         when(actividadRepository.existsByNombreAndProcesoId("Radicar solicitud", 1L)).thenReturn(true);
 
         assertThrows(IllegalArgumentException.class, () -> actividadService.crearActividad(datosValidos, 1L, 1L));
@@ -68,7 +67,7 @@ class ActividadServiceTest {
 
     @Test
     void crearActividad_conProcesoDeOtraEmpresa_lanzaExcepcion() {
-        when(procesoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.empty());
+        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenThrow(new IllegalArgumentException("El proceso no existe o no pertenece a su empresa"));
         assertThrows(IllegalArgumentException.class, () -> actividadService.crearActividad(datosValidos, 1L, 1L));
     }
 
@@ -125,7 +124,7 @@ class ActividadServiceTest {
 
     @Test
     void listarPorLane_delegaAlRepositorioConLaneId() {
-        when(procesoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(proceso));
+        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenReturn(proceso);
         when(actividadRepository.findByProcesoIdAndLaneId(1L, 2L)).thenReturn(java.util.List.of(new Actividad()));
 
         assertEquals(1, actividadService.listarPorLane(1L, 2L, 1L).size());

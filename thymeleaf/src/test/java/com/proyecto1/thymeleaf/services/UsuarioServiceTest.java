@@ -3,7 +3,6 @@ package com.proyecto1.thymeleaf.services;
 import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.model.Usuario;
 import com.proyecto1.thymeleaf.dto.UsuarioDTO;
-import com.proyecto1.thymeleaf.repository.EmpresaRepository;
 import com.proyecto1.thymeleaf.repository.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,7 +23,7 @@ import static org.mockito.Mockito.*;
 class UsuarioServiceTest {
 
     @Mock private UsuarioRepository usuarioRepository;
-    @Mock private EmpresaRepository empresaRepository;
+    @Mock private EmpresaService empresaService;
     @Mock private ModelMapper modelMapper;
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private VerificacionCorreoService verificacionCorreoService;
@@ -49,7 +48,7 @@ class UsuarioServiceTest {
 
     @Test
     void registrarUsuario_conDatosValidos_quedaInactivoYEnviaToken() {
-        when(empresaRepository.findById(1L)).thenReturn(Optional.of(empresa));
+        when(empresaService.obtenerPorId(1L)).thenReturn(empresa);
         when(usuarioRepository.existsByCorreoIgnoreCase("ana@demo.com")).thenReturn(false);
         when(passwordEncoder.encode(anyString())).thenReturn("hash");
         when(usuarioRepository.save(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -62,13 +61,13 @@ class UsuarioServiceTest {
 
     @Test
     void registrarUsuario_conEmpresaInexistente_lanzaExcepcion() {
-        when(empresaRepository.findById(1L)).thenReturn(Optional.empty());
+        when(empresaService.obtenerPorId(1L)).thenThrow(new IllegalArgumentException("La empresa no existe"));
         assertThrows(IllegalArgumentException.class, () -> usuarioService.registrarUsuario(datosValidos, 1L));
     }
 
     @Test
     void registrarUsuario_conCorreoDuplicado_lanzaExcepcion() {
-        when(empresaRepository.findById(1L)).thenReturn(Optional.of(empresa));
+        when(empresaService.obtenerPorId(1L)).thenReturn(empresa);
         when(usuarioRepository.existsByCorreoIgnoreCase("ana@demo.com")).thenReturn(true);
         assertThrows(IllegalArgumentException.class, () -> usuarioService.registrarUsuario(datosValidos, 1L));
     }
@@ -76,7 +75,7 @@ class UsuarioServiceTest {
     @Test
     void registrarUsuario_conPasswordDebil_lanzaExcepcion() {
         datosValidos.setPassword("debil");
-        when(empresaRepository.findById(1L)).thenReturn(Optional.of(empresa));
+        when(empresaService.obtenerPorId(1L)).thenReturn(empresa);
         when(usuarioRepository.existsByCorreoIgnoreCase("ana@demo.com")).thenReturn(false);
         assertThrows(IllegalArgumentException.class, () -> usuarioService.registrarUsuario(datosValidos, 1L));
     }
