@@ -1,0 +1,11 @@
+target/
+.git
+.github
+.mvn/wrapper/maven-wrapper.jar
+*.md
+postman_collection.json
+postman_environment.json
+Proyecto1 - API (Postman collection)
+.idea
+.vscode
+*.iml
