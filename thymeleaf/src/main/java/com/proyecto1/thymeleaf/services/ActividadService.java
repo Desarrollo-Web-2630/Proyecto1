@@ -16,10 +16,13 @@ public class ActividadService {
 
     private final ActividadRepository actividadRepository;
     private final ProcesoService procesoService;
+    private final LaneService laneService;
 
-    public ActividadService(ActividadRepository actividadRepository, ProcesoService procesoService) {
+    public ActividadService(ActividadRepository actividadRepository, ProcesoService procesoService,
+                            LaneService laneService) {
         this.actividadRepository = actividadRepository;
         this.procesoService = procesoService;
+        this.laneService = laneService;
     }
 
     // 1. Listar las actividades de un proceso verificando la empresa
@@ -54,6 +57,7 @@ public class ActividadService {
     public ActividadResponseDTO crearActividad(ActividadRequestDTO request, Long procesoId, Long empresaId) {
         validarDatosObligatorios(request);
         Proceso proceso = validarAccesoProceso(procesoId, empresaId);
+        validarLaneDelProceso(request.getLaneId(), procesoId);
 
         String nombre = request.getNombre().trim();
         if (actividadRepository.existsByNombreAndProcesoId(nombre, procesoId)) {
@@ -78,6 +82,7 @@ public class ActividadService {
                 .orElseThrow(() -> new IllegalArgumentException("La actividad no existe o no pertenece a su empresa"));
 
         Long procesoId = actividadExistente.getProceso().getId();
+        validarLaneDelProceso(request.getLaneId(), procesoId);
         String nombre = request.getNombre().trim();
         if (actividadRepository.existsByNombreAndProcesoIdAndIdNot(nombre, procesoId, id)) {
             throw new IllegalArgumentException("Ya existe una actividad llamada '" + nombre + "' en el proceso");
@@ -122,6 +127,12 @@ public class ActividadService {
     // Metodo auxiliar privado para validar que el proceso pertenece a la empresa
     private Proceso validarAccesoProceso(Long procesoId, Long empresaId) {
         return procesoService.obtenerPorIdYEmpresa(procesoId, empresaId);
+    }
+
+    private void validarLaneDelProceso(Long laneId, Long procesoId) {
+        if (!laneService.existeEnProceso(laneId, procesoId)) {
+            throw new IllegalArgumentException("La lane indicada no existe o no pertenece a este proceso");
+        }
     }
 
     private void validarDatosObligatorios(ActividadRequestDTO request) {

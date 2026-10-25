@@ -23,6 +23,7 @@ class ActividadServiceTest {
 
     @Mock private ActividadRepository actividadRepository;
     @Mock private ProcesoService procesoService;
+    @Mock private LaneService laneService;
 
     @InjectMocks
     private ActividadService actividadService;
@@ -49,6 +50,7 @@ class ActividadServiceTest {
     @Test
     void crearActividad_conDatosValidos_seGuarda() {
         when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenReturn(proceso);
+        when(laneService.existeEnProceso(1L, 1L)).thenReturn(true);
         when(actividadRepository.existsByNombreAndProcesoId("Radicar solicitud", 1L)).thenReturn(false);
         when(actividadRepository.save(any(Actividad.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -60,6 +62,7 @@ class ActividadServiceTest {
     @Test
     void crearActividad_conNombreDuplicadoEnElProceso_lanzaExcepcion() {
         when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenReturn(proceso);
+        when(laneService.existeEnProceso(1L, 1L)).thenReturn(true);
         when(actividadRepository.existsByNombreAndProcesoId("Radicar solicitud", 1L)).thenReturn(true);
 
         assertThrows(IllegalArgumentException.class, () -> actividadService.crearActividad(datosValidos, 1L, 1L));

@@ -3,6 +3,7 @@ package com.proyecto1.thymeleaf.services;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -23,8 +24,9 @@ public class RolProcesoService {
     private final EmpresaService empresaService;
     private final UsoRolProceso usoRolProceso;
 
+    // @Lazy rompe el ciclo UsoRolProcesoConLanes -> LaneService -> RolProcesoService -> UsoRolProceso
     public RolProcesoService(RolProcesoRepository rolProcesoRepository, EmpresaService empresaService,
-                             UsoRolProceso usoRolProceso) {
+                             @Lazy UsoRolProceso usoRolProceso) {
         this.rolProcesoRepository = rolProcesoRepository;
         this.empresaService = empresaService;
         this.usoRolProceso = usoRolProceso;
@@ -51,6 +53,12 @@ public class RolProcesoService {
     @Transactional(readOnly = true)
     public RolProcesoRespuestaDTO obtenerPorIdYEmpresa(Long id, Long empresaId) {
         return toRespuesta(buscarRol(id, empresaId), empresaId);
+    }
+
+    // La usa LaneService, que necesita la entidad y no el DTO de respuesta.
+    @Transactional(readOnly = true)
+    public RolProceso obtenerEntidadPorIdYEmpresa(Long id, Long empresaId) {
+        return buscarRol(id, empresaId);
     }
 
     // 4. HU-17: crear un rol en la empresa

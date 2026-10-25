@@ -36,10 +36,10 @@ boolean existsByNombreAndEmpresaIdAndIdNot(@Param("nombre") String nombre,
                                             @Param("idActual") Long idActual);
 
 @Query("SELECT p FROM Proceso p WHERE p.empresa.id = :empresaId AND p.status = 0 " +
-        "AND (:nombre IS NULL OR LOWER(p.nombre) LIKE LOWER(CONCAT('%', :nombre, '%'))) " +
+        "AND (:nombre IS NULL OR LOWER(p.nombre) LIKE LOWER(CONCAT('%', CAST(:nombre AS string), '%'))) " +
         "AND (:estado IS NULL OR p.estado = :estado) " +
         "AND (:incluirInactivos = true OR p.estado <> :inactivo) " +
-        "AND (:categoria IS NULL OR LOWER(p.categoria) = LOWER(:categoria))")
+        "AND (:categoria IS NULL OR LOWER(p.categoria) = LOWER(CAST(:categoria AS string)))")
 Page<Proceso> buscar(@Param("empresaId") Long empresaId,
                     @Param("nombre") String nombre,
                     @Param("estado") Proceso.EstadoProceso estado,

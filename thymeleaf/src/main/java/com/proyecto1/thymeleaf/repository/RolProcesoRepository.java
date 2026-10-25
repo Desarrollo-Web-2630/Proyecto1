@@ -33,7 +33,7 @@ boolean existsByNombreAndEmpresaIdAndIdNot(@Param("nombre") String nombre,
 
 // HU-20: busqueda por nombre y paginacion; el filtro solo se aplica si viene informado
 @Query("SELECT r FROM RolProceso r WHERE r.empresa.id = :empresaId AND r.status = 0 " +
-        "AND (:nombre IS NULL OR LOWER(r.nombre) LIKE LOWER(CONCAT('%', :nombre, '%')))")
+        "AND (:nombre IS NULL OR LOWER(r.nombre) LIKE LOWER(CONCAT('%', CAST(:nombre AS string), '%')))")
 Page<RolProceso> buscar(@Param("empresaId") Long empresaId,
                         @Param("nombre") String nombre,
                         Pageable pageable);
