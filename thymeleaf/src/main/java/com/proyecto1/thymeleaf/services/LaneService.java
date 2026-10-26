@@ -1,5 +1,6 @@
 package com.proyecto1.thymeleaf.services;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -72,7 +73,7 @@ public class LaneService {
         poolService.obtenerPorIdYEmpresa(poolId, procesoId, empresaId);
         List<Lane> lanesActuales = laneRepository.findByPoolId(poolId);
 
-        boolean mismaCantidad = lanesIds.size() == lanesActuales.size();
+        boolean mismaCantidad = lanesIds.size() == lanesActuales.size() && new HashSet<>(lanesIds).size() == lanesIds.size();
         boolean mismosIds = lanesActuales.stream().map(Lane::getId).collect(Collectors.toSet()).containsAll(lanesIds);
         if (!mismaCantidad || !mismosIds) {
             throw new IllegalArgumentException("La lista de lanes no coincide con las lanes del pool");
