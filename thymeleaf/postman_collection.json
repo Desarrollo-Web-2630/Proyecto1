@@ -213,6 +213,13 @@
             },
             "url": "{{baseUrl}}/api/v1/usuarios/login"
           }
+        },
+        {
+          "name": "Listar usuarios paginado",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/usuarios/buscar?page=0&size=10"
+          }
         }
       ]
     },
@@ -273,6 +280,34 @@
             "method": "POST",
             "url": "{{baseUrl}}/api/v1/procesos/1/publicar"
           }
+        },
+        {
+          "name": "Buscar procesos (filtros y paginación)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/procesos/buscar?nombre=&estado=&categoria=&incluirInactivos=false&page=0&size=10"
+          }
+        },
+        {
+          "name": "Inactivar proceso",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/procesos/1/inactivar"
+          }
+        },
+        {
+          "name": "Reactivar proceso",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/procesos/1/reactivar"
+          }
+        },
+        {
+          "name": "Eliminar proceso (lógico)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/procesos/1"
+          }
         }
       ]
     },
@@ -301,6 +336,20 @@
               "raw": "{\n  \"nombre\": \"Tarea 1\",\n  \"tipoActividad\": \"Manual\",\n  \"laneId\": 1,\n  \"posicionX\": 100,\n  \"posicionY\": 200\n}"
             },
             "url": "{{baseUrl}}/api/v1/procesos/1/actividades"
+          }
+        },
+        {
+          "name": "Mover actividad (drag and drop)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/procesos/1/actividades/1/mover?posicionX=120&posicionY=40"
+          }
+        },
+        {
+          "name": "Listar actividades paginado",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/procesos/1/actividades/buscar?page=0&size=10"
           }
         }
       ]
@@ -378,6 +427,287 @@
           "request": {
             "method": "PATCH",
             "url": "{{baseUrl}}/api/v1/procesos/1/elementos/10/posicion?x=150&y=250"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Roles de proceso",
+      "item": [
+        {
+          "name": "Listar roles",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/roles-proceso"
+          }
+        },
+        {
+          "name": "Buscar roles (paginado)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/roles-proceso/buscar?nombre=&page=0&size=10"
+          }
+        },
+        {
+          "name": "Obtener rol",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/roles-proceso/1"
+          }
+        },
+        {
+          "name": "Crear rol",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/roles-proceso",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Analista\",\n  \"descripcion\": \"Analiza las solicitudes\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Actualizar rol",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/roles-proceso/1",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Analista senior\",\n  \"descripcion\": \"Analiza y aprueba\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Eliminar rol (409/400 si está en uso)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/roles-proceso/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pools",
+      "item": [
+        {
+          "name": "Listar pools del proceso",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/procesos/1/pools"
+          }
+        },
+        {
+          "name": "Obtener pool",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/procesos/1/pools/1"
+          }
+        },
+        {
+          "name": "Crear pool propietario",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/procesos/1/pools",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Empresa\",\n  \"tipo\": \"PROPIETARIO\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Crear pool externo",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/procesos/1/pools",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Servicio de correo\",\n  \"tipo\": \"SISTEMA_EXTERNO\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Actualizar pool",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/procesos/1/pools/1",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Empresa S.A.\",\n  \"tipo\": \"PROPIETARIO\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Eliminar pool",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/procesos/1/pools/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Lanes",
+      "item": [
+        {
+          "name": "Listar lanes del pool",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/procesos/1/pools/1/lanes"
+          }
+        },
+        {
+          "name": "Obtener lane",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/procesos/1/pools/1/lanes/1"
+          }
+        },
+        {
+          "name": "Crear lane",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/procesos/1/pools/1/lanes",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Empleado\",\n  \"rolProcesoId\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Actualizar lane",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/procesos/1/pools/1/lanes/1",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Jefe inmediato\",\n  \"rolProcesoId\": 2\n}"
+            }
+          }
+        },
+        {
+          "name": "Reordenar lanes (drag and drop)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/procesos/1/pools/1/lanes/orden",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lanesIds\": [\n    2,\n    1\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Eliminar lane",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/procesos/1/pools/1/lanes/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Mensajes",
+      "item": [
+        {
+          "name": "Listar mensajes del proceso",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/procesos/1/mensajes"
+          }
+        },
+        {
+          "name": "Obtener mensaje",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/procesos/1/mensajes/1"
+          }
+        },
+        {
+          "name": "Crear mensaje con correlación",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/procesos/1/mensajes",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"NotificarAprobacion\",\n  \"claveCorrelacion\": \"numero_solicitud\",\n  \"poolOrigenId\": 1,\n  \"poolDestinoId\": 2,\n  \"elementoOrigenId\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Actualizar mensaje",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/procesos/1/mensajes/1",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"NotificarAprobacion\",\n  \"claveCorrelacion\": \"numero_solicitud\",\n  \"poolOrigenId\": 1,\n  \"poolDestinoId\": 2\n}"
+            }
+          }
+        },
+        {
+          "name": "Eliminar mensaje",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/procesos/1/mensajes/1"
           }
         }
       ]

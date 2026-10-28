@@ -1,6 +1,7 @@
 package com.proyecto1.thymeleaf.services;
 
 import com.proyecto1.thymeleaf.dto.ArcoDTO;
+import com.proyecto1.thymeleaf.model.Actividad;
 import com.proyecto1.thymeleaf.model.Arco;
 import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.model.ElementoConectable;
@@ -26,6 +27,7 @@ class ArcoServiceTest {
     @Mock private ArcoRepository arcoRepository;
     @Mock private ElementoConectableService elementoService;
     @Mock private ProcesoService procesoService;
+    @Mock private LaneService laneService;
 
     @InjectMocks
     private ArcoService arcoService;
@@ -187,5 +189,47 @@ class ArcoServiceTest {
         assertEquals(2, eliminados);
         verify(arcoRepository).delete(comoOrigen);
         verify(arcoRepository).delete(comoDestino);
+    }
+    @Test
+    void crearArco_entreActividadesDeDistintoPool_lanzaExcepcion() {
+        Actividad a = new Actividad();
+        a.setId(10L);
+        a.setProceso(proceso);
+        a.setLaneId(100L);
+        Actividad b = new Actividad();
+        b.setId(20L);
+        b.setProceso(proceso);
+        b.setLaneId(200L);
+
+        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenReturn(proceso);
+        when(elementoService.obtenerPorIdYEmpresa(10L, 1L)).thenReturn(a);
+        when(elementoService.obtenerPorIdYEmpresa(20L, 1L)).thenReturn(b);
+        when(laneService.poolIdDeLane(100L, 1L)).thenReturn(1L);
+        when(laneService.poolIdDeLane(200L, 1L)).thenReturn(2L);
+
+        assertThrows(IllegalArgumentException.class, () -> arcoService.crearArco(datos, 1L, 1L));
+        verify(arcoRepository, never()).save(any());
+    }
+
+    @Test
+    void crearArco_entreActividadesDelMismoPool_seGuarda() {
+        Actividad a = new Actividad();
+        a.setId(10L);
+        a.setProceso(proceso);
+        a.setLaneId(100L);
+        Actividad b = new Actividad();
+        b.setId(20L);
+        b.setProceso(proceso);
+        b.setLaneId(200L);
+
+        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenReturn(proceso);
+        when(elementoService.obtenerPorIdYEmpresa(10L, 1L)).thenReturn(a);
+        when(elementoService.obtenerPorIdYEmpresa(20L, 1L)).thenReturn(b);
+        when(laneService.poolIdDeLane(100L, 1L)).thenReturn(1L);
+        when(laneService.poolIdDeLane(200L, 1L)).thenReturn(1L);
+        when(arcoRepository.findByOrigenId(10L)).thenReturn(List.of());
+        when(arcoRepository.save(any(Arco.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        assertNotNull(arcoService.crearArco(datos, 1L, 1L));
     }
 }

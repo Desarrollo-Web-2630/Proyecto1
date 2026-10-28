@@ -8,6 +8,9 @@ import com.proyecto1.thymeleaf.services.UsuarioService;
 import com.proyecto1.thymeleaf.util.EmpresaActual;
 import jakarta.validation.Valid;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -30,6 +33,14 @@ public class UsuarioController {
     @GetMapping
     public ResponseEntity<List<UsuarioVistaDTO>> listar() {
         return ResponseEntity.ok(usuarioService.listarPorEmpresa(EmpresaActual.id()));
+    }
+
+    @GetMapping("/buscar")
+    public ResponseEntity<Page<UsuarioVistaDTO>> buscar(@RequestParam(defaultValue = "0") int page,
+                                                        @RequestParam(defaultValue = "10") int size) {
+        int tamano = Math.min(Math.max(size, 1), 100);
+        return ResponseEntity.ok(usuarioService.buscarPorEmpresa(EmpresaActual.id(),
+                PageRequest.of(Math.max(page, 0), tamano, Sort.by("nombre").ascending())));
     }
 
     @GetMapping("/{id}")

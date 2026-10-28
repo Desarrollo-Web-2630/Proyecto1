@@ -17,4 +17,5 @@ public class UsuarioVistaDTO {
     private String correo;
     private Usuario.RolAcceso rolAcceso;
     private Boolean activo;
+    private Long empresaId;
 }

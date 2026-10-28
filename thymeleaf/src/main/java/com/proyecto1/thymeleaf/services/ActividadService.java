@@ -5,6 +5,8 @@ import com.proyecto1.thymeleaf.dto.ActividadResponseDTO;
 import com.proyecto1.thymeleaf.model.Actividad;
 import com.proyecto1.thymeleaf.model.Proceso;
 import com.proyecto1.thymeleaf.repository.ActividadRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +35,12 @@ public class ActividadService {
                 .stream()
                 .map(this::toResponseDTO)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ActividadResponseDTO> buscarPorProcesoYEmpresa(Long procesoId, Long empresaId, Pageable pageable) {
+        validarAccesoProceso(procesoId, empresaId);
+        return actividadRepository.buscarPorProcesoId(procesoId, pageable).map(this::toResponseDTO);
     }
 
     // 2. Listar las actividades de una lane concreta del proceso

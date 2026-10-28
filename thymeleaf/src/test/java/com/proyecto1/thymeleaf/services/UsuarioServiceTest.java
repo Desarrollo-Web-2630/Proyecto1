@@ -6,6 +6,12 @@ import com.proyecto1.thymeleaf.dto.UsuarioDTO;
 import com.proyecto1.thymeleaf.repository.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import com.proyecto1.thymeleaf.dto.UsuarioVistaDTO;
+import java.util.List;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Page;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -174,5 +180,22 @@ class UsuarioServiceTest {
         usuarioService.eliminarUsuario(5L, 1L);
 
         verify(usuarioRepository).delete(usuario);
+    }
+    @Test
+    void buscarPorEmpresa_devuelveLaPaginaMapeada() {
+        Usuario usuario = new Usuario();
+        usuario.setId(1L);
+        UsuarioVistaDTO vista = new UsuarioVistaDTO();
+        vista.setId(1L);
+        vista.setEmpresaId(7L);
+        Pageable pagina = PageRequest.of(0, 10);
+
+        when(usuarioRepository.buscarPorEmpresa(7L, pagina)).thenReturn(new PageImpl<>(List.of(usuario), pagina, 1));
+        when(modelMapper.map(usuario, UsuarioVistaDTO.class)).thenReturn(vista);
+
+        Page<UsuarioVistaDTO> resultado = usuarioService.buscarPorEmpresa(7L, pagina);
+
+        assertEquals(1, resultado.getTotalElements());
+        assertEquals(7L, resultado.getContent().get(0).getEmpresaId());
     }
 }

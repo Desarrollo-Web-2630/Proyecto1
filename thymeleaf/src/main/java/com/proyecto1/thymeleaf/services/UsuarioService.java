@@ -8,6 +8,8 @@ import com.proyecto1.thymeleaf.repository.UsuarioRepository;
 import com.proyecto1.thymeleaf.util.PasswordUtil;
 import org.modelmapper.ModelMapper;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -90,6 +92,12 @@ public class UsuarioService {
         return usuarioRepository.findByEmpresaId(empresaId).stream()
                 .map(usuario -> modelMapper.map(usuario, UsuarioVistaDTO.class))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<UsuarioVistaDTO> buscarPorEmpresa(Long empresaId, Pageable pageable) {
+        return usuarioRepository.buscarPorEmpresa(empresaId, pageable)
+                .map(usuario -> modelMapper.map(usuario, UsuarioVistaDTO.class));
     }
 
     // 4. Obtener un usuario verificando que pertenezca a la empresa

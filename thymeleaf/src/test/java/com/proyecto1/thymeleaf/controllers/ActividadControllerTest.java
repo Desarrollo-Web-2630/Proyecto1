@@ -5,6 +5,8 @@ import com.proyecto1.thymeleaf.dto.ActividadRequestDTO;
 import com.proyecto1.thymeleaf.dto.ActividadResponseDTO;
 import com.proyecto1.thymeleaf.services.ActividadService;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -107,5 +109,16 @@ class ActividadControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(actividadService).eliminarActividad(eq(1L), anyLong());
+    }
+    @Test
+    void buscar_devuelvePaginaDeActividades() throws Exception {
+        ActividadResponseDTO dto = new ActividadResponseDTO(1L, "Revisar", "MANUAL", 10, 20, 5L);
+
+        when(actividadService.buscarPorProcesoYEmpresa(anyLong(), anyLong(), any()))
+                .thenReturn(new PageImpl<>(List.of(dto), PageRequest.of(0, 10), 1));
+
+        mockMvc.perform(get("/api/v1/procesos/1/actividades/buscar?page=0&size=10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].nombre").value("Revisar"));
     }
 }

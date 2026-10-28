@@ -3,6 +3,8 @@ package com.proyecto1.thymeleaf.repository;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,6 +15,10 @@ public interface ActividadRepository extends JpaRepository<Actividad, Long> {
 
 @Query("SELECT a FROM Actividad a WHERE a.proceso.id = :procesoId AND a.status = 0")
 List<Actividad> findByProcesoId(@Param("procesoId") Long procesoId);
+
+@Query(value = "SELECT a FROM Actividad a WHERE a.proceso.id = :procesoId AND a.status = 0",
+        countQuery = "SELECT COUNT(a) FROM Actividad a WHERE a.proceso.id = :procesoId AND a.status = 0")
+Page<Actividad> buscarPorProcesoId(@Param("procesoId") Long procesoId, Pageable pageable);
 
 @Query("SELECT a FROM Actividad a WHERE a.proceso.id = :procesoId " +
         "AND a.laneId = :laneId AND a.status = 0")

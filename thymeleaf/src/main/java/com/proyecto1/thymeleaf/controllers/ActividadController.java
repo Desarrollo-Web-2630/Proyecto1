@@ -5,6 +5,9 @@ import com.proyecto1.thymeleaf.dto.ActividadResponseDTO;
 import com.proyecto1.thymeleaf.services.ActividadService;
 import com.proyecto1.thymeleaf.util.EmpresaActual;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,6 +27,15 @@ public class ActividadController {
     @GetMapping
     public ResponseEntity<List<ActividadResponseDTO>> listar(@PathVariable Long procesoId) {
         return ResponseEntity.ok(actividadService.listarPorProcesoYEmpresa(procesoId, EmpresaActual.id()));
+    }
+
+    @GetMapping("/buscar")
+    public ResponseEntity<Page<ActividadResponseDTO>> buscar(@PathVariable Long procesoId,
+                                                             @RequestParam(defaultValue = "0") int page,
+                                                             @RequestParam(defaultValue = "10") int size) {
+        int tamano = Math.min(Math.max(size, 1), 100);
+        return ResponseEntity.ok(actividadService.buscarPorProcesoYEmpresa(procesoId, EmpresaActual.id(),
+                PageRequest.of(Math.max(page, 0), tamano, Sort.by("nombre").ascending())));
     }
 
     @GetMapping("/{id}")

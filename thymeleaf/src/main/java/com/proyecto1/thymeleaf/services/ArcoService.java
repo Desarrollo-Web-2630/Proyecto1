@@ -1,10 +1,12 @@
 package com.proyecto1.thymeleaf.services;
 
 import com.proyecto1.thymeleaf.dto.ArcoDTO;
+import com.proyecto1.thymeleaf.model.Actividad;
 import com.proyecto1.thymeleaf.model.Arco;
 import com.proyecto1.thymeleaf.model.ElementoConectable;
 import com.proyecto1.thymeleaf.model.Proceso;
 import com.proyecto1.thymeleaf.repository.ArcoRepository;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,13 +19,16 @@ public class ArcoService {
     private final ArcoRepository arcoRepository;
     private final ElementoConectableService elementoService;
     private final ProcesoService procesoService;
+    private final LaneService laneService;
 
     public ArcoService(ArcoRepository arcoRepository,
                        ElementoConectableService elementoService,
-                       ProcesoService procesoService) {
+                       ProcesoService procesoService,
+                       @Lazy LaneService laneService) {
         this.arcoRepository = arcoRepository;
         this.elementoService = elementoService;
         this.procesoService = procesoService;
+        this.laneService = laneService;
     }
 
     // 1. Listar los arcos de un proceso verificando la empresa
@@ -120,6 +125,12 @@ public class ArcoService {
             throw new IllegalArgumentException("El origen y el destino deben pertenecer al mismo proceso del arco");
         }
 
+        Long poolOrigen = poolDe(origen, procesoId);
+        Long poolDestino = poolDe(destino, procesoId);
+        if (poolOrigen != null && poolDestino != null && !poolOrigen.equals(poolDestino)) {
+            throw new IllegalArgumentException("Un arco no puede cruzar de un pool a otro; use un mensaje");
+        }
+
         boolean duplicado = arcoRepository.findByOrigenId(datos.getOrigenId()).stream()
                 .filter(otro -> !otro.getId().equals(arcoIdActual))
                 .anyMatch(otro -> otro.getDestino().getId().equals(datos.getDestinoId()));
@@ -128,6 +139,13 @@ public class ArcoService {
         }
 
         return origen;
+    }
+
+    private Long poolDe(ElementoConectable elemento, Long procesoId) {
+        if (elemento instanceof Actividad actividad && actividad.getLaneId() != null) {
+            return laneService.poolIdDeLane(actividad.getLaneId(), procesoId);
+        }
+        return null;
     }
 
     private boolean quedariaSinEntradas(Long elementoId, Long arcoQueSeVa) {

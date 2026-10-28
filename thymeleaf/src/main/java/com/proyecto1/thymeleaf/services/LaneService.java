@@ -40,6 +40,13 @@ public class LaneService {
                 .orElseThrow(() -> new IllegalArgumentException("La lane no existe o no pertenece a su empresa"));
     }
 
+    @Transactional(readOnly = true)
+    public Long poolIdDeLane(Long laneId, Long procesoId) {
+        return laneRepository.findByIdAndProcesoId(laneId, procesoId)
+                .map(lane -> lane.getPool().getId())
+                .orElse(null);
+    }
+
     public Lane crearLane(LaneDTO datos, Long poolId, Long procesoId, Long empresaId) {
         Pool pool = poolService.obtenerPorIdYEmpresa(poolId, procesoId, empresaId);
         RolProceso rol = rolProcesoService.obtenerEntidadPorIdYEmpresa(datos.getRolProcesoId(), empresaId);

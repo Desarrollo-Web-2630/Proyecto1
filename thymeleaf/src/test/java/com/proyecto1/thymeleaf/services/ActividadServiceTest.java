@@ -2,6 +2,7 @@ package com.proyecto1.thymeleaf.services;
 
 import com.proyecto1.thymeleaf.model.Actividad;
 import com.proyecto1.thymeleaf.dto.ActividadRequestDTO;
+import com.proyecto1.thymeleaf.dto.ActividadResponseDTO;
 import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.model.Proceso;
 import com.proyecto1.thymeleaf.repository.ActividadRepository;
@@ -11,6 +12,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
+import java.util.List;
 
 import java.util.Optional;
 
@@ -131,5 +138,20 @@ class ActividadServiceTest {
         when(actividadRepository.findByProcesoIdAndLaneId(1L, 2L)).thenReturn(java.util.List.of(new Actividad()));
 
         assertEquals(1, actividadService.listarPorLane(1L, 2L, 1L).size());
+    }
+    @Test
+    void buscarPorProcesoYEmpresa_devuelveLaPaginaMapeada() {
+        Actividad actividad = new Actividad();
+        actividad.setId(5L);
+        actividad.setNombre("Revisar");
+        Pageable pagina = PageRequest.of(0, 10);
+
+        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenReturn(proceso);
+        when(actividadRepository.buscarPorProcesoId(1L, pagina)).thenReturn(new PageImpl<>(List.of(actividad), pagina, 1));
+
+        Page<ActividadResponseDTO> resultado = actividadService.buscarPorProcesoYEmpresa(1L, 1L, pagina);
+
+        assertEquals(1, resultado.getTotalElements());
+        assertEquals("Revisar", resultado.getContent().get(0).getNombre());
     }
 }

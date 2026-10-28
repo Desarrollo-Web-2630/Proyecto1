@@ -1,6 +1,8 @@
 package com.proyecto1.thymeleaf.repository;
 
 import com.proyecto1.thymeleaf.model.Usuario;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -19,6 +21,10 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     @Query("SELECT u FROM Usuario u WHERE u.empresa.id = :empresaId AND u.status = 0")
     List<Usuario> findByEmpresaId(@Param("empresaId") Long empresaId);
+
+    @Query(value = "SELECT u FROM Usuario u WHERE u.empresa.id = :empresaId AND u.status = 0",
+        countQuery = "SELECT COUNT(u) FROM Usuario u WHERE u.empresa.id = :empresaId AND u.status = 0")
+    Page<Usuario> buscarPorEmpresa(@Param("empresaId") Long empresaId, Pageable pageable);
 
     @Query("SELECT u FROM Usuario u " +
         "WHERE u.id = :id AND u.empresa.id = :empresaId AND u.status = 0")
