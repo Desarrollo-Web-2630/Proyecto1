@@ -23,4 +23,8 @@ public class GatewayDTO {
 
     @NotNull(message = "El tipo de gateway es obligatorio")
     private Gateway.TipoGateway tipo;
+
+    private Integer posicionX;
+
+    private Integer posicionY;
 }

@@ -43,6 +43,8 @@ public class GatewayService {
         Gateway gateway = new Gateway();
         gateway.setNombre(datos.getNombre().trim());
         gateway.setTipo(datos.getTipo());
+        gateway.setPosicionX(datos.getPosicionX() == null ? 0 : Math.max(datos.getPosicionX(), 0));
+        gateway.setPosicionY(datos.getPosicionY() == null ? 0 : Math.max(datos.getPosicionY(), 0));
         gateway.setProceso(proceso);
         gateway.setStatus(0);
 
@@ -56,6 +58,10 @@ public class GatewayService {
 
         gatewayExistente.setNombre(datos.getNombre().trim());
         gatewayExistente.setTipo(datos.getTipo());
+        if (datos.getPosicionX() != null && datos.getPosicionY() != null) {
+            gatewayExistente.setPosicionX(Math.max(datos.getPosicionX(), 0));
+            gatewayExistente.setPosicionY(Math.max(datos.getPosicionY(), 0));
+        }
 
         return gatewayRepository.save(gatewayExistente);
     }

@@ -111,4 +111,28 @@ class GatewayServiceTest {
 
         verify(gatewayRepository).delete(gateway);
     }
+
+    @Test
+    void crearGateway_conPosicion_guardaLasCoordenadas() {
+        datos.setPosicionX(120);
+        datos.setPosicionY(40);
+        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenReturn(proceso);
+        when(gatewayRepository.save(any(Gateway.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Gateway resultado = gatewayService.crearGateway(datos, 1L, 1L);
+
+        assertEquals(120, resultado.getPosicionX());
+        assertEquals(40, resultado.getPosicionY());
+    }
+
+    @Test
+    void crearGateway_sinPosicion_usaCero() {
+        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenReturn(proceso);
+        when(gatewayRepository.save(any(Gateway.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Gateway resultado = gatewayService.crearGateway(datos, 1L, 1L);
+
+        assertEquals(0, resultado.getPosicionX());
+        assertEquals(0, resultado.getPosicionY());
+    }
 }
