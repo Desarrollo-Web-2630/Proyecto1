@@ -1,5 +1,6 @@
 package com.proyecto1.thymeleaf.services;
 
+import com.proyecto1.thymeleaf.exceptions.RecursoNoEncontradoException;
 import com.proyecto1.thymeleaf.dto.ActividadRequestDTO;
 import com.proyecto1.thymeleaf.dto.ActividadResponseDTO;
 import com.proyecto1.thymeleaf.model.Actividad;
@@ -57,7 +58,7 @@ public class ActividadService {
     @Transactional(readOnly = true)
     public ActividadResponseDTO obtenerPorIdYEmpresa(Long id, Long empresaId) {
         Actividad actividad = actividadRepository.findByIdAndProcesoEmpresaId(id, empresaId)
-                .orElseThrow(() -> new IllegalArgumentException("La actividad no existe o no pertenece a su empresa"));
+                .orElseThrow(() -> new RecursoNoEncontradoException("La actividad no existe o no pertenece a su empresa"));
         return toResponseDTO(actividad);
     }
 
@@ -87,7 +88,7 @@ public class ActividadService {
     // 5. Actualizar nombre, tipo y lane de una actividad
     public ActividadResponseDTO actualizarActividad(Long id, ActividadRequestDTO request, Long empresaId) {
         Actividad actividadExistente = actividadRepository.findByIdAndProcesoEmpresaId(id, empresaId)
-                .orElseThrow(() -> new IllegalArgumentException("La actividad no existe o no pertenece a su empresa"));
+                .orElseThrow(() -> new RecursoNoEncontradoException("La actividad no existe o no pertenece a su empresa"));
 
         Long procesoId = actividadExistente.getProceso().getId();
         validarLaneDelProceso(request.getLaneId(), procesoId);
@@ -109,7 +110,7 @@ public class ActividadService {
     // 6. Mover la actividad en el diagrama sin tocar el resto de sus datos
     public ActividadResponseDTO moverActividad(Long id, Integer posicionX, Integer posicionY, Long empresaId) {
         Actividad actividad = actividadRepository.findByIdAndProcesoEmpresaId(id, empresaId)
-                .orElseThrow(() -> new IllegalArgumentException("La actividad no existe o no pertenece a su empresa"));
+                .orElseThrow(() -> new RecursoNoEncontradoException("La actividad no existe o no pertenece a su empresa"));
 
         if (posicionX == null || posicionY == null) {
             throw new IllegalArgumentException("La posicion de la actividad en el diagrama es obligatoria");
@@ -128,7 +129,7 @@ public class ActividadService {
     // 7. Eliminar (borrado logico via @SQLDelete)
     public void eliminarActividad(Long id, Long empresaId) {
         Actividad actividad = actividadRepository.findByIdAndProcesoEmpresaId(id, empresaId)
-                .orElseThrow(() -> new IllegalArgumentException("La actividad no existe o no pertenece a su empresa"));
+                .orElseThrow(() -> new RecursoNoEncontradoException("La actividad no existe o no pertenece a su empresa"));
         actividadRepository.delete(actividad);
     }
 

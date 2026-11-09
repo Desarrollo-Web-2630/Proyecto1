@@ -6,12 +6,12 @@ import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.services.EmpresaService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.proyecto1.thymeleaf.support.ConUsuario;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-
-import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -20,6 +20,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(EmpresaController.class)
+@AutoConfigureMockMvc(addFilters = false) // las reglas HTTP se prueban en SeguridadIntegrationTest
+@ConUsuario
 class EmpresaControllerTest {
 
     @Autowired private MockMvc mockMvc;
@@ -27,14 +29,14 @@ class EmpresaControllerTest {
     @MockBean private EmpresaService empresaService;
 
     @Test
-    void listar_devuelveOkConLaListaDelService() throws Exception {
+    void listar_devuelveSoloLaEmpresaDelUsuario() throws Exception {
         Empresa empresa = new Empresa();
         empresa.setId(1L);
         empresa.setNombre("Empresa Demo");
         empresa.setNit("900123456-7");
         empresa.setCorreo("contacto@demo.com");
 
-        when(empresaService.listarTodas()).thenReturn(List.of(empresa));
+        when(empresaService.obtenerPorId(1L)).thenReturn(empresa);
 
         mockMvc.perform(get("/api/v1/empresas"))
                 .andExpect(status().isOk())
@@ -55,13 +57,35 @@ class EmpresaControllerTest {
     }
 
     @Test
-    void obtener_inexistente_devuelve400ViaGlobalExceptionHandler() throws Exception {
-        when(empresaService.obtenerPorId(99L))
-                .thenThrow(new IllegalArgumentException("La empresa no existe"));
-
+    void obtener_deOtraEmpresa_devuelve404SinConsultarElService() throws Exception {
         mockMvc.perform(get("/api/v1/empresas/99"))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.mensaje").value("La empresa no existe"));
+
+        verify(empresaService, never()).obtenerPorId(99L);
+    }
+
+    @Test
+    void actualizar_otraEmpresa_devuelve404() throws Exception {
+        EmpresaDTO datos = new EmpresaDTO();
+        datos.setNombre("Empresa Ajena");
+        datos.setNit("900123456-7");
+        datos.setCorreo("contacto@ajena.com");
+
+        mockMvc.perform(put("/api/v1/empresas/2")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(datos)))
+                .andExpect(status().isNotFound());
+
+        verify(empresaService, never()).actualizarEmpresa(eq(2L), any());
+    }
+
+    @Test
+    void eliminar_otraEmpresa_devuelve404() throws Exception {
+        mockMvc.perform(delete("/api/v1/empresas/2"))
+                .andExpect(status().isNotFound());
+
+        verify(empresaService, never()).eliminarEmpresa(2L);
     }
 
     @Test

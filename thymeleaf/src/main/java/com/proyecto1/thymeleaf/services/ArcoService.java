@@ -1,5 +1,6 @@
 package com.proyecto1.thymeleaf.services;
 
+import com.proyecto1.thymeleaf.exceptions.RecursoNoEncontradoException;
 import com.proyecto1.thymeleaf.dto.ArcoDTO;
 import com.proyecto1.thymeleaf.model.Actividad;
 import com.proyecto1.thymeleaf.model.Arco;
@@ -42,7 +43,7 @@ public class ArcoService {
     @Transactional(readOnly = true)
     public Arco obtenerPorIdYEmpresa(Long id, Long empresaId) {
         return arcoRepository.findByIdAndProcesoEmpresaId(id, empresaId)
-                .orElseThrow(() -> new IllegalArgumentException("El arco no existe o no pertenece a su empresa"));
+                .orElseThrow(() -> new RecursoNoEncontradoException("El arco no existe o no pertenece a su empresa"));
     }
 
     // 3. Crear un arco entre dos elementos del mismo proceso

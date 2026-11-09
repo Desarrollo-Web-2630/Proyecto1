@@ -5,10 +5,13 @@ import com.proyecto1.thymeleaf.dto.LoginDTO;
 import com.proyecto1.thymeleaf.dto.UsuarioDTO;
 import com.proyecto1.thymeleaf.dto.UsuarioVistaDTO;
 import com.proyecto1.thymeleaf.model.Usuario;
+import com.proyecto1.thymeleaf.security.TokenService;
 import com.proyecto1.thymeleaf.services.UsuarioService;
 import org.junit.jupiter.api.Test;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.proyecto1.thymeleaf.support.ConUsuario;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
@@ -16,6 +19,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,6 +29,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(UsuarioController.class)
+@AutoConfigureMockMvc(addFilters = false) // las reglas HTTP se prueban en SeguridadIntegrationTest
+@ConUsuario
 class UsuarioControllerTest {
 
     @Autowired private MockMvc mockMvc;
@@ -32,6 +38,7 @@ class UsuarioControllerTest {
 
     @MockBean private UsuarioService usuarioService;
     @MockBean private ModelMapper modelMapper;
+    @MockBean private TokenService tokenService;
 
     @Test
     void listar_devuelveOkConLaListaDelService() throws Exception {
@@ -115,15 +122,20 @@ class UsuarioControllerTest {
 
         when(usuarioService.login("ana@demo.com", "Clave1234")).thenReturn(Optional.of(usuario));
         when(modelMapper.map(usuario, UsuarioVistaDTO.class)).thenReturn(vista);
+        when(tokenService.emitir(usuario))
+                .thenReturn(new TokenService.TokenEmitido("jwt.de.prueba", Instant.parse("2030-01-01T00:00:00Z")));
 
         mockMvc.perform(post("/api/v1/usuarios/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(login)))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value("jwt.de.prueba"))
+                .andExpect(jsonPath("$.tipo").value("Bearer"))
+                .andExpect(jsonPath("$.usuario.id").value(1));
     }
 
     @Test
-    void login_conCredencialesIncorrectas_devuelve401SinCuerpo() throws Exception {
+    void login_conCredencialesIncorrectas_devuelve401ConMensajeGenerico() throws Exception {
         LoginDTO login = new LoginDTO();
         login.setCorreo("ana@demo.com");
         login.setPassword("Mala12345");
@@ -133,7 +145,10 @@ class UsuarioControllerTest {
         mockMvc.perform(post("/api/v1/usuarios/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(login)))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.mensaje").value(UsuarioController.MENSAJE_LOGIN_FALLIDO));
+
+        verify(tokenService, never()).emitir(any());
     }
 
     @Test

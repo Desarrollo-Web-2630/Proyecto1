@@ -16,6 +16,8 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.proyecto1.thymeleaf.support.ConUsuario;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
@@ -28,6 +30,8 @@ import com.proyecto1.thymeleaf.model.Proceso;
 import com.proyecto1.thymeleaf.services.PoolService;
 
 @WebMvcTest(PoolController.class)
+@AutoConfigureMockMvc(addFilters = false) // las reglas HTTP se prueban en SeguridadIntegrationTest
+@ConUsuario
 class PoolControllerTest {
 
     @Autowired private MockMvc mockMvc;

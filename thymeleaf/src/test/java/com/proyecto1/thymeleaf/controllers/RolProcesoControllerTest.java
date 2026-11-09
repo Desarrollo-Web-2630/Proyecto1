@@ -18,6 +18,8 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.proyecto1.thymeleaf.support.ConUsuario;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
@@ -30,6 +32,8 @@ import com.proyecto1.thymeleaf.dto.RolProcesoRespuestaDTO;
 import com.proyecto1.thymeleaf.services.RolProcesoService;
 
 @WebMvcTest(RolProcesoController.class)
+@AutoConfigureMockMvc(addFilters = false) // las reglas HTTP se prueban en SeguridadIntegrationTest
+@ConUsuario
 class RolProcesoControllerTest {
 
     @Autowired private MockMvc mockMvc;

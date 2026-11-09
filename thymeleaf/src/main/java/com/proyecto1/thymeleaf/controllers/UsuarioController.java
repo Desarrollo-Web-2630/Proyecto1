@@ -1,9 +1,11 @@
 package com.proyecto1.thymeleaf.controllers;
 
 import com.proyecto1.thymeleaf.dto.LoginDTO;
+import com.proyecto1.thymeleaf.dto.LoginResponseDTO;
 import com.proyecto1.thymeleaf.dto.UsuarioDTO;
 import com.proyecto1.thymeleaf.dto.UsuarioVistaDTO;
 import com.proyecto1.thymeleaf.model.Usuario;
+import com.proyecto1.thymeleaf.security.TokenService;
 import com.proyecto1.thymeleaf.services.UsuarioService;
 import com.proyecto1.thymeleaf.util.EmpresaActual;
 import jakarta.validation.Valid;
@@ -13,21 +15,25 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/usuarios")
 public class UsuarioController {
 
+    static final String MENSAJE_LOGIN_FALLIDO = "Correo o contrasena incorrectos";
+
     private final UsuarioService usuarioService;
     private final ModelMapper modelMapper;
+    private final TokenService tokenService;
 
-    public UsuarioController(UsuarioService usuarioService, ModelMapper modelMapper) {
+    public UsuarioController(UsuarioService usuarioService, ModelMapper modelMapper, TokenService tokenService) {
         this.usuarioService = usuarioService;
         this.modelMapper = modelMapper;
+        this.tokenService = tokenService;
     }
 
     @GetMapping
@@ -56,11 +62,16 @@ public class UsuarioController {
         return ResponseEntity.status(HttpStatus.CREATED).body(modelMapper.map(creado, UsuarioVistaDTO.class));
     }
 
+    // HU-03: publico. Devuelve el JWT que el front envia en cada peticion.
+    // Mismo 401 si el correo no existe, la clave esta mal o la cuenta esta inactiva:
+    // asi no se revela que correos estan registrados.
     @PostMapping("/login")
-    public ResponseEntity<UsuarioVistaDTO> login(@Valid @RequestBody LoginDTO login) {
-        Optional<Usuario> usuario = usuarioService.login(login.getCorreo(), login.getPassword());
-        return usuario.map(u -> ResponseEntity.ok(modelMapper.map(u, UsuarioVistaDTO.class)))
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
+    public ResponseEntity<LoginResponseDTO> login(@Valid @RequestBody LoginDTO login) {
+        Usuario usuario = usuarioService.login(login.getCorreo(), login.getPassword())
+                .orElseThrow(() -> new BadCredentialsException(MENSAJE_LOGIN_FALLIDO));
+        TokenService.TokenEmitido token = tokenService.emitir(usuario);
+        return ResponseEntity.ok(new LoginResponseDTO(token.token(), LoginResponseDTO.TIPO_BEARER,
+                token.expiraEn(), modelMapper.map(usuario, UsuarioVistaDTO.class)));
     }
 
     @PostMapping("/{id}/rol")

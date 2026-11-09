@@ -35,6 +35,9 @@
     <carga.usuarios>20</carga.usuarios>
     <carga.rampa>10</carga.rampa>
     <carga.repeticiones>5</carga.repeticiones>
+    <!-- Usuario con el que JMeter inicia sesion: -Dcarga.clave=<DEMO_ADMIN_PASSWORD> -->
+    <carga.correo>admin@demo.com</carga.correo>
+    <carga.clave></carga.clave>
     <maven.build.timestamp.format>yyyyMMdd-HHmmss</maven.build.timestamp.format>
   </properties>
 
@@ -45,9 +48,16 @@
       <artifactId>spring-boot-starter-data-jpa</artifactId>
     </dependency>
 
+    <!-- Spring Security: autenticacion con JWT (Bearer) y autorizacion por rol.
+         El resource server valida firma y expiracion del token en cada peticion;
+         trae spring-security-crypto (BCrypt) y Nimbus para firmar los tokens. -->
     <dependency>
-      <groupId>org.springframework.security</groupId>
-      <artifactId>spring-security-crypto</artifactId>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-security</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
     </dependency>
 
     <!-- Se conserva: la lógica de envío de correo de verificación vive en el
@@ -110,6 +120,11 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-test</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -199,6 +214,8 @@
             <usuarios>${carga.usuarios}</usuarios>
             <rampa>${carga.rampa}</rampa>
             <repeticiones>${carga.repeticiones}</repeticiones>
+            <correo>${carga.correo}</correo>
+            <clave>${carga.clave}</clave>
           </propertiesUser>
         </configuration>
       </plugin>

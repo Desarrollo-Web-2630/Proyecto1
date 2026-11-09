@@ -1,5 +1,6 @@
 package com.proyecto1.thymeleaf.services;
 
+import com.proyecto1.thymeleaf.exceptions.RecursoNoEncontradoException;
 import com.proyecto1.thymeleaf.model.ElementoConectable;
 import com.proyecto1.thymeleaf.repository.ElementoConectableRepository;
 import org.springframework.stereotype.Service;
@@ -27,7 +28,7 @@ public class ElementoConectableService {
 
     public void actualizarPosiciones(Long elementoId, Integer nuevaX, Integer nuevaY, Long empresaId) {
         ElementoConectable elemento = elementoRepository.findByIdAndProcesoEmpresaId(elementoId, empresaId)
-                .orElseThrow(() -> new IllegalArgumentException("Elemento no encontrado o sin acceso"));
+                .orElseThrow(() -> new RecursoNoEncontradoException("Elemento no encontrado o sin acceso"));
         
         elemento.setPosicionX(nuevaX);
         elemento.setPosicionY(nuevaY);
@@ -41,7 +42,7 @@ public class ElementoConectableService {
     @Transactional(readOnly = true)
     public ElementoConectable obtenerPorIdYEmpresa(Long id, Long empresaId) {
         return elementoRepository.findByIdAndProcesoEmpresaId(id, empresaId)
-                .orElseThrow(() -> new IllegalArgumentException("Elemento no encontrado o sin autorización"));
+                .orElseThrow(() -> new RecursoNoEncontradoException("Elemento no encontrado o sin autorización"));
     }
 
     // Eliminar un elemento conectable

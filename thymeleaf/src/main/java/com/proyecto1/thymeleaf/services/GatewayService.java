@@ -1,5 +1,6 @@
 package com.proyecto1.thymeleaf.services;
 
+import com.proyecto1.thymeleaf.exceptions.RecursoNoEncontradoException;
 import com.proyecto1.thymeleaf.dto.GatewayDTO;
 import com.proyecto1.thymeleaf.model.Gateway;
 import com.proyecto1.thymeleaf.model.Proceso;
@@ -32,7 +33,7 @@ public class GatewayService {
     @Transactional(readOnly = true)
     public Gateway obtenerPorIdYEmpresa(Long id, Long empresaId) {
         return gatewayRepository.findByIdAndProcesoEmpresaId(id, empresaId)
-                .orElseThrow(() -> new IllegalArgumentException("El gateway no existe o no pertenece a su empresa"));
+                .orElseThrow(() -> new RecursoNoEncontradoException("El gateway no existe o no pertenece a su empresa"));
     }
 
     // 3. Crear un nuevo gateway dentro de un proceso autorizado

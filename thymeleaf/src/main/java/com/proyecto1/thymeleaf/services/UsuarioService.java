@@ -1,5 +1,6 @@
 package com.proyecto1.thymeleaf.services;
 
+import com.proyecto1.thymeleaf.exceptions.RecursoNoEncontradoException;
 import com.proyecto1.thymeleaf.dto.UsuarioDTO;
 import com.proyecto1.thymeleaf.dto.UsuarioVistaDTO;
 import com.proyecto1.thymeleaf.model.Empresa;
@@ -105,7 +106,7 @@ public class UsuarioService {
     public Usuario obtenerPorIdYEmpresa(Long id, Long empresaId) {
         return usuarioRepository.findById(id)
                 .filter(u -> u.getEmpresa().getId().equals(empresaId))
-                .orElseThrow(() -> new IllegalArgumentException("El usuario no existe o no pertenece a su empresa"));
+                .orElseThrow(() -> new RecursoNoEncontradoException("El usuario no existe o no pertenece a su empresa"));
     }
 
     // 5. Desactivar un usuario

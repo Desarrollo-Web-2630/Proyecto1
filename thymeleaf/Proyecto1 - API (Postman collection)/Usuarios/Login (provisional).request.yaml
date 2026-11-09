@@ -11,3 +11,10 @@ body:
       "password": "DevPass123"
     }
 order: 4000
+scripts:
+  - type: http:afterResponse
+    code: |-
+      if (pm.response.code === 200) {
+        pm.environment.set('jwt', pm.response.json().token);
+      }
+    language: text/javascript
