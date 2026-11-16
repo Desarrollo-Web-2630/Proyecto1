@@ -11,22 +11,21 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class OpenApiConfig {
 
-    public static final String ESQUEMA_SEGURIDAD = "bearerAuth";
+    public static final String ESQUEMA = "bearerAuth";
 
-    // Swagger UI muestra el boton "Authorize": se pega el token del login y se envia como Bearer
+    // El boton Authorize de Swagger pide el token que devuelve POST /api/auth/login
     @Bean
     public OpenAPI apiInfo() {
         return new OpenAPI()
                 .info(new Info()
                         .title("Editor de procesos BPMN - API")
                         .version("v1")
-                        .description("Backend Spring Boot + JPA con Spring Security. Autenticacion con JWT: "
-                                + "POST /api/v1/usuarios/login devuelve el token, que se envia como "
-                                + "'Authorization: Bearer <token>'. La empresa se toma del token."))
-                .components(new Components().addSecuritySchemes(ESQUEMA_SEGURIDAD, new SecurityScheme()
+                        .description("Backend Spring Boot + JPA + Spring Security. La empresa y el rol "
+                                + "se toman del JWT enviado en Authorization: Bearer <token>."))
+                .components(new Components().addSecuritySchemes(ESQUEMA, new SecurityScheme()
                         .type(SecurityScheme.Type.HTTP)
                         .scheme("bearer")
                         .bearerFormat("JWT")))
-                .addSecurityItem(new SecurityRequirement().addList(ESQUEMA_SEGURIDAD));
+                .addSecurityItem(new SecurityRequirement().addList(ESQUEMA));
     }
 }

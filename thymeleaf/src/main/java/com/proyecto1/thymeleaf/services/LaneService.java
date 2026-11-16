@@ -1,6 +1,5 @@
 package com.proyecto1.thymeleaf.services;
 
-import com.proyecto1.thymeleaf.exceptions.RecursoNoEncontradoException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -38,7 +37,7 @@ public class LaneService {
     @Transactional(readOnly = true)
     public Lane obtenerPorIdYEmpresa(Long id, Long poolId, Long empresaId) {
         return laneRepository.findByIdAndPoolIdAndEmpresaId(id, poolId, empresaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("La lane no existe o no pertenece a su empresa"));
+                .orElseThrow(() -> new IllegalArgumentException("La lane no existe o no pertenece a su empresa"));
     }
 
     @Transactional(readOnly = true)

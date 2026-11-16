@@ -1,6 +1,5 @@
 package com.proyecto1.thymeleaf.services;
 
-import com.proyecto1.thymeleaf.exceptions.RecursoNoEncontradoException;
 import java.util.List;
 
 import org.springframework.context.annotation.Lazy;
@@ -37,7 +36,7 @@ public class PoolService {
     @Transactional(readOnly = true)
     public Pool obtenerPorIdYEmpresa(Long id, Long procesoId, Long empresaId) {
         return poolRepository.findByIdAndProcesoIdAndEmpresaId(id, procesoId, empresaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("El pool no existe o no pertenece a su empresa"));
+                .orElseThrow(() -> new IllegalArgumentException("El pool no existe o no pertenece a su empresa"));
     }
 
     public Pool crearPool(PoolDTO datos, Long procesoId, Long empresaId) {

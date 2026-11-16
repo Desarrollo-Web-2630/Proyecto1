@@ -1,6 +1,5 @@
 package com.proyecto1.thymeleaf.services;
 
-import com.proyecto1.thymeleaf.exceptions.RecursoNoEncontradoException;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -41,7 +40,7 @@ public class MensajeService {
     @Transactional(readOnly = true)
     public Mensaje obtenerPorIdYEmpresa(Long id, Long procesoId, Long empresaId) {
         return mensajeRepository.findByIdAndProcesoIdAndEmpresaId(id, procesoId, empresaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("El mensaje no existe o no pertenece a su empresa"));
+                .orElseThrow(() -> new IllegalArgumentException("El mensaje no existe o no pertenece a su empresa"));
     }
 
     public Mensaje crearMensaje(MensajeDTO datos, Long procesoId, Long empresaId) {

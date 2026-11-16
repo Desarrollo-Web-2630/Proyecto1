@@ -2,7 +2,7 @@
 <jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.2">
   <hashTree>
     <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Editor de procesos - plan de carga">
-      <stringProp name="TestPlan.comments">Carga sobre los endpoints de procesos. Requiere el backend arrancado (perfil h2). Desde Maven los valores se cambian con -Dcarga.usuarios -Dcarga.rampa -Dcarga.repeticiones (ver pom.xml); desde JMeter directo con -Jusuarios -Jrampa -Jrepeticiones -Jhost -Jport.</stringProp>
+      <stringProp name="TestPlan.comments">Carga sobre los endpoints de procesos. Requiere el backend arrancado (perfil h2) y un usuario ADMIN o EDITOR activo: cada hilo hace login una vez y usa el JWT en Authorization. Desde Maven los valores se cambian con -Dcarga.usuarios -Dcarga.rampa -Dcarga.repeticiones -Dcarga.correo -Dcarga.clave (ver pom.xml); desde JMeter directo con -Jusuarios -Jrampa -Jrepeticiones -Jcorreo -Jclave -Jhost -Jport.</stringProp>
       <boolProp name="TestPlan.functional_mode">false</boolProp>
       <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="Variables">
@@ -27,11 +27,6 @@
             <stringProp name="Argument.value">${__P(rampa,10)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
-          <elementProp name="repeticiones" elementType="Argument">
-            <stringProp name="Argument.name">repeticiones</stringProp>
-            <stringProp name="Argument.value">${__P(repeticiones,5)}</stringProp>
-            <stringProp name="Argument.metadata">=</stringProp>
-          </elementProp>
           <elementProp name="correo" elementType="Argument">
             <stringProp name="Argument.name">correo</stringProp>
             <stringProp name="Argument.value">${__P(correo,admin@demo.com)}</stringProp>
@@ -40,6 +35,11 @@
           <elementProp name="clave" elementType="Argument">
             <stringProp name="Argument.name">clave</stringProp>
             <stringProp name="Argument.value">${__P(clave,)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="repeticiones" elementType="Argument">
+            <stringProp name="Argument.name">repeticiones</stringProp>
+            <stringProp name="Argument.value">${__P(repeticiones,5)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
         </collectionProp>
@@ -81,11 +81,12 @@
         </elementProp>
       </ThreadGroup>
       <hashTree>
-        <OnceOnlyController guiclass="OnceOnlyControllerGui" testclass="OnceOnlyController" testname="Login (una vez por usuario)"/>
+        <OnceOnlyController guiclass="OnceOnlyControllerGui" testclass="OnceOnlyController" testname="Login una vez por usuario"/>
         <hashTree>
           <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST login">
-            <stringProp name="HTTPSampler.path">/api/v1/usuarios/login</stringProp>
+            <stringProp name="HTTPSampler.path">/api/auth/login</stringProp>
             <stringProp name="HTTPSampler.method">POST</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
             <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
             <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments">

@@ -15,6 +15,10 @@
       "value": "",
       "type": "string",
       "description": "Definir en tu Environment local, nunca commitear un valor real aquí."
+    },
+    {
+      "key": "token",
+      "value": ""
     }
   ],
   "item": [
@@ -198,7 +202,7 @@
           }
         },
         {
-          "name": "Login (guarda el token en {{jwt}})",
+          "name": "Login (JWT)",
           "request": {
             "method": "POST",
             "header": [
@@ -211,7 +215,20 @@
               "mode": "raw",
               "raw": "{\n  \"correo\": \"juan.perez@example.com\",\n  \"password\": \"{{examplePassword}}\"\n}"
             },
-            "url": "{{baseUrl}}/api/v1/usuarios/login"
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
           },
           "event": [
             {
@@ -219,13 +236,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if (pm.response.code === 200) {",
-                  "  pm.environment.set('jwt', pm.response.json().token);",
-                  "}",
-                  "pm.test('Login exitoso devuelve token', function () {",
-                  "  pm.response.to.have.status(200);",
-                  "  pm.expect(pm.response.json().token).to.be.a('string');",
-                  "});"
+                  "pm.test('Responde 200 con token', () => pm.response.to.have.status(200));",
+                  "// Guarda el token para el resto de la coleccion",
+                  "pm.collectionVariables.set('token', pm.response.json().token);"
                 ]
               }
             }
@@ -736,12 +749,21 @@
       "script": {
         "type": "text/javascript",
         "exec": [
-          "// Entrega final: cada peticion lleva el JWT que guardo el request 'Login'.",
-          "// La empresa ya no se elige: el backend la toma del token.",
-          "var jwt = pm.environment.get('jwt');",
-          "if (jwt) { pm.request.headers.upsert({ key: 'Authorization', value: 'Bearer ' + jwt }); }"
+          "// Entrega 2, sin autenticacion: la empresa se elige con este encabezado.",
+          "var empresaId = pm.environment.get('empresaId') || '1';",
+          "pm.request.headers.upsert({ key: 'X-Empresa-Id', value: String(empresaId) });"
         ]
       }
     }
-  ]
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  }
 }

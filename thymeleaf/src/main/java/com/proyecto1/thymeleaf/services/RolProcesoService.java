@@ -1,6 +1,5 @@
 package com.proyecto1.thymeleaf.services;
 
-import com.proyecto1.thymeleaf.exceptions.RecursoNoEncontradoException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -113,7 +112,7 @@ public class RolProcesoService {
 
     private RolProceso buscarRol(Long id, Long empresaId) {
         return rolProcesoRepository.findByIdAndEmpresaId(id, empresaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("El rol no existe o no pertenece a su empresa"));
+                .orElseThrow(() -> new IllegalArgumentException("El rol no existe o no pertenece a su empresa"));
     }
 
     private RolProcesoRespuestaDTO toRespuesta(RolProceso rol, Long empresaId) {

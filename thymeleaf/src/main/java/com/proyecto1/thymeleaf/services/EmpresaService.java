@@ -1,6 +1,5 @@
 package com.proyecto1.thymeleaf.services;
 
-import com.proyecto1.thymeleaf.exceptions.RecursoNoEncontradoException;
 import com.proyecto1.thymeleaf.dto.EmpresaDTO;
 import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.model.Usuario;
@@ -44,7 +43,7 @@ public class EmpresaService {
     @Transactional(readOnly = true)
     public Empresa obtenerPorId(Long id) {
         return empresaRepository.findById(id)
-                .orElseThrow(() -> new RecursoNoEncontradoException("La empresa no existe"));
+                .orElseThrow(() -> new IllegalArgumentException("La empresa no existe"));
     }
 
     // 3. Registrar una empresa nueva junto con su administrador inicial

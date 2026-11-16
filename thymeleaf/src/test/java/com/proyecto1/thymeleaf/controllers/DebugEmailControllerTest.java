@@ -5,9 +5,12 @@ import com.proyecto1.thymeleaf.services.CorreoService;
 import com.proyecto1.thymeleaf.services.VerificacionCorreoService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import com.proyecto1.thymeleaf.support.ConUsuario;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import com.proyecto1.thymeleaf.model.Usuario;
+import com.proyecto1.thymeleaf.security.SesionDePrueba;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
@@ -24,10 +27,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 // @Profile({"h2","local","postman"}) en el controller: sin activar uno de
 // estos perfiles en el test, Spring no registra el bean y todo da 404.
 @WebMvcTest(DebugEmailController.class)
-@AutoConfigureMockMvc(addFilters = false) // las reglas HTTP se prueban en SeguridadIntegrationTest
-@ConUsuario
+// Sin filtros de seguridad: aqui se prueba el controlador; las reglas se prueban en SeguridadIntegracionTest
+@AutoConfigureMockMvc(addFilters = false)
 @ActiveProfiles("h2")
 class DebugEmailControllerTest {
+
+    @BeforeEach
+    void iniciarSesion() {
+        SesionDePrueba.iniciar(1L, Usuario.RolAcceso.ADMIN);
+    }
+
+    @AfterEach
+    void cerrarSesion() {
+        SesionDePrueba.cerrar();
+    }
 
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;

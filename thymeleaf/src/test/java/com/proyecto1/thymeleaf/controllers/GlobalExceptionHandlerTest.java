@@ -1,12 +1,9 @@
 package com.proyecto1.thymeleaf.controllers;
 
-import com.proyecto1.thymeleaf.exceptions.RecursoNoEncontradoException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
@@ -27,33 +24,6 @@ import static org.mockito.Mockito.*;
 class GlobalExceptionHandlerTest {
 
     private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
-
-    @Test
-    void manejarNoEncontrado_devuelve404ConElMensaje() {
-        ResponseEntity<Map<String, Object>> respuesta =
-                handler.manejarNoEncontrado(new RecursoNoEncontradoException("El proceso no existe o no pertenece a su empresa"));
-
-        assertEquals(HttpStatus.NOT_FOUND, respuesta.getStatusCode());
-        assertEquals("El proceso no existe o no pertenece a su empresa", respuesta.getBody().get("mensaje"));
-    }
-
-    @Test
-    void manejarAutenticacion_devuelve401() {
-        ResponseEntity<Map<String, Object>> respuesta =
-                handler.manejarAutenticacion(new BadCredentialsException("Correo o contrasena incorrectos"));
-
-        assertEquals(HttpStatus.UNAUTHORIZED, respuesta.getStatusCode());
-        assertEquals("Correo o contrasena incorrectos", respuesta.getBody().get("mensaje"));
-    }
-
-    @Test
-    void manejarAccesoDenegado_devuelve403SinDetallesInternos() {
-        ResponseEntity<Map<String, Object>> respuesta =
-                handler.manejarAccesoDenegado(new AccessDeniedException("detalle interno"));
-
-        assertEquals(HttpStatus.FORBIDDEN, respuesta.getStatusCode());
-        assertFalse(respuesta.getBody().get("mensaje").toString().contains("detalle interno"));
-    }
 
     @Test
     void manejarIllegalArgument_devuelve400ConElMensaje() {

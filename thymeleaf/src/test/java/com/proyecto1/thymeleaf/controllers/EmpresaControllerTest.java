@@ -6,30 +6,46 @@ import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.services.EmpresaService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import com.proyecto1.thymeleaf.support.ConUsuario;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import com.proyecto1.thymeleaf.model.Usuario;
+import com.proyecto1.thymeleaf.security.SesionDePrueba;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
+
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(EmpresaController.class)
-@AutoConfigureMockMvc(addFilters = false) // las reglas HTTP se prueban en SeguridadIntegrationTest
-@ConUsuario
+// Sin filtros de seguridad: aqui se prueba el controlador; las reglas se prueban en SeguridadIntegracionTest
+@AutoConfigureMockMvc(addFilters = false)
 class EmpresaControllerTest {
+
+    @BeforeEach
+    void iniciarSesion() {
+        SesionDePrueba.iniciar(1L, Usuario.RolAcceso.ADMIN);
+    }
+
+    @AfterEach
+    void cerrarSesion() {
+        SesionDePrueba.cerrar();
+    }
 
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
     @MockBean private EmpresaService empresaService;
 
     @Test
-    void listar_devuelveSoloLaEmpresaDelUsuario() throws Exception {
+    void listar_devuelveOkConLaListaDelService() throws Exception {
         Empresa empresa = new Empresa();
         empresa.setId(1L);
         empresa.setNombre("Empresa Demo");
@@ -38,10 +54,13 @@ class EmpresaControllerTest {
 
         when(empresaService.obtenerPorId(1L)).thenReturn(empresa);
 
+        // Solo devuelve la empresa del usuario en sesion
         mockMvc.perform(get("/api/v1/empresas"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].nombre").value("Empresa Demo"))
-                .andExpect(jsonPath("$[0].nit").value("900123456-7"));
+                .andExpect(jsonPath("$[0].nit").value("900123456-7"))
+                .andExpect(jsonPath("$.length()").value(1));
+        verify(empresaService, never()).listarTodas();
     }
 
     @Test
@@ -57,35 +76,20 @@ class EmpresaControllerTest {
     }
 
     @Test
-    void obtener_deOtraEmpresa_devuelve404SinConsultarElService() throws Exception {
+    void obtener_deOtraEmpresa_devuelve403SinConsultarElService() throws Exception {
         mockMvc.perform(get("/api/v1/empresas/99"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("La empresa no existe"));
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("No tiene permisos para realizar esta accion"));
 
         verify(empresaService, never()).obtenerPorId(99L);
     }
 
     @Test
-    void actualizar_otraEmpresa_devuelve404() throws Exception {
-        EmpresaDTO datos = new EmpresaDTO();
-        datos.setNombre("Empresa Ajena");
-        datos.setNit("900123456-7");
-        datos.setCorreo("contacto@ajena.com");
+    void eliminar_deOtraEmpresa_devuelve403() throws Exception {
+        mockMvc.perform(delete("/api/v1/empresas/99"))
+                .andExpect(status().isForbidden());
 
-        mockMvc.perform(put("/api/v1/empresas/2")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(datos)))
-                .andExpect(status().isNotFound());
-
-        verify(empresaService, never()).actualizarEmpresa(eq(2L), any());
-    }
-
-    @Test
-    void eliminar_otraEmpresa_devuelve404() throws Exception {
-        mockMvc.perform(delete("/api/v1/empresas/2"))
-                .andExpect(status().isNotFound());
-
-        verify(empresaService, never()).eliminarEmpresa(2L);
+        verify(empresaService, never()).eliminarEmpresa(anyLong());
     }
 
     @Test

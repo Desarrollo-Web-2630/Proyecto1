@@ -2,12 +2,12 @@ package com.proyecto1.thymeleaf.controllers;
 
 import com.proyecto1.thymeleaf.dto.EmpresaDTO;
 import com.proyecto1.thymeleaf.dto.EmpresaRespuestaDTO;
-import com.proyecto1.thymeleaf.exceptions.RecursoNoEncontradoException;
 import com.proyecto1.thymeleaf.services.EmpresaService;
 import com.proyecto1.thymeleaf.util.EmpresaActual;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,7 +22,7 @@ public class EmpresaController {
         this.empresaService = empresaService;
     }
 
-    // Aislamiento: cada usuario solo ve su propia empresa, nunca el listado de todas
+    // Cada usuario solo ve su propia empresa
     @GetMapping
     public ResponseEntity<List<EmpresaRespuestaDTO>> listar() {
         return ResponseEntity.ok(List.of(EmpresaRespuestaDTO.desde(empresaService.obtenerPorId(EmpresaActual.id()))));
@@ -30,7 +30,8 @@ public class EmpresaController {
 
     @GetMapping("/{id}")
     public ResponseEntity<EmpresaRespuestaDTO> obtener(@PathVariable Long id) {
-        return ResponseEntity.ok(EmpresaRespuestaDTO.desde(empresaService.obtenerPorId(propia(id))));
+        verificarPropia(id);
+        return ResponseEntity.ok(EmpresaRespuestaDTO.desde(empresaService.obtenerPorId(id)));
     }
 
     // Publico: registra la empresa y su administrador inicial (inactivo hasta activar la cuenta)
@@ -42,20 +43,20 @@ public class EmpresaController {
 
     @PutMapping("/{id}")
     public ResponseEntity<EmpresaRespuestaDTO> actualizar(@PathVariable Long id, @Valid @RequestBody EmpresaDTO datos) {
-        return ResponseEntity.ok(EmpresaRespuestaDTO.desde(empresaService.actualizarEmpresa(propia(id), datos)));
+        verificarPropia(id);
+        return ResponseEntity.ok(EmpresaRespuestaDTO.desde(empresaService.actualizarEmpresa(id, datos)));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
-        empresaService.eliminarEmpresa(propia(id));
+        verificarPropia(id);
+        empresaService.eliminarEmpresa(id);
         return ResponseEntity.noContent().build();
     }
 
-    // Una empresa distinta a la del token responde 404, igual que si no existiera
-    private static Long propia(Long id) {
-        if (!EmpresaActual.id().equals(id)) {
-            throw new RecursoNoEncontradoException("La empresa no existe");
+    private void verificarPropia(Long id) {
+        if (!id.equals(EmpresaActual.id())) {
+            throw new AccessDeniedException("La empresa solicitada no es la suya");
         }
-        return id;
     }
 }

@@ -1,6 +1,5 @@
 package com.proyecto1.thymeleaf.services;
 
-import com.proyecto1.thymeleaf.exceptions.RecursoNoEncontradoException;
 import com.proyecto1.thymeleaf.dto.ProcesoDTO;
 import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.model.Proceso;
@@ -50,7 +49,7 @@ public class ProcesoService {
     @Transactional(readOnly = true)
     public Proceso obtenerPorIdYEmpresa(Long id, Long empresaId) {
         return procesoRepository.findByIdAndEmpresaId(id, empresaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("El proceso no existe o no pertenece a su empresa"));
+                .orElseThrow(() -> new IllegalArgumentException("El proceso no existe o no pertenece a su empresa"));
     }
 
     // 3. Crear un proceso asociado a la empresa del usuario autenticado

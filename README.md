@@ -188,10 +188,20 @@ Asegúrate de tener instaladas las siguientes herramientas en tu entorno de desa
 El backend es una API REST (Spring Boot 3, Java 17). No tiene frontend: se
 prueba con Postman o con cualquier cliente HTTP.
 
-**Entrega final: Spring Security con JWT.** Ver la seccion [Seguridad](#seguridad).
-Todo `/api/**` exige `Authorization: Bearer <token>` salvo el login, el registro
-de empresa y `/api/auth/**`. La empresa de cada peticion sale del token; el
-encabezado `X-Empresa-Id` ya no existe.
+**Entrega final: Spring Security + JWT.** Toda la API exige el encabezado
+`Authorization: Bearer <token>` salvo el login, la activacion de cuenta, el
+registro de empresa y Swagger. La empresa y el rol del usuario se leen del token
+ya validado (`util/EmpresaActual`), nunca de algo que envie el cliente: el viejo
+encabezado `X-Empresa-Id` se ignora.
+
+| Rol | Puede |
+|---|---|
+| `LECTURA` | Consultar (`GET`) procesos, diagrama, usuarios y roles de su empresa |
+| `EDITOR` | Lo anterior + crear y editar procesos y todos sus elementos |
+| `ADMIN` | Todo: eliminar, inactivar/reactivar procesos, gestionar usuarios, roles de proceso y la empresa |
+
+Reglas en `security/SecurityConfig.java`; pruebas en
+`src/test/.../security/SeguridadIntegracionTest.java`.
 
 ### Perfiles
 
@@ -238,10 +248,10 @@ En PowerShell las variables se definen con `$env:DB_HOST = "..."`.
 | Variable | Obligatoria | Descripcion |
 |---|---|---|
 | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Si (sin perfil / `postman`) | Conexion a PostgreSQL. Nunca se versionan valores reales. |
-| `JWT_SECRET` | Si en produccion | Clave HMAC para firmar los tokens, minimo 32 caracteres. Si falta se genera una aleatoria al arrancar (solo para desarrollo: los tokens dejan de servir al reiniciar). |
-| `JWT_EXPIRACION_MINUTOS` | No (`60`) | Vigencia del token. |
-| `APP_CORS_ORIGENES` | No (`http://localhost:4200`) | Origenes del front que pueden llamar la API desde el navegador, separados por coma. |
 | `DEMO_ADMIN_PASSWORD` | No | Contrasena del admin de demo `admin@demo.com` que crea el inicializador de datos. Si no se define, ese admin queda inactivo y se activa con `reenviar-verificacion` + `activar-cuenta`. |
+| `JWT_SECRET` | Si en despliegue | Clave para firmar los JWT, minimo 32 caracteres. Si falta se genera una temporal al arrancar (los tokens mueren al reiniciar y no sirve con varias replicas). |
+| `JWT_EXPIRACION_MINUTOS` | No (`60`) | Vigencia del token. |
+| `APP_CORS_ORIGENES` | No (`http://localhost:4200`) | Origenes del frontend separados por coma. |
 | `APP_MAIL_ENABLED` | No (`false`) | `true` envia correos reales; `false` imprime el enlace en el log. |
 | `APP_MAIL_FROM` | No | Remitente. |
 | `APP_MAIL_FAIL_ON_ERROR` | No (`false`) | `true` hace que un fallo SMTP aborte el registro; `false` lo registra y sigue. |
@@ -249,39 +259,6 @@ En PowerShell las variables se definen con `$env:DB_HOST = "..."`.
 | `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` | Solo si `APP_MAIL_ENABLED=true` | SMTP. Con Gmail, `MAIL_PASSWORD` es una *contrasena de aplicacion*. |
 
 **Nunca subas un `.env` real ni credenciales a git.**
-
-## Seguridad
-
-Spring Security como *resource server* con JWT firmado con HMAC-SHA256 (`security/`).
-
-| Pieza | Archivo | Que hace |
-|---|---|---|
-| Login | `UsuarioController.login` | Valida correo, clave (BCrypt) y cuenta activa; emite el token con `TokenService`. Mismo 401 si el correo no existe, la clave esta mal o la cuenta esta inactiva. |
-| Token | `TokenService`, `JwtConfig` | Claims `sub` (correo), `uid`, `empresaId`, `rol`, `iat`, `exp`. Clave en `JWT_SECRET`. |
-| Validacion | `SecurityConfig` | En cada peticion se valida firma y vencimiento; sesion `STATELESS`. |
-| Reglas por rol | `SecurityConfig` | Ver tabla abajo. |
-| Aislamiento | `util/EmpresaActual` + servicios | La empresa sale del token, nunca del cliente. Cada servicio filtra por ella y un recurso de otra empresa lanza `RecursoNoEncontradoException` → `404`. |
-| Errores | `ManejadorErroresSeguridad` | 401 y 403 en el mismo JSON `{timestamp, status, mensaje}`. |
-| CORS | `SecurityConfig.corsConfigurationSource` | Solo los origenes de `APP_CORS_ORIGENES`. |
-
-| Rol | GET | Crear / editar procesos y elementos | Eliminar, inactivar, reactivar | Usuarios, roles de proceso, empresa |
-|---|:-:|:-:|:-:|:-:|
-| `LECTURA` | ✓ | 403 | 403 | 403 (GET ✓) |
-| `EDITOR` | ✓ | ✓ | 403 | 403 (GET ✓) |
-| `ADMIN` | ✓ | ✓ | ✓ | ✓ |
-
-CSRF esta desactivado a proposito: el token viaja en un encabezado que el navegador no
-envia solo (no en una cookie), asi que otro sitio no puede hacer peticiones en nombre
-del usuario. Rutas publicas: `POST /api/v1/usuarios/login`, `POST /api/v1/empresas`,
-`/api/auth/**` y Swagger; en ellas se ignora cualquier `Authorization` que llegue.
-
-Limitacion conocida: el rol y la empresa quedan fijos en el token hasta que vence
-(`JWT_EXPIRACION_MINUTOS`). Si un admin cambia el rol o desactiva a alguien, el cambio
-aplica en su siguiente login.
-
-Pruebas: `security/SeguridadIntegrationTest` (contexto completo + H2) cubre login, token
-ausente/alterado/vencido, 403 por rol, 404 entre empresas, `X-Empresa-Id` ignorado y CORS.
-Los tests de controladores (`@WebMvcTest`) simulan el usuario con `@ConUsuario`.
 
 ## Documentacion de la API (Swagger / OpenAPI)
 
@@ -294,15 +271,14 @@ Con el backend arrancado, la documentacion interactiva queda en:
   importar en Postman con *Import > Link*).
 
 Se genera sola con `springdoc-openapi` a partir de los controladores; no hay
-que mantener nada a mano. Para probar endpoints privados: ejecuta el login, copia
-el `token` y pegalo en el boton **Authorize** (esquema `bearerAuth`).
+que mantener nada a mano. Para probar endpoints protegidos: haz login en
+`POST /api/auth/login`, copia el `token` y pegalo en el boton **Authorize**.
 
 ## Probar con Postman
 
 Importa `thymeleaf/postman_collection.json` y `thymeleaf/postman_environment.json`
-y selecciona el entorno *Proyecto1 - Local*. El request **Login** guarda el token
-en la variable `{{jwt}}` y la coleccion lo agrega sola como `Authorization: Bearer`
-a todas las peticiones. Para probar otra empresa, haz login con un usuario de esa empresa.
+y selecciona el entorno *Proyecto1 - Local*. La peticion **Login (JWT)** guarda
+el token en la variable `{{token}}` y la coleccion lo manda en `Authorization`.
 
 Flujo minimo, en orden:
 
@@ -312,9 +288,9 @@ Flujo minimo, en orden:
    correo, si `APP_MAIL_ENABLED=true`) en la variable de entorno `{{token}}`.
 3. **`POST /api/auth/activar-cuenta`**: manda `{"token": "...", "nuevaPassword": "ClaveSegura123"}`.
    Es el unico modo de activar al administrador inicial.
-4. **`POST /api/v1/usuarios/login`**: con el correo de la empresa y esa
-   contrasena. Devuelve `{ token, tipo, expiraEn, usuario }` (200) o 401.
-5. El resto de peticiones llevan el token guardado en `{{jwt}}`.
+4. **`POST /api/auth/login`**: con el correo de la empresa y esa contrasena.
+   Devuelve `{ token, tipo, expiraEn, usuario }` (200) o 401 con mensaje generico.
+5. El resto de peticiones van con `Authorization: Bearer {{token}}`.
 
 ### Endpoints
 
@@ -322,7 +298,8 @@ Flujo minimo, en orden:
 |---|---|---|
 | POST | `/api/v1/empresas` | Registra empresa + administrador inicial (inactivo) |
 | GET/PUT/DELETE | `/api/v1/empresas`, `/{id}` | Consultar, editar, borrado logico |
-| POST | `/api/v1/usuarios/login` | Publico. Valida credenciales y cuenta activa; devuelve el JWT. 401 con mensaje generico si falla |
+| POST | `/api/auth/login` | Valida credenciales y cuenta activa; devuelve el JWT. 401 si falla |
+| GET | `/api/auth/yo` | Usuario dueno del token |
 | POST | `/api/auth/activar-cuenta` | Token + contrasena nueva: activa la cuenta |
 | GET | `/api/auth/verificar-correo?token=` | Solo activa (usuarios que ya tienen contrasena) |
 | POST | `/api/auth/reenviar-verificacion` | Reenvia el enlace; misma respuesta exista o no el correo; maximo 3 por hora |
@@ -334,8 +311,8 @@ Flujo minimo, en orden:
 | CRUD | `/api/v1/procesos/{p}/actividades`, `/gateways`, `/arcos`, `/elementos` | Modelado |
 
 Los errores llegan siempre como `{ "timestamp", "status", "mensaje" }`:
-`400` reglas de negocio o datos invalidos, `401` sin token o token invalido/vencido,
-`403` el rol no alcanza, `404` no existe o es de otra empresa, `500` error interno sin detalles.
+`400` reglas de negocio o datos invalidos, `401` sin sesion o token invalido,
+`403` el rol no alcanza o el recurso es de otra empresa, `500` error interno sin detalles.
 
 ### Ejemplos
 
@@ -368,17 +345,14 @@ contra `GET /api/v1/procesos`, `GET /api/v1/procesos/buscar` y
 `POST /api/v1/procesos`, y verifica que respondan 200/201. No hace falta
 instalar JMeter: el plugin de Maven lo descarga la primera vez.
 
-1. Arranca el backend en otra terminal con `DEMO_ADMIN_PASSWORD` definida
-   (`./mvnw spring-boot:run -Dspring-boot.run.profiles=h2`).
-2. Ejecuta, desde `thymeleaf`, pasando esa misma contrasena (cada usuario virtual
-   hace login una vez y usa el token en el resto de peticiones):
+1. Arranca el backend en otra terminal (`./mvnw spring-boot:run -Dspring-boot.run.profiles=h2`).
+2. Ejecuta, desde `thymeleaf`:
 
 ```bash
-./mvnw jmeter:configure jmeter:jmeter jmeter:results -Dcarga.clave=<DEMO_ADMIN_PASSWORD>
+./mvnw jmeter:configure jmeter:jmeter jmeter:results
 ```
 
-En PowerShell: `.\mvnw jmeter:configure jmeter:jmeter jmeter:results "-Dcarga.clave=<DEMO_ADMIN_PASSWORD>"`.
-Con `-Dcarga.correo=` se usa otro usuario.
+En PowerShell: `.\mvnw jmeter:configure jmeter:jmeter jmeter:results`.
 
 Por defecto son 20 usuarios, rampa de 10 s y 5 repeticiones (20 x 5 x 3
 endpoints = 300 peticiones). Se cambian sin tocar el plan:

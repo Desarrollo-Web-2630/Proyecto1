@@ -1,0 +1,20 @@
+$kind: http-request
+url: "{{baseUrl}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "correo": "admin@demo.com",
+      "password": "{{examplePassword}}"
+    }
+scripts:
+  - type: http:afterResponse
+    code: |-
+      pm.test('Responde 200 con token', () => pm.response.to.have.status(200));
+      // Guarda el token para el resto de la coleccion
+      pm.collectionVariables.set('token', pm.response.json().token);
+    language: text/javascript
+order: 4000

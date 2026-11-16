@@ -25,9 +25,6 @@ services:
       DB_PASSWORD: procesos
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       DEMO_ADMIN_PASSWORD: ${DEMO_ADMIN_PASSWORD:-}
-      # Obligatoria fuera de desarrollo: clave para firmar los JWT (minimo 32 caracteres)
-      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET (minimo 32 caracteres)}
-      APP_CORS_ORIGENES: ${APP_CORS_ORIGENES:-http://localhost:4200}
       APP_MAIL_ENABLED: "false"
     ports:
       - "8080:8080"

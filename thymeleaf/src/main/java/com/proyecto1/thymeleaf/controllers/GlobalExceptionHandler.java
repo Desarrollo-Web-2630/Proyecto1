@@ -1,6 +1,5 @@
 package com.proyecto1.thymeleaf.controllers;
 
-import com.proyecto1.thymeleaf.exceptions.RecursoNoEncontradoException;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -8,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -27,24 +27,7 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    // No existe o es de otra empresa: 404 en ambos casos (no se confirma que exista)
-    @ExceptionHandler(RecursoNoEncontradoException.class)
-    public ResponseEntity<Map<String, Object>> manejarNoEncontrado(RecursoNoEncontradoException e) {
-        return construir(HttpStatus.NOT_FOUND, e.getMessage());
-    }
-
-    // Login fallido o peticion sin usuario autenticado
-    @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<Map<String, Object>> manejarAutenticacion(AuthenticationException e) {
-        return construir(HttpStatus.UNAUTHORIZED, e.getMessage());
-    }
-
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<Map<String, Object>> manejarAccesoDenegado(AccessDeniedException e) {
-        return construir(HttpStatus.FORBIDDEN, "Su rol no tiene permiso para realizar esta accion");
-    }
-
-    // Reglas de negocio: nombre duplicado, datos invalidos, etc.
+    // Reglas de negocio: nombre duplicado, entidad no encontrada, datos invalidos, etc.
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> manejarIllegalArgument(IllegalArgumentException e) {
         return construir(HttpStatus.BAD_REQUEST, e.getMessage());
@@ -96,6 +79,22 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<Map<String, Object>> manejarRutaInexistente(NoResourceFoundException e) {
         return construir(HttpStatus.NOT_FOUND, "La ruta solicitada no existe");
+    }
+
+    // Login fallido: mismo mensaje si el correo no existe, la clave es mala o la cuenta esta inactiva
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Map<String, Object>> manejarAutenticacion(AuthenticationException e) {
+        return construir(HttpStatus.UNAUTHORIZED, "Correo o contrasena incorrectos, o la cuenta no esta activa");
+    }
+
+    @ExceptionHandler(AuthenticationCredentialsNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> manejarSinSesion(AuthenticationCredentialsNotFoundException e) {
+        return construir(HttpStatus.UNAUTHORIZED, "Debe iniciar sesion para acceder a este recurso");
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> manejarAccesoDenegado(AccessDeniedException e) {
+        return construir(HttpStatus.FORBIDDEN, "No tiene permisos para realizar esta accion");
     }
 
     // Cualquier otra cosa: no se filtra el mensaje real, solo se registra en el log

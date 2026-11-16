@@ -19,6 +19,7 @@
 
   <properties>
     <java.version>17</java.version>
+    <jjwt.version>0.12.6</jjwt.version>
     <!-- Requerido por SonarCloud: identifica tu organización -->
     <sonar.organization>desarrollo-web-2630</sonar.organization>
     <!-- SonarQube necesita saber dónde está el reporte de cobertura -->
@@ -35,7 +36,6 @@
     <carga.usuarios>20</carga.usuarios>
     <carga.rampa>10</carga.rampa>
     <carga.repeticiones>5</carga.repeticiones>
-    <!-- Usuario con el que JMeter inicia sesion: -Dcarga.clave=<DEMO_ADMIN_PASSWORD> -->
     <carga.correo>admin@demo.com</carga.correo>
     <carga.clave></carga.clave>
     <maven.build.timestamp.format>yyyyMMdd-HHmmss</maven.build.timestamp.format>
@@ -48,16 +48,29 @@
       <artifactId>spring-boot-starter-data-jpa</artifactId>
     </dependency>
 
-    <!-- Spring Security: autenticacion con JWT (Bearer) y autorizacion por rol.
-         El resource server valida firma y expiracion del token en cada peticion;
-         trae spring-security-crypto (BCrypt) y Nimbus para firmar los tokens. -->
+    <!-- Spring Security: autenticacion con JWT y autorizacion por rol -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-security</artifactId>
     </dependency>
+
+    <!-- JJWT: genera y valida los tokens firmados -->
     <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-api</artifactId>
+      <version>${jjwt.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-impl</artifactId>
+      <version>${jjwt.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-jackson</artifactId>
+      <version>${jjwt.version}</version>
+      <scope>runtime</scope>
     </dependency>
 
     <!-- Se conserva: la lógica de envío de correo de verificación vive en el
