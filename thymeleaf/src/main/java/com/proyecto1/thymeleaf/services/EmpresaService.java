@@ -18,6 +18,9 @@ import java.util.List;
 @Transactional
 public class EmpresaService {
 
+    // Reutilizado (S2119): crear SecureRandom en cada llamada es costoso y desperdicia entropia
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
     private final EmpresaRepository empresaRepository;
     private final UsuarioService usuarioService;
     private final PasswordEncoder passwordEncoder;
@@ -148,7 +151,7 @@ public class EmpresaService {
 
     private String generarPasswordDescartable() {
         byte[] bytes = new byte[32];
-        new SecureRandom().nextBytes(bytes);
+        SECURE_RANDOM.nextBytes(bytes);
         return Base64.getEncoder().encodeToString(bytes);
     }
 }

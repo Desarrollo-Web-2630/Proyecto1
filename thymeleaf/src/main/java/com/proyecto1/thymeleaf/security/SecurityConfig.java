@@ -38,7 +38,10 @@ public class SecurityConfig {
         ManejadorErroresSeguridad errores = new ManejadorErroresSeguridad(objectMapper);
 
         http
-                // API sin estado con token en el encabezado: no hay cookie de sesion que proteger con CSRF
+                // CSRF revisado (Sonar S4502): es seguro deshabilitarlo porque la API es sin estado
+                // (STATELESS, no crea sesion ni cookie) y solo acepta el JWT en el encabezado
+                // Authorization, que el navegador nunca envia solo desde otro sitio.
+                // Lo comprueban las pruebas csrf_* de SeguridadIntegracionTest.
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

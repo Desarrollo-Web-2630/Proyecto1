@@ -8,6 +8,7 @@ import com.proyecto1.thymeleaf.model.Usuario;
 import com.proyecto1.thymeleaf.repository.EmpresaRepository;
 import com.proyecto1.thymeleaf.repository.ProcesoRepository;
 import com.proyecto1.thymeleaf.repository.UsuarioRepository;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -201,6 +202,34 @@ class SeguridadIntegracionTest {
         mockMvc.perform(get("/api/v1/empresas/" + empresaA.getId())
                         .header(HttpHeaders.AUTHORIZATION, bearer("admin.b@test.com")))
                 .andExpect(status().isForbidden());
+    }
+
+    // ---- CSRF deshabilitado de forma segura (Sonar S4502) ----
+
+    @Test
+    void csrf_elLoginNoCreaSesionNiCookie() throws Exception {
+        mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(credenciales("admin.a@test.com", CLAVE)))
+                .andExpect(status().isOk())
+                .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
+    }
+
+    @Test
+    void csrf_peticionConCookieDeSesionPeroSinToken_responde401() throws Exception {
+        // Simula un sitio malicioso: el navegador manda cookies, pero nunca el encabezado Authorization
+        mockMvc.perform(post("/api/v1/procesos")
+                        .cookie(new Cookie("JSESSIONID", "sesion-robada"))
+                        .contentType(MediaType.APPLICATION_JSON).content(procesoNuevo()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void csrf_tokenEnviadoComoCookie_noAutentica() throws Exception {
+        String token = bearer("admin.a@test.com").substring("Bearer ".length());
+
+        mockMvc.perform(delete("/api/v1/procesos/" + procesoA.getId())
+                        .cookie(new Cookie("token", token)))
+                .andExpect(status().isUnauthorized());
     }
 
     // ---- Rutas publicas ----
