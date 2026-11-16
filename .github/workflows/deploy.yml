@@ -1,0 +1,84 @@
+name: Build and Deploy (backend)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: procesos-backend
+  IMAGE_TAG: latest
+  # Namespace del clúster y dirección por la que se accede (IP de la VM o dominio)
+  NAMESPACE: procesos
+  DOMINIO: 10.43.99.75
+
+jobs:
+  build-and-publish:
+    name: Build and Push Image to GHCR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set lowercase owner
+        run: echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
+
+      # Ademas de :latest se publica el commit, para poder volver a una version exacta
+      - name: Build Docker image
+        run: |
+          docker build -f thymeleaf/Dockerfile \
+            -t ghcr.io/${OWNER_LC}/${IMAGE_NAME}:${IMAGE_TAG} \
+            -t ghcr.io/${OWNER_LC}/${IMAGE_NAME}:${GITHUB_SHA::7} thymeleaf
+
+      - name: Push Docker image
+        run: |
+          docker push ghcr.io/${OWNER_LC}/${IMAGE_NAME}:${IMAGE_TAG}
+          docker push ghcr.io/${OWNER_LC}/${IMAGE_NAME}:${GITHUB_SHA::7}
+
+  deploy-onpremise:
+    name: Deploy on MicroK8s On-Premise
+    runs-on: main
+    needs: build-and-publish
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set lowercase owner
+        run: echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
+
+      # En el primer despliegue el deployment no existe: el apply lo crea y no hace falta restart
+      - name: Comprobar si el deployment ya existe
+        id: check
+        run: |
+          if sudo microk8s kubectl get deployment procesos-backend -n "$NAMESPACE" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Apply Kubernetes manifests
+        run: |
+          for f in thymeleaf/k8s/postgres.yaml thymeleaf/k8s/backend.yaml; do
+            sed -e "s|__OWNER__|${OWNER_LC}|g" -e "s|__DOMINIO__|${DOMINIO}|g" "$f" \
+              | sudo microk8s kubectl apply -n "$NAMESPACE" -f -
+          done
+
+      # Con :latest el apply no cambia el pod spec: se fuerza a bajar la imagen nueva
+      - name: Restart Kubernetes deployment
+        if: steps.check.outputs.exists == 'true'
+        run: sudo microk8s kubectl rollout restart deployment/procesos-backend -n "$NAMESPACE"
+
+      - name: Wait for rollout
+        run: |
+          sudo microk8s kubectl rollout status deployment/procesos-db -n "$NAMESPACE" --timeout=180s
+          sudo microk8s kubectl rollout status deployment/procesos-backend -n "$NAMESPACE" --timeout=300s
