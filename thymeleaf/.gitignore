@@ -35,3 +35,5 @@ build/
 ### Local Environment Variables ###
 .env
 postman_environment.json
+### Kubernetes: el Secret real nunca se sube ###
+k8s/secret.yaml

@@ -260,6 +260,10 @@ En PowerShell las variables se definen con `$env:DB_HOST = "..."`.
 
 **Nunca subas un `.env` real ni credenciales a git.**
 
+## Despliegue en Kubernetes
+
+Ver `DESPLIEGUE_K8S.md`: manifiestos en `thymeleaf/k8s/` y workflow en `.github/workflows/deploy.yml`.
+
 ## Documentacion de la API (Swagger / OpenAPI)
 
 Con el backend arrancado, la documentacion interactiva queda en:

@@ -1,0 +1,79 @@
+# Backend Spring Boot. __OWNER__ y __DOMINIO__ los reemplaza el workflow al desplegar.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: procesos-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: procesos-backend
+  template:
+    metadata:
+      labels:
+        app: procesos-backend
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: procesos-backend
+          image: ghcr.io/__OWNER__/procesos-backend:latest
+          # Con el tag :latest hay que bajar la imagen en cada rollout restart
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          # DB_NAME, DB_USER, DB_PASSWORD, JWT_SECRET y DEMO_ADMIN_PASSWORD
+          envFrom:
+            - secretRef:
+                name: procesos-secrets
+          env:
+            - name: DB_HOST
+              value: procesos-db
+            - name: DB_PORT
+              value: "5432"
+            # La base nace vacia: Hibernate crea y actualiza las tablas
+            - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+              value: update
+            - name: APP_MAIL_ENABLED
+              value: "false"
+            - name: APP_CORS_ORIGENES
+              value: "https://__DOMINIO__,http://__DOMINIO__"
+            - name: APP_BACKEND_BASE_URL
+              value: "http://__DOMINIO__"
+            - name: APP_FRONTEND_BASE_URL
+              value: "http://__DOMINIO__"
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxRAMPercentage=75"
+          # Swagger es publico y responde 200 cuando Spring ya arranco
+          readinessProbe:
+            httpGet:
+              path: /v3/api-docs
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /v3/api-docs
+              port: 8080
+            initialDelaySeconds: 120
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 200m
+              memory: 384Mi
+            limits:
+              memory: 768Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: procesos-backend
+spec:
+  selector:
+    app: procesos-backend
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
