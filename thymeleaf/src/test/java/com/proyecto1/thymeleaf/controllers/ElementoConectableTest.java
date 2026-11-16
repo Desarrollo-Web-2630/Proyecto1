@@ -4,7 +4,12 @@ import com.proyecto1.thymeleaf.model.ElementoConectable;
 import com.proyecto1.thymeleaf.services.ElementoConectableService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import com.proyecto1.thymeleaf.model.Usuario;
+import com.proyecto1.thymeleaf.security.SesionDePrueba;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -16,7 +21,19 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ElementoConectableController.class)
+// Sin filtros de seguridad: aqui se prueba el controlador; las reglas se prueban en SeguridadIntegracionTest
+@AutoConfigureMockMvc(addFilters = false)
 class ElementoConectableControllerTest {
+
+    @BeforeEach
+    void iniciarSesion() {
+        SesionDePrueba.iniciar(1L, Usuario.RolAcceso.ADMIN);
+    }
+
+    @AfterEach
+    void cerrarSesion() {
+        SesionDePrueba.cerrar();
+    }
 
     @Autowired private MockMvc mockMvc;
     @MockBean private ElementoConectableService elementoConectableService;

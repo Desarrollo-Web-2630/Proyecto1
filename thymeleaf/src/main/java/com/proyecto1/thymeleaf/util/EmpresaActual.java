@@ -1,31 +1,25 @@
 package com.proyecto1.thymeleaf.util;
 
-import org.springframework.web.context.request.RequestAttributes;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
+import com.proyecto1.thymeleaf.security.UsuarioAutenticado;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
-// Identifica la empresa de la peticion actual mientras no hay autenticacion.
-
+// Empresa y usuario de la peticion actual, tomados del token ya validado (no de algo que envie el cliente)
 public final class EmpresaActual {
-
-    public static final String ENCABEZADO = "X-Empresa-Id";
-    private static final long POR_DEFECTO = 1L;
 
     private EmpresaActual() {
     }
 
-    public static Long id() {
-        RequestAttributes atributos = RequestContextHolder.getRequestAttributes();
-        if (atributos instanceof ServletRequestAttributes servlet) {
-            String valor = servlet.getRequest().getHeader(ENCABEZADO);
-            if (valor != null && !valor.isBlank()) {
-                try {
-                    return Long.parseLong(valor.trim());
-                } catch (NumberFormatException e) {
-                    throw new IllegalArgumentException("El encabezado " + ENCABEZADO + " debe ser un numero");
-                }
-            }
+    public static UsuarioAutenticado usuario() {
+        Authentication autenticacion = SecurityContextHolder.getContext().getAuthentication();
+        if (autenticacion != null && autenticacion.getPrincipal() instanceof UsuarioAutenticado usuario) {
+            return usuario;
         }
-        return POR_DEFECTO;
+        throw new AuthenticationCredentialsNotFoundException("No hay una sesion activa");
+    }
+
+    public static Long id() {
+        return usuario().getEmpresaId();
     }
 }

@@ -2,7 +2,7 @@
 <jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.2">
   <hashTree>
     <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Editor de procesos - plan de carga">
-      <stringProp name="TestPlan.comments">Carga sobre los endpoints de procesos. Requiere el backend arrancado (perfil h2). Desde Maven los valores se cambian con -Dcarga.usuarios -Dcarga.rampa -Dcarga.repeticiones (ver pom.xml); desde JMeter directo con -Jusuarios -Jrampa -Jrepeticiones -Jhost -Jport.</stringProp>
+      <stringProp name="TestPlan.comments">Carga sobre los endpoints de procesos. Requiere el backend arrancado (perfil h2) y un usuario ADMIN o EDITOR activo: cada hilo hace login una vez y usa el JWT en Authorization. Desde Maven los valores se cambian con -Dcarga.usuarios -Dcarga.rampa -Dcarga.repeticiones -Dcarga.correo -Dcarga.clave (ver pom.xml); desde JMeter directo con -Jusuarios -Jrampa -Jrepeticiones -Jcorreo -Jclave -Jhost -Jport.</stringProp>
       <boolProp name="TestPlan.functional_mode">false</boolProp>
       <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="Variables">
@@ -25,6 +25,16 @@
           <elementProp name="rampa" elementType="Argument">
             <stringProp name="Argument.name">rampa</stringProp>
             <stringProp name="Argument.value">${__P(rampa,10)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="correo" elementType="Argument">
+            <stringProp name="Argument.name">correo</stringProp>
+            <stringProp name="Argument.value">${__P(correo,admin@demo.com)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="clave" elementType="Argument">
+            <stringProp name="Argument.name">clave</stringProp>
+            <stringProp name="Argument.value">${__P(clave,)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="repeticiones" elementType="Argument">
@@ -54,8 +64,8 @@
             <stringProp name="Header.value">application/json</stringProp>
           </elementProp>
           <elementProp name="" elementType="Header">
-            <stringProp name="Header.name">X-Empresa-Id</stringProp>
-            <stringProp name="Header.value">1</stringProp>
+            <stringProp name="Header.name">Authorization</stringProp>
+            <stringProp name="Header.value">Bearer ${token}</stringProp>
           </elementProp>
         </collectionProp>
       </HeaderManager>
@@ -71,6 +81,43 @@
         </elementProp>
       </ThreadGroup>
       <hashTree>
+        <OnceOnlyController guiclass="OnceOnlyControllerGui" testclass="OnceOnlyController" testname="Login una vez por usuario"/>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST login">
+            <stringProp name="HTTPSampler.path">/api/auth/login</stringProp>
+            <stringProp name="HTTPSampler.method">POST</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+              <collectionProp name="Arguments.arguments">
+                <elementProp name="" elementType="HTTPArgument">
+                  <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                  <stringProp name="Argument.value">{"correo":"${correo}","password":"${clave}"}</stringProp>
+                  <stringProp name="Argument.metadata">=</stringProp>
+                </elementProp>
+              </collectionProp>
+            </elementProp>
+          </HTTPSamplerProxy>
+          <hashTree>
+            <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extraer token">
+              <stringProp name="JSONPostProcessor.referenceNames">token</stringProp>
+              <stringProp name="JSONPostProcessor.jsonPathExprs">$.token</stringProp>
+              <stringProp name="JSONPostProcessor.match_numbers">1</stringProp>
+              <stringProp name="JSONPostProcessor.defaultValues">SIN_TOKEN</stringProp>
+            </JSONPostProcessor>
+            <hashTree/>
+            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Responde 200">
+              <collectionProp name="Asserion.test_strings">
+                <stringProp name="49586">200</stringProp>
+              </collectionProp>
+              <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+              <boolProp name="Assertion.assume_success">false</boolProp>
+              <intProp name="Assertion.test_type">8</intProp>
+            </ResponseAssertion>
+            <hashTree/>
+          </hashTree>
+        </hashTree>
         <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET listar procesos">
           <stringProp name="HTTPSampler.path">/api/v1/procesos</stringProp>
           <stringProp name="HTTPSampler.method">GET</stringProp>

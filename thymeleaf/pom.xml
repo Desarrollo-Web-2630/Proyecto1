@@ -19,6 +19,7 @@
 
   <properties>
     <java.version>17</java.version>
+    <jjwt.version>0.12.6</jjwt.version>
     <!-- Requerido por SonarCloud: identifica tu organización -->
     <sonar.organization>desarrollo-web-2630</sonar.organization>
     <!-- SonarQube necesita saber dónde está el reporte de cobertura -->
@@ -35,6 +36,8 @@
     <carga.usuarios>20</carga.usuarios>
     <carga.rampa>10</carga.rampa>
     <carga.repeticiones>5</carga.repeticiones>
+    <carga.correo>admin@demo.com</carga.correo>
+    <carga.clave></carga.clave>
     <maven.build.timestamp.format>yyyyMMdd-HHmmss</maven.build.timestamp.format>
   </properties>
 
@@ -45,9 +48,29 @@
       <artifactId>spring-boot-starter-data-jpa</artifactId>
     </dependency>
 
+    <!-- Spring Security: autenticacion con JWT y autorizacion por rol -->
     <dependency>
-      <groupId>org.springframework.security</groupId>
-      <artifactId>spring-security-crypto</artifactId>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-security</artifactId>
+    </dependency>
+
+    <!-- JJWT: genera y valida los tokens firmados -->
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-api</artifactId>
+      <version>${jjwt.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-impl</artifactId>
+      <version>${jjwt.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-jackson</artifactId>
+      <version>${jjwt.version}</version>
+      <scope>runtime</scope>
     </dependency>
 
     <!-- Se conserva: la lógica de envío de correo de verificación vive en el
@@ -110,6 +133,11 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-test</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -199,6 +227,8 @@
             <usuarios>${carga.usuarios}</usuarios>
             <rampa>${carga.rampa}</rampa>
             <repeticiones>${carga.repeticiones}</repeticiones>
+            <correo>${carga.correo}</correo>
+            <clave>${carga.clave}</clave>
           </propertiesUser>
         </configuration>
       </plugin>

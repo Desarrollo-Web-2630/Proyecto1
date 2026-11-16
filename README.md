@@ -188,11 +188,20 @@ Asegúrate de tener instaladas las siguientes herramientas en tu entorno de desa
 El backend es una API REST (Spring Boot 3, Java 17). No tiene frontend: se
 prueba con Postman o con cualquier cliente HTTP.
 
-**Primera entrega: sin autenticacion.** Toda la API es publica. La empresa de cada
-peticion se indica con el encabezado `X-Empresa-Id` (si no viene, se usa `1`).
-Esto no es seguridad, solo permite probar por empresa; la autenticacion real
-(JWT, roles, aislamiento por token) es de la entrega final; la version con JWT
-quedo en el historial de `main` (commit `7fb8a02`).
+**Entrega final: Spring Security + JWT.** Toda la API exige el encabezado
+`Authorization: Bearer <token>` salvo el login, la activacion de cuenta, el
+registro de empresa y Swagger. La empresa y el rol del usuario se leen del token
+ya validado (`util/EmpresaActual`), nunca de algo que envie el cliente: el viejo
+encabezado `X-Empresa-Id` se ignora.
+
+| Rol | Puede |
+|---|---|
+| `LECTURA` | Consultar (`GET`) procesos, diagrama, usuarios y roles de su empresa |
+| `EDITOR` | Lo anterior + crear y editar procesos y todos sus elementos |
+| `ADMIN` | Todo: eliminar, inactivar/reactivar procesos, gestionar usuarios, roles de proceso y la empresa |
+
+Reglas en `security/SecurityConfig.java`; pruebas en
+`src/test/.../security/SeguridadIntegracionTest.java`.
 
 ### Perfiles
 
@@ -240,6 +249,9 @@ En PowerShell las variables se definen con `$env:DB_HOST = "..."`.
 |---|---|---|
 | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Si (sin perfil / `postman`) | Conexion a PostgreSQL. Nunca se versionan valores reales. |
 | `DEMO_ADMIN_PASSWORD` | No | Contrasena del admin de demo `admin@demo.com` que crea el inicializador de datos. Si no se define, ese admin queda inactivo y se activa con `reenviar-verificacion` + `activar-cuenta`. |
+| `JWT_SECRET` | Si en despliegue | Clave para firmar los JWT, minimo 32 caracteres. Si falta se genera una temporal al arrancar (los tokens mueren al reiniciar y no sirve con varias replicas). |
+| `JWT_EXPIRACION_MINUTOS` | No (`60`) | Vigencia del token. |
+| `APP_CORS_ORIGENES` | No (`http://localhost:4200`) | Origenes del frontend separados por coma. |
 | `APP_MAIL_ENABLED` | No (`false`) | `true` envia correos reales; `false` imprime el enlace en el log. |
 | `APP_MAIL_FROM` | No | Remitente. |
 | `APP_MAIL_FAIL_ON_ERROR` | No (`false`) | `true` hace que un fallo SMTP aborte el registro; `false` lo registra y sigue. |
@@ -259,15 +271,14 @@ Con el backend arrancado, la documentacion interactiva queda en:
   importar en Postman con *Import > Link*).
 
 Se genera sola con `springdoc-openapi` a partir de los controladores; no hay
-que mantener nada a mano. El encabezado `X-Empresa-Id` aparece en todos los
-endpoints de `/api/v1/` (lo agrega `config/OpenApiConfig.java`).
+que mantener nada a mano. Para probar endpoints protegidos: haz login en
+`POST /api/auth/login`, copia el `token` y pegalo en el boton **Authorize**.
 
 ## Probar con Postman
 
 Importa `thymeleaf/postman_collection.json` y `thymeleaf/postman_environment.json`
-y selecciona el entorno *Proyecto1 - Local*. La coleccion agrega sola el
-encabezado `X-Empresa-Id` con el valor de la variable de entorno `empresaId`
-(por defecto `1`); cambiala para probar otra empresa.
+y selecciona el entorno *Proyecto1 - Local*. La peticion **Login (JWT)** guarda
+el token en la variable `{{token}}` y la coleccion lo manda en `Authorization`.
 
 Flujo minimo, en orden:
 
@@ -277,9 +288,9 @@ Flujo minimo, en orden:
    correo, si `APP_MAIL_ENABLED=true`) en la variable de entorno `{{token}}`.
 3. **`POST /api/auth/activar-cuenta`**: manda `{"token": "...", "nuevaPassword": "ClaveSegura123"}`.
    Es el unico modo de activar al administrador inicial.
-4. **`POST /api/v1/usuarios/login`**: con el correo de la empresa y esa
-   contrasena. Devuelve el usuario (200) o 401 sin cuerpo.
-5. El resto de peticiones usan el `X-Empresa-Id` del entorno.
+4. **`POST /api/auth/login`**: con el correo de la empresa y esa contrasena.
+   Devuelve `{ token, tipo, expiraEn, usuario }` (200) o 401 con mensaje generico.
+5. El resto de peticiones van con `Authorization: Bearer {{token}}`.
 
 ### Endpoints
 
@@ -287,7 +298,8 @@ Flujo minimo, en orden:
 |---|---|---|
 | POST | `/api/v1/empresas` | Registra empresa + administrador inicial (inactivo) |
 | GET/PUT/DELETE | `/api/v1/empresas`, `/{id}` | Consultar, editar, borrado logico |
-| POST | `/api/v1/usuarios/login` | Valida credenciales y cuenta activa; 401 sin cuerpo si falla |
+| POST | `/api/auth/login` | Valida credenciales y cuenta activa; devuelve el JWT. 401 si falla |
+| GET | `/api/auth/yo` | Usuario dueno del token |
 | POST | `/api/auth/activar-cuenta` | Token + contrasena nueva: activa la cuenta |
 | GET | `/api/auth/verificar-correo?token=` | Solo activa (usuarios que ya tienen contrasena) |
 | POST | `/api/auth/reenviar-verificacion` | Reenvia el enlace; misma respuesta exista o no el correo; maximo 3 por hora |
@@ -299,7 +311,8 @@ Flujo minimo, en orden:
 | CRUD | `/api/v1/procesos/{p}/actividades`, `/gateways`, `/arcos`, `/elementos` | Modelado |
 
 Los errores llegan siempre como `{ "timestamp", "status", "mensaje" }`:
-`400` reglas de negocio o datos invalidos, `500` error interno sin detalles.
+`400` reglas de negocio o datos invalidos, `401` sin sesion o token invalido,
+`403` el rol no alcanza o el recurso es de otra empresa, `500` error interno sin detalles.
 
 ### Ejemplos
 
@@ -319,7 +332,7 @@ Content-Type: application/json
 
 ```http
 POST /api/v1/procesos
-X-Empresa-Id: 1
+Authorization: Bearer <token del login>
 Content-Type: application/json
 
 { "nombre": "Compras", "descripcion": "Solicitud y aprobacion de compras", "categoria": "Operaciones" }

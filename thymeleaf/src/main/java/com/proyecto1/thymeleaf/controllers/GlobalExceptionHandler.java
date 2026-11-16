@@ -6,6 +6,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -76,6 +79,22 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<Map<String, Object>> manejarRutaInexistente(NoResourceFoundException e) {
         return construir(HttpStatus.NOT_FOUND, "La ruta solicitada no existe");
+    }
+
+    // Login fallido: mismo mensaje si el correo no existe, la clave es mala o la cuenta esta inactiva
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Map<String, Object>> manejarAutenticacion(AuthenticationException e) {
+        return construir(HttpStatus.UNAUTHORIZED, "Correo o contrasena incorrectos, o la cuenta no esta activa");
+    }
+
+    @ExceptionHandler(AuthenticationCredentialsNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> manejarSinSesion(AuthenticationCredentialsNotFoundException e) {
+        return construir(HttpStatus.UNAUTHORIZED, "Debe iniciar sesion para acceder a este recurso");
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> manejarAccesoDenegado(AccessDeniedException e) {
+        return construir(HttpStatus.FORBIDDEN, "No tiene permisos para realizar esta accion");
     }
 
     // Cualquier otra cosa: no se filtra el mensaje real, solo se registra en el log

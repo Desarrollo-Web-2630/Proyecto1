@@ -6,7 +6,12 @@ import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.services.EmpresaService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import com.proyecto1.thymeleaf.model.Usuario;
+import com.proyecto1.thymeleaf.security.SesionDePrueba;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -14,13 +19,26 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(EmpresaController.class)
+// Sin filtros de seguridad: aqui se prueba el controlador; las reglas se prueban en SeguridadIntegracionTest
+@AutoConfigureMockMvc(addFilters = false)
 class EmpresaControllerTest {
+
+    @BeforeEach
+    void iniciarSesion() {
+        SesionDePrueba.iniciar(1L, Usuario.RolAcceso.ADMIN);
+    }
+
+    @AfterEach
+    void cerrarSesion() {
+        SesionDePrueba.cerrar();
+    }
 
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
@@ -34,12 +52,15 @@ class EmpresaControllerTest {
         empresa.setNit("900123456-7");
         empresa.setCorreo("contacto@demo.com");
 
-        when(empresaService.listarTodas()).thenReturn(List.of(empresa));
+        when(empresaService.obtenerPorId(1L)).thenReturn(empresa);
 
+        // Solo devuelve la empresa del usuario en sesion
         mockMvc.perform(get("/api/v1/empresas"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].nombre").value("Empresa Demo"))
-                .andExpect(jsonPath("$[0].nit").value("900123456-7"));
+                .andExpect(jsonPath("$[0].nit").value("900123456-7"))
+                .andExpect(jsonPath("$.length()").value(1));
+        verify(empresaService, never()).listarTodas();
     }
 
     @Test
@@ -55,13 +76,20 @@ class EmpresaControllerTest {
     }
 
     @Test
-    void obtener_inexistente_devuelve400ViaGlobalExceptionHandler() throws Exception {
-        when(empresaService.obtenerPorId(99L))
-                .thenThrow(new IllegalArgumentException("La empresa no existe"));
-
+    void obtener_deOtraEmpresa_devuelve403SinConsultarElService() throws Exception {
         mockMvc.perform(get("/api/v1/empresas/99"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.mensaje").value("La empresa no existe"));
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("No tiene permisos para realizar esta accion"));
+
+        verify(empresaService, never()).obtenerPorId(99L);
+    }
+
+    @Test
+    void eliminar_deOtraEmpresa_devuelve403() throws Exception {
+        mockMvc.perform(delete("/api/v1/empresas/99"))
+                .andExpect(status().isForbidden());
+
+        verify(empresaService, never()).eliminarEmpresa(anyLong());
     }
 
     @Test

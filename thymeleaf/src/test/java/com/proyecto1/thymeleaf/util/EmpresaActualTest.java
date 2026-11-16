@@ -1,11 +1,12 @@
 package com.proyecto1.thymeleaf.util;
 
-import jakarta.servlet.http.HttpServletRequest;
+import com.proyecto1.thymeleaf.model.Usuario;
+import com.proyecto1.thymeleaf.security.SesionDePrueba;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -13,49 +14,29 @@ class EmpresaActualTest {
 
     @AfterEach
     void limpiarContexto() {
-        // Cada test deja su propio request attributes; hay que limpiar
-        // para no contaminar el siguiente test con estado global.
-        RequestContextHolder.resetRequestAttributes();
+        SesionDePrueba.cerrar();
     }
 
     @Test
-    void id_sinRequestAttributes_devuelveElValorPorDefecto() {
-        RequestContextHolder.resetRequestAttributes();
-        assertEquals(1L, EmpresaActual.id());
-    }
-
-    @Test
-    void id_conEncabezadoValido_devuelveElValorDelEncabezado() {
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader(EmpresaActual.ENCABEZADO, "42");
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+    void id_conSesion_devuelveLaEmpresaDelToken() {
+        SesionDePrueba.iniciar(42L, Usuario.RolAcceso.EDITOR);
 
         assertEquals(42L, EmpresaActual.id());
+        assertEquals(SesionDePrueba.USUARIO_ID, EmpresaActual.usuario().getId());
     }
 
     @Test
-    void id_sinEncabezado_devuelveElValorPorDefecto() {
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+    void id_sinSesion_lanzaExcepcionDeAutenticacion() {
+        SecurityContextHolder.clearContext();
 
-        assertEquals(1L, EmpresaActual.id());
+        assertThrows(AuthenticationCredentialsNotFoundException.class, EmpresaActual::id);
     }
 
     @Test
-    void id_conEncabezadoNoNumerico_lanzaExcepcion() {
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader(EmpresaActual.ENCABEZADO, "no-es-un-numero");
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+    void id_conPrincipalQueNoEsUsuarioAutenticado_lanzaExcepcion() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("anonimo", null));
 
-        assertThrows(IllegalArgumentException.class, EmpresaActual::id);
-    }
-
-    @Test
-    void id_conEncabezadoEnBlanco_devuelveElValorPorDefecto() {
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader(EmpresaActual.ENCABEZADO, "   ");
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
-
-        assertEquals(1L, EmpresaActual.id());
+        assertThrows(AuthenticationCredentialsNotFoundException.class, EmpresaActual::id);
     }
 }

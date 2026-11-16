@@ -1,6 +1,5 @@
 package com.proyecto1.thymeleaf.controllers;
 
-import com.proyecto1.thymeleaf.dto.LoginDTO;
 import com.proyecto1.thymeleaf.dto.UsuarioDTO;
 import com.proyecto1.thymeleaf.dto.UsuarioVistaDTO;
 import com.proyecto1.thymeleaf.model.Usuario;
@@ -16,7 +15,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/usuarios")
@@ -56,28 +54,31 @@ public class UsuarioController {
         return ResponseEntity.status(HttpStatus.CREATED).body(modelMapper.map(creado, UsuarioVistaDTO.class));
     }
 
-    @PostMapping("/login")
-    public ResponseEntity<UsuarioVistaDTO> login(@Valid @RequestBody LoginDTO login) {
-        Optional<Usuario> usuario = usuarioService.login(login.getCorreo(), login.getPassword());
-        return usuario.map(u -> ResponseEntity.ok(modelMapper.map(u, UsuarioVistaDTO.class)))
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
-    }
-
     @PostMapping("/{id}/rol")
     public ResponseEntity<UsuarioVistaDTO> cambiarRol(@PathVariable Long id, @RequestParam Usuario.RolAcceso rolAcceso) {
+        noEsElMismo(id, "No puede cambiar su propio rol");
         Usuario actualizado = usuarioService.cambiarRol(id, rolAcceso, EmpresaActual.id());
         return ResponseEntity.ok(modelMapper.map(actualizado, UsuarioVistaDTO.class));
     }
 
     @PostMapping("/{id}/desactivar")
     public ResponseEntity<UsuarioVistaDTO> desactivar(@PathVariable Long id) {
+        noEsElMismo(id, "No puede desactivar su propia cuenta");
         Usuario actualizado = usuarioService.desactivarUsuario(id, EmpresaActual.id());
         return ResponseEntity.ok(modelMapper.map(actualizado, UsuarioVistaDTO.class));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+        noEsElMismo(id, "No puede eliminar su propia cuenta");
         usuarioService.eliminarUsuario(id, EmpresaActual.id());
         return ResponseEntity.noContent().build();
+    }
+
+    // Evita que el administrador se quite el acceso a si mismo
+    private void noEsElMismo(Long id, String mensaje) {
+        if (id.equals(EmpresaActual.usuario().getId())) {
+            throw new IllegalArgumentException(mensaje);
+        }
     }
 }

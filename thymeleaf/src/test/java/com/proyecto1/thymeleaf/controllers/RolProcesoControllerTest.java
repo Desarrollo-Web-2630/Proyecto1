@@ -18,7 +18,12 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import com.proyecto1.thymeleaf.model.Usuario;
+import com.proyecto1.thymeleaf.security.SesionDePrueba;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
@@ -30,7 +35,19 @@ import com.proyecto1.thymeleaf.dto.RolProcesoRespuestaDTO;
 import com.proyecto1.thymeleaf.services.RolProcesoService;
 
 @WebMvcTest(RolProcesoController.class)
+// Sin filtros de seguridad: aqui se prueba el controlador; las reglas se prueban en SeguridadIntegracionTest
+@AutoConfigureMockMvc(addFilters = false)
 class RolProcesoControllerTest {
+
+    @BeforeEach
+    void iniciarSesion() {
+        SesionDePrueba.iniciar(1L, Usuario.RolAcceso.ADMIN);
+    }
+
+    @AfterEach
+    void cerrarSesion() {
+        SesionDePrueba.cerrar();
+    }
 
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;

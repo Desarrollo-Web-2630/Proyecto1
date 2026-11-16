@@ -15,6 +15,10 @@
       "value": "",
       "type": "string",
       "description": "Definir en tu Environment local, nunca commitear un valor real aquí."
+    },
+    {
+      "key": "token",
+      "value": ""
     }
   ],
   "item": [
@@ -198,7 +202,7 @@
           }
         },
         {
-          "name": "Login (provisional)",
+          "name": "Login (JWT)",
           "request": {
             "method": "POST",
             "header": [
@@ -211,8 +215,34 @@
               "mode": "raw",
               "raw": "{\n  \"correo\": \"juan.perez@example.com\",\n  \"password\": \"{{examplePassword}}\"\n}"
             },
-            "url": "{{baseUrl}}/api/v1/usuarios/login"
-          }
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200 con token', () => pm.response.to.have.status(200));",
+                  "// Guarda el token para el resto de la coleccion",
+                  "pm.collectionVariables.set('token', pm.response.json().token);"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Listar usuarios paginado",
@@ -725,5 +755,15 @@
         ]
       }
     }
-  ]
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  }
 }
