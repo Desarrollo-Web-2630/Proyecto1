@@ -39,6 +39,12 @@
     <carga.correo>admin@demo.com</carga.correo>
     <carga.clave></carga.clave>
     <maven.build.timestamp.format>yyyyMMdd-HHmmss</maven.build.timestamp.format>
+    <!-- Selenium: Spring Boot 3.3 trae la 4.19; la 4.53 soporta el Chrome actual -->
+    <selenium.version>4.53.0</selenium.version>
+    <!-- Las pruebas E2E (tag "e2e") necesitan Chrome y el frontend arriba: se
+         excluyen del build normal y se corren con `mvnw test -Pe2e` -->
+    <pruebas.excluidas>e2e</pruebas.excluidas>
+    <pruebas.incluidas></pruebas.incluidas>
   </properties>
 
   <dependencies>
@@ -145,6 +151,12 @@
       <artifactId>junit-platform-launcher</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- Pruebas de sistema (E2E) con navegador real; solo corren con -Pe2e -->
+    <dependency>
+      <groupId>org.seleniumhq.selenium</groupId>
+      <artifactId>selenium-java</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -172,6 +184,15 @@
               <artifactId>lombok</artifactId>
             </exclude>
           </excludes>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <excludedGroups>${pruebas.excluidas}</excludedGroups>
+          <groups>${pruebas.incluidas}</groups>
         </configuration>
       </plugin>
 
@@ -234,4 +255,17 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <!-- Pruebas de sistema (E2E) con Selenium: `mvnw test -Pe2e`.
+         Requiere el frontend en http://localhost:4200 (ng serve) y Chrome instalado;
+         el backend lo arranca la propia prueba en el puerto 8080. -->
+    <profile>
+      <id>e2e</id>
+      <properties>
+        <pruebas.excluidas></pruebas.excluidas>
+        <pruebas.incluidas>e2e</pruebas.incluidas>
+      </properties>
+    </profile>
+  </profiles>
 </project>
