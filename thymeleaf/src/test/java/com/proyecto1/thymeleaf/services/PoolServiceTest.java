@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.Optional;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,7 +20,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.proyecto1.thymeleaf.dto.PoolDTO;
 import com.proyecto1.thymeleaf.model.Pool;
+import com.proyecto1.thymeleaf.model.Usuario;
 import com.proyecto1.thymeleaf.model.Proceso;
+import com.proyecto1.thymeleaf.security.SesionDePrueba;
 import com.proyecto1.thymeleaf.repository.PoolRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,6 +32,10 @@ class PoolServiceTest {
     @Mock private LaneService laneService;
     @Mock private ProcesoService procesoService;
 
+    @Mock private AuditoriaService auditoriaService;
+    @Mock private AccesoProcesoService accesoProcesoService;
+    @Mock private PermisoPoolService permisoPoolService;
+
     @InjectMocks
     private PoolService poolService;
 
@@ -37,6 +44,7 @@ class PoolServiceTest {
 
     @BeforeEach
     void setUp() {
+        SesionDePrueba.iniciar(1L, Usuario.RolAcceso.ADMIN);
         proceso = new Proceso();
         proceso.setId(1L);
 
@@ -54,9 +62,14 @@ class PoolServiceTest {
         return pool;
     }
 
+    @AfterEach
+    void cerrarSesion() {
+        SesionDePrueba.cerrar();
+    }
+
     @Test
     void listarPorProcesoYEmpresa_devuelveLosPoolsDelProceso() {
-        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenReturn(proceso);
+        when(accesoProcesoService.verificarLectura(1L, 1L)).thenReturn(proceso);
         when(poolRepository.findByProcesoId(1L)).thenReturn(List.of(construirPool(1L)));
 
         assertEquals(1, poolService.listarPorProcesoYEmpresa(1L, 1L).size());
@@ -64,7 +77,7 @@ class PoolServiceTest {
 
     @Test
     void listarPorProcesoYEmpresa_conProcesoAjeno_lanzaExcepcion() {
-        when(procesoService.obtenerPorIdYEmpresa(1L, 2L)).thenThrow(new IllegalArgumentException("ajeno"));
+        when(accesoProcesoService.verificarLectura(1L, 2L)).thenThrow(new IllegalArgumentException("ajeno"));
 
         assertThrows(IllegalArgumentException.class, () -> poolService.listarPorProcesoYEmpresa(1L, 2L));
     }

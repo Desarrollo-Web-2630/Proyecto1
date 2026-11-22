@@ -27,6 +27,8 @@ List<Actividad> findByProcesoIdAndLaneId(@Param("procesoId") Long procesoId,
 
 // Aislamiento por empresa: se llega a la empresa navegando
 // actividad -> proceso -> empresa, nunca confiando en un id suelto.
+boolean existsByLaneId(@Param("laneId") Long laneId);
+
 @Query("SELECT a FROM Actividad a WHERE a.id = :id " +
         "AND a.proceso.empresa.id = :empresaId AND a.status = 0")
 Optional<Actividad> findByIdAndProcesoEmpresaId(@Param("id") Long id,

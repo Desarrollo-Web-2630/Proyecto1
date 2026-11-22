@@ -19,18 +19,25 @@ public class ActividadService {
     private final ActividadRepository actividadRepository;
     private final ProcesoService procesoService;
     private final LaneService laneService;
+    private final AuditoriaService auditoriaService;
+    private final AccesoProcesoService accesoProcesoService;
+    private final ArcoService arcoService;
 
     public ActividadService(ActividadRepository actividadRepository, ProcesoService procesoService,
-                            LaneService laneService) {
+                            LaneService laneService, AuditoriaService auditoriaService, ArcoService arcoService,
+                            AccesoProcesoService accesoProcesoService) {
         this.actividadRepository = actividadRepository;
         this.procesoService = procesoService;
         this.laneService = laneService;
+        this.auditoriaService = auditoriaService;
+        this.arcoService = arcoService;
+        this.accesoProcesoService = accesoProcesoService;
     }
 
     // 1. Listar las actividades de un proceso verificando la empresa
     @Transactional(readOnly = true)
     public List<ActividadResponseDTO> listarPorProcesoYEmpresa(Long procesoId, Long empresaId) {
-        validarAccesoProceso(procesoId, empresaId);
+        accesoProcesoService.verificarLectura(procesoId, empresaId);
         return actividadRepository.findByProcesoId(procesoId)
                 .stream()
                 .map(this::toResponseDTO)
@@ -39,14 +46,14 @@ public class ActividadService {
 
     @Transactional(readOnly = true)
     public Page<ActividadResponseDTO> buscarPorProcesoYEmpresa(Long procesoId, Long empresaId, Pageable pageable) {
-        validarAccesoProceso(procesoId, empresaId);
+        accesoProcesoService.verificarLectura(procesoId, empresaId);
         return actividadRepository.buscarPorProcesoId(procesoId, pageable).map(this::toResponseDTO);
     }
 
     // 2. Listar las actividades de una lane concreta del proceso
     @Transactional(readOnly = true)
     public List<ActividadResponseDTO> listarPorLane(Long procesoId, Long laneId, Long empresaId) {
-        validarAccesoProceso(procesoId, empresaId);
+        accesoProcesoService.verificarLectura(procesoId, empresaId);
         return actividadRepository.findByProcesoIdAndLaneId(procesoId, laneId)
                 .stream()
                 .map(this::toResponseDTO)
@@ -81,6 +88,7 @@ public class ActividadService {
         actividad.setProceso(proceso);
 
         Actividad guardada = actividadRepository.save(actividad);
+        auditoriaService.registrar("Actividad", guardada.getId(), "CREAR", "Creada: " + guardada.getNombre());
         return toResponseDTO(guardada);
     }
 
@@ -103,6 +111,7 @@ public class ActividadService {
         actividadExistente.setPosicionY(request.getPosicionY());
 
         Actividad guardada = actividadRepository.save(actividadExistente);
+        auditoriaService.registrar("Actividad", guardada.getId(), "EDITAR", "Editada: " + guardada.getNombre());
         return toResponseDTO(guardada);
     }
 
@@ -122,6 +131,7 @@ public class ActividadService {
         actividad.setPosicionY(posicionY);
 
         Actividad guardada = actividadRepository.save(actividad);
+        auditoriaService.registrar("Actividad", guardada.getId(), "MOVER", "Movida: " + guardada.getNombre());
         return toResponseDTO(guardada);
     }
 
@@ -129,6 +139,8 @@ public class ActividadService {
     public void eliminarActividad(Long id, Long empresaId) {
         Actividad actividad = actividadRepository.findByIdAndProcesoEmpresaId(id, empresaId)
                 .orElseThrow(() -> new IllegalArgumentException("La actividad no existe o no pertenece a su empresa"));
+        arcoService.eliminarArcosDeElemento(id);
+        auditoriaService.registrar("Actividad", id, "ELIMINAR", "Actividad eliminada con sus arcos");
         actividadRepository.delete(actividad);
     }
 

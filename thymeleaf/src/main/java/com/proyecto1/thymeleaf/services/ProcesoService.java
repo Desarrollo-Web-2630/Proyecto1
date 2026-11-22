@@ -4,6 +4,10 @@ import com.proyecto1.thymeleaf.dto.ProcesoDTO;
 import com.proyecto1.thymeleaf.model.Empresa;
 import com.proyecto1.thymeleaf.model.Proceso;
 import com.proyecto1.thymeleaf.repository.ProcesoRepository;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -19,10 +23,18 @@ public class ProcesoService {
 
     private final ProcesoRepository procesoRepository;
     private final EmpresaService empresaService;
+    private final AuditoriaService auditoriaService;
+    private final GatewayService gatewayService;
+    private final AccesoProcesoService accesoProcesoService;
 
-    public ProcesoService(ProcesoRepository procesoRepository, EmpresaService empresaService) {
+    public ProcesoService(ProcesoRepository procesoRepository, EmpresaService empresaService,
+                          AuditoriaService auditoriaService, @Lazy GatewayService gatewayService,
+                          AccesoProcesoService accesoProcesoService) {
         this.procesoRepository = procesoRepository;
         this.empresaService = empresaService;
+        this.auditoriaService = auditoriaService;
+        this.gatewayService = gatewayService;
+        this.accesoProcesoService = accesoProcesoService;
     }
 
     // 1. Listar los procesos de la empresa: activos por defecto (HU-07)
@@ -33,9 +45,21 @@ public class ProcesoService {
 
     @Transactional(readOnly = true)
     public List<Proceso> listarPorEmpresa(Long empresaId, boolean incluirInactivos) {
-        return incluirInactivos
+        List<Proceso> propios = new ArrayList<>(incluirInactivos
                 ? procesoRepository.findByEmpresaId(empresaId)
-                : procesoRepository.findByEmpresaIdAndEstadoNot(empresaId, Proceso.EstadoProceso.INACTIVO);
+                : procesoRepository.findByEmpresaIdAndEstadoNot(empresaId, Proceso.EstadoProceso.INACTIVO));
+        Set<Long> conocidos = new LinkedHashSet<>();
+        for (Proceso proceso : propios) {
+            conocidos.add(proceso.getId());
+        }
+        for (Long id : accesoProcesoService.idsAccesibles(empresaId)) {
+            if (conocidos.add(id)) {
+                procesoRepository.findById(id)
+                        .filter(p -> incluirInactivos || p.getEstado() != Proceso.EstadoProceso.INACTIVO)
+                        .ifPresent(propios::add);
+            }
+        }
+        return propios;
     }
 
     @Transactional(readOnly = true)
@@ -50,6 +74,16 @@ public class ProcesoService {
     public Proceso obtenerPorIdYEmpresa(Long id, Long empresaId) {
         return procesoRepository.findByIdAndEmpresaId(id, empresaId)
                 .orElseThrow(() -> new IllegalArgumentException("El proceso no existe o no pertenece a su empresa"));
+    }
+
+    @Transactional(readOnly = true)
+    public Proceso obtenerParaLectura(Long id, Long empresaId) {
+        return accesoProcesoService.verificarLectura(id, empresaId);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean esSoloLectura(Long id, Long empresaId) {
+        return accesoProcesoService.esSoloLectura(id, empresaId);
     }
 
     // 3. Crear un proceso asociado a la empresa del usuario autenticado
@@ -69,7 +103,9 @@ public class ProcesoService {
         // El proceso siempre nace en borrador: el formulario no decide el estado
         proceso.setEstado(Proceso.EstadoProceso.BORRADOR);
 
-        return procesoRepository.save(proceso);
+        Proceso guardado = procesoRepository.save(proceso);
+        auditoriaService.registrar("Proceso", guardado.getId(), "CREAR", "Creado: " + guardado.getNombre());
+        return guardado;
     }
 
     // 4. Actualizar la informacion basica de un proceso
@@ -85,7 +121,9 @@ public class ProcesoService {
         procesoExistente.setDescripcion(normalizar(datos.getDescripcion(), "La descripción del proceso es obligatoria"));
         procesoExistente.setCategoria(normalizar(datos.getCategoria(), "La categoría del proceso es obligatoria"));
 
-        return procesoRepository.save(procesoExistente);
+        Proceso guardado = procesoRepository.save(procesoExistente);
+        auditoriaService.registrar("Proceso", guardado.getId(), "EDITAR", "Editado: " + guardado.getNombre());
+        return guardado;
     }
 
     // 5. Pasar el proceso a publicado
@@ -95,16 +133,21 @@ public class ProcesoService {
         if (proceso.getEstado() == Proceso.EstadoProceso.PUBLICADO) {
             throw new IllegalArgumentException("El proceso ya está publicado");
         }
+        gatewayService.validarSalidasProceso(id);
 
         proceso.setEstado(Proceso.EstadoProceso.PUBLICADO);
-        return procesoRepository.save(proceso);
+        Proceso guardado = procesoRepository.save(proceso);
+        auditoriaService.registrar("Proceso", guardado.getId(), "PUBLICAR", "Publicado: " + guardado.getNombre());
+        return guardado;
     }
 
     // 6. Inactivar: sale de los listados por defecto, pero se conserva
     public Proceso inactivarProceso(Long id, Long empresaId) {
         Proceso proceso = obtenerPorIdYEmpresa(id, empresaId);
         proceso.setEstado(Proceso.EstadoProceso.INACTIVO);
-        return procesoRepository.save(proceso);
+        Proceso guardado = procesoRepository.save(proceso);
+        auditoriaService.registrar("Proceso", guardado.getId(), "INACTIVAR", "Inactivado: " + guardado.getNombre());
+        return guardado;
     }
 
     // 7. Reactivar: vuelve a borrador para poder seguir editandolo
@@ -114,12 +157,15 @@ public class ProcesoService {
             throw new IllegalArgumentException("El proceso no está inactivo");
         }
         proceso.setEstado(Proceso.EstadoProceso.BORRADOR);
-        return procesoRepository.save(proceso);
+        Proceso guardado = procesoRepository.save(proceso);
+        auditoriaService.registrar("Proceso", guardado.getId(), "REACTIVAR", "Reactivado: " + guardado.getNombre());
+        return guardado;
     }
 
     // 8. Eliminar (borrado logico via @SQLDelete)
     public void eliminarProceso(Long id, Long empresaId) {
         Proceso proceso = obtenerPorIdYEmpresa(id, empresaId);
+        auditoriaService.registrar("Proceso", id, "ELIMINAR", "Proceso eliminado");
         procesoRepository.delete(proceso);
     }
 

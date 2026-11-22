@@ -19,17 +19,25 @@ public class PoolService {
     private final PoolRepository poolRepository;
     private final LaneService laneService;
     private final ProcesoService procesoService;
+    private final AuditoriaService auditoriaService;
+    private final AccesoProcesoService accesoProcesoService;
+    private final PermisoPoolService permisoPoolService;
 
     // @Lazy rompe el ciclo PoolService -> LaneService -> PoolService
-    public PoolService(PoolRepository poolRepository, @Lazy LaneService laneService, ProcesoService procesoService) {
+    public PoolService(PoolRepository poolRepository, @Lazy LaneService laneService, ProcesoService procesoService,
+                       AuditoriaService auditoriaService, AccesoProcesoService accesoProcesoService,
+                       @Lazy PermisoPoolService permisoPoolService) {
         this.poolRepository = poolRepository;
         this.laneService = laneService;
         this.procesoService = procesoService;
+        this.auditoriaService = auditoriaService;
+        this.accesoProcesoService = accesoProcesoService;
+        this.permisoPoolService = permisoPoolService;
     }
 
     @Transactional(readOnly = true)
     public List<Pool> listarPorProcesoYEmpresa(Long procesoId, Long empresaId) {
-        validarAccesoProceso(procesoId, empresaId);
+        accesoProcesoService.verificarLectura(procesoId, empresaId);
         return poolRepository.findByProcesoId(procesoId);
     }
 
@@ -47,23 +55,30 @@ public class PoolService {
         pool.setTipo(datos.getTipo());
         pool.setProceso(proceso);
 
-        return poolRepository.save(pool);
+        Pool guardado = poolRepository.save(pool);
+        auditoriaService.registrar("Pool", guardado.getId(), "CREAR", "Creado: " + guardado.getNombre());
+        return guardado;
     }
 
     public Pool actualizarPool(Long id, PoolDTO datos, Long procesoId, Long empresaId) {
         Pool pool = obtenerPorIdYEmpresa(id, procesoId, empresaId);
+        permisoPoolService.verificar(pool, "EDITAR");
 
         pool.setNombre(datos.getNombre().trim());
         pool.setTipo(datos.getTipo());
 
-        return poolRepository.save(pool);
+        Pool guardado = poolRepository.save(pool);
+        auditoriaService.registrar("Pool", guardado.getId(), "EDITAR", "Editado: " + guardado.getNombre());
+        return guardado;
     }
 
     public void eliminarPool(Long id, Long procesoId, Long empresaId) {
         Pool pool = obtenerPorIdYEmpresa(id, procesoId, empresaId);
+        permisoPoolService.verificar(pool, "ELIMINAR");
         if (laneService.tieneLanes(id)) {
             throw new IllegalArgumentException("No se puede eliminar el pool porque tiene lanes: eliminelas primero");
         }
+        auditoriaService.registrar("Pool", id, "ELIMINAR", "Pool eliminado");
         poolRepository.delete(pool);
     }
 

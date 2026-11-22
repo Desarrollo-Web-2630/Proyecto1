@@ -11,6 +11,7 @@ import com.proyecto1.thymeleaf.dto.LaneDTO;
 import com.proyecto1.thymeleaf.model.Lane;
 import com.proyecto1.thymeleaf.model.Pool;
 import com.proyecto1.thymeleaf.model.RolProceso;
+import com.proyecto1.thymeleaf.repository.ActividadRepository;
 import com.proyecto1.thymeleaf.repository.LaneRepository;
 
 // HU-22: logica de negocio de las lanes.
@@ -21,16 +22,24 @@ public class LaneService {
     private final LaneRepository laneRepository;
     private final PoolService poolService;
     private final RolProcesoService rolProcesoService;
+    private final AuditoriaService auditoriaService;
+    private final AccesoProcesoService accesoProcesoService;
+    private final ActividadRepository actividadRepository;
 
-    public LaneService(LaneRepository laneRepository, PoolService poolService, RolProcesoService rolProcesoService) {
+    public LaneService(LaneRepository laneRepository, PoolService poolService, RolProcesoService rolProcesoService,
+                       AuditoriaService auditoriaService, ActividadRepository actividadRepository,
+                       AccesoProcesoService accesoProcesoService) {
         this.laneRepository = laneRepository;
         this.poolService = poolService;
         this.rolProcesoService = rolProcesoService;
+        this.auditoriaService = auditoriaService;
+        this.actividadRepository = actividadRepository;
+        this.accesoProcesoService = accesoProcesoService;
     }
 
     @Transactional(readOnly = true)
     public List<Lane> listarPorPoolYEmpresa(Long poolId, Long procesoId, Long empresaId) {
-        poolService.obtenerPorIdYEmpresa(poolId, procesoId, empresaId);
+        accesoProcesoService.verificarLectura(procesoId, empresaId);
         return laneRepository.findByPoolId(poolId);
     }
 
@@ -57,7 +66,9 @@ public class LaneService {
         lane.setPool(pool);
         lane.setOrden(laneRepository.findByPoolId(poolId).size());
 
-        return laneRepository.save(lane);
+        Lane guardada = laneRepository.save(lane);
+        auditoriaService.registrar("Lane", guardada.getId(), "CREAR", "Creada: " + guardada.getNombre());
+        return guardada;
     }
 
     public Lane actualizarLane(Long id, LaneDTO datos, Long poolId, Long empresaId) {
@@ -67,11 +78,17 @@ public class LaneService {
         lane.setNombre(datos.getNombre().trim());
         lane.setRolProceso(rol);
 
-        return laneRepository.save(lane);
+        Lane guardada = laneRepository.save(lane);
+        auditoriaService.registrar("Lane", guardada.getId(), "EDITAR", "Editada: " + guardada.getNombre());
+        return guardada;
     }
 
     public void eliminarLane(Long id, Long poolId, Long empresaId) {
         Lane lane = obtenerPorIdYEmpresa(id, poolId, empresaId);
+        if (actividadRepository.existsByLaneId(id)) {
+            throw new IllegalArgumentException("No se puede eliminar la lane porque tiene actividades: elimínelas primero");
+        }
+        auditoriaService.registrar("Lane", id, "ELIMINAR", "Lane eliminada");
         laneRepository.delete(lane);
     }
 
@@ -94,6 +111,7 @@ public class LaneService {
                     .orElseThrow(() -> new IllegalArgumentException("La lane " + laneId + " no existe en el pool"));
             lane.setOrden(posicion);
             laneRepository.save(lane);
+            auditoriaService.registrar("Lane", lane.getId(), "REORDENAR", "Orden actualizado a " + posicion);
         }
 
         return laneRepository.findByPoolId(poolId);

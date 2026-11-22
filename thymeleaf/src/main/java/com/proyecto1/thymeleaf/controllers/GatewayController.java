@@ -9,7 +9,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/procesos/{procesoId}/gateways")
@@ -45,6 +47,17 @@ public class GatewayController {
                                                           @Valid @RequestBody GatewayDTO datos) {
         return ResponseEntity.ok(GatewayRespuestaDTO.desde(
                 gatewayService.actualizarGateway(id, datos, EmpresaActual.id())));
+    }
+
+    @GetMapping("/{id}/advertencia-eliminar")
+    public ResponseEntity<Map<String, String>> advertenciaEliminar(@PathVariable Long procesoId,
+            @PathVariable Long id) {
+        String advertencia = gatewayService.advertenciaAlEliminar(id, EmpresaActual.id());
+        Map<String, String> resultado = new HashMap<>();
+        if (advertencia != null) {
+            resultado.put("advertencia", advertencia);
+        }
+        return ResponseEntity.ok(resultado);
     }
 
     @DeleteMapping("/{id}")

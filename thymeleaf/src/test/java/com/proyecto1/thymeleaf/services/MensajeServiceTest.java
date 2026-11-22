@@ -33,6 +33,9 @@ class MensajeServiceTest {
     @Mock private ElementoConectableService elementoService;
     @Mock private ProcesoService procesoService;
 
+    @Mock private AuditoriaService auditoriaService;
+    @Mock private AccesoProcesoService accesoProcesoService;
+
     @InjectMocks
     private MensajeService mensajeService;
 
@@ -83,7 +86,7 @@ class MensajeServiceTest {
 
     @Test
     void listarPorProcesoYEmpresa_devuelveLosMensajes() {
-        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenReturn(proceso);
+        when(accesoProcesoService.verificarLectura(1L, 1L)).thenReturn(proceso);
         when(mensajeRepository.findByProcesoId(1L)).thenReturn(List.of(construirMensaje(1L)));
 
         assertEquals(1, mensajeService.listarPorProcesoYEmpresa(1L, 1L).size());
@@ -195,5 +198,68 @@ class MensajeServiceTest {
         mensajeService.eliminarMensaje(1L, 1L, 1L);
 
         verify(mensajeRepository).delete(mensaje);
+    }
+
+    @Test
+    void crearMensaje_throwAExternoSinPolitica_lanzaExcepcion() {
+        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenReturn(proceso);
+        prepararPools();
+        datos.setDestinoExterno("sistema-contabilidad");
+
+        assertThrows(IllegalArgumentException.class, () -> mensajeService.crearMensaje(datos, 1L, 1L));
+        verify(mensajeRepository, never()).save(any());
+    }
+
+    @Test
+    void crearMensaje_catchConDestinoExterno_lanzaExcepcion() {
+        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenReturn(proceso);
+        prepararPools();
+        datos.setTipoMensaje(Mensaje.TipoMensaje.CATCH);
+        datos.setDestinoExterno("sistema-contabilidad");
+        datos.setPoliticaFallo(Mensaje.PoliticaFallo.REGISTRAR);
+
+        assertThrows(IllegalArgumentException.class, () -> mensajeService.crearMensaje(datos, 1L, 1L));
+        verify(mensajeRepository, never()).save(any());
+    }
+
+    @Test
+    void crearMensaje_sinDetallesUsaValoresPorDefecto() {
+        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenReturn(proceso);
+        prepararPools();
+        when(mensajeRepository.save(any(Mensaje.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Mensaje resultado = mensajeService.crearMensaje(datos, 1L, 1L);
+
+        assertEquals(Mensaje.TipoMensaje.THROW, resultado.getTipoMensaje());
+        assertEquals(Mensaje.VarianteMensaje.INICIO, resultado.getVariante());
+        assertNull(resultado.getDestinoExterno());
+        assertNull(resultado.getPayload());
+        assertNull(resultado.getPoliticaFallo());
+    }
+
+    @Test
+    void crearMensaje_payloadDemasiadoLargo_lanzaExcepcion() {
+        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenReturn(proceso);
+        prepararPools();
+        datos.setPayload("x".repeat(4001));
+
+        assertThrows(IllegalArgumentException.class, () -> mensajeService.crearMensaje(datos, 1L, 1L));
+        verify(mensajeRepository, never()).save(any());
+    }
+
+    @Test
+    void crearMensaje_throwAExternoConPolitica_guardaDestino() {
+        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenReturn(proceso);
+        prepararPools();
+        datos.setDestinoExterno("sistema-contabilidad");
+        datos.setPoliticaFallo(Mensaje.PoliticaFallo.REINTENTAR);
+        datos.setVariante(Mensaje.VarianteMensaje.INTERMEDIO);
+        when(mensajeRepository.save(any(Mensaje.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Mensaje resultado = mensajeService.crearMensaje(datos, 1L, 1L);
+
+        assertEquals("sistema-contabilidad", resultado.getDestinoExterno());
+        assertEquals(Mensaje.PoliticaFallo.REINTENTAR, resultado.getPoliticaFallo());
+        assertEquals(Mensaje.VarianteMensaje.INTERMEDIO, resultado.getVariante());
     }
 }

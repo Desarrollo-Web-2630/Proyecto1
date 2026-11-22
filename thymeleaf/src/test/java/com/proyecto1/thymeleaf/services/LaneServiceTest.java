@@ -24,6 +24,7 @@ import com.proyecto1.thymeleaf.dto.LaneDTO;
 import com.proyecto1.thymeleaf.model.Lane;
 import com.proyecto1.thymeleaf.model.Pool;
 import com.proyecto1.thymeleaf.model.RolProceso;
+import com.proyecto1.thymeleaf.repository.ActividadRepository;
 import com.proyecto1.thymeleaf.repository.LaneRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -32,6 +33,10 @@ class LaneServiceTest {
     @Mock private LaneRepository laneRepository;
     @Mock private PoolService poolService;
     @Mock private RolProcesoService rolProcesoService;
+
+    @Mock private AuditoriaService auditoriaService;
+    @Mock private AccesoProcesoService accesoProcesoService;
+    @Mock private ActividadRepository actividadRepository;
 
     @InjectMocks
     private LaneService laneService;
@@ -66,7 +71,7 @@ class LaneServiceTest {
 
     @Test
     void listarPorPoolYEmpresa_devuelveLasLanes() {
-        when(poolService.obtenerPorIdYEmpresa(1L, 1L, 1L)).thenReturn(pool);
+        when(accesoProcesoService.verificarLectura(1L, 1L)).thenReturn(null);
         when(laneRepository.findByPoolId(1L)).thenReturn(List.of(construirLane(1L, 0)));
 
         assertEquals(1, laneService.listarPorPoolYEmpresa(1L, 1L, 1L).size());

@@ -1,41 +1,51 @@
 package com.proyecto1.thymeleaf.services;
 
-import com.proyecto1.thymeleaf.dto.GatewayDTO;
-import com.proyecto1.thymeleaf.model.Gateway;
-import com.proyecto1.thymeleaf.model.Proceso;
-import com.proyecto1.thymeleaf.repository.GatewayRepository;
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import com.proyecto1.thymeleaf.dto.GatewayDTO;
+import com.proyecto1.thymeleaf.model.Arco;
+import com.proyecto1.thymeleaf.model.Gateway;
+import com.proyecto1.thymeleaf.model.Proceso;
+import com.proyecto1.thymeleaf.repository.ArcoRepository;
+import com.proyecto1.thymeleaf.repository.GatewayRepository;
 
 @Service
 @Transactional
 public class GatewayService {
 
     private final GatewayRepository gatewayRepository;
+    private final ArcoRepository arcoRepository;
+    private final ArcoService arcoService;
     private final ProcesoService procesoService;
+    private final AuditoriaService auditoriaService;
+    private final AccesoProcesoService accesoProcesoService;
 
-    public GatewayService(GatewayRepository gatewayRepository, ProcesoService procesoService) {
+    public GatewayService(GatewayRepository gatewayRepository, ArcoRepository arcoRepository,
+                          ArcoService arcoService, ProcesoService procesoService,
+                          AuditoriaService auditoriaService, AccesoProcesoService accesoProcesoService) {
         this.gatewayRepository = gatewayRepository;
+        this.arcoRepository = arcoRepository;
+        this.arcoService = arcoService;
         this.procesoService = procesoService;
+        this.auditoriaService = auditoriaService;
+        this.accesoProcesoService = accesoProcesoService;
     }
 
-    // 1. Listar gateways de un proceso verificando la empresa
     @Transactional(readOnly = true)
     public List<Gateway> listarPorProcesoYEmpresa(Long procesoId, Long empresaId) {
-        validarAccesoProceso(procesoId, empresaId);
+        accesoProcesoService.verificarLectura(procesoId, empresaId);
         return gatewayRepository.findByProcesoId(procesoId);
     }
 
-    // 2. Obtener un gateway especifico verificando que pertenezca a la empresa
     @Transactional(readOnly = true)
     public Gateway obtenerPorIdYEmpresa(Long id, Long empresaId) {
         return gatewayRepository.findByIdAndProcesoEmpresaId(id, empresaId)
                 .orElseThrow(() -> new IllegalArgumentException("El gateway no existe o no pertenece a su empresa"));
     }
 
-    // 3. Crear un nuevo gateway dentro de un proceso autorizado
     public Gateway crearGateway(GatewayDTO datos, Long procesoId, Long empresaId) {
         Proceso proceso = validarAccesoProceso(procesoId, empresaId);
         validarDatosObligatorios(datos);
@@ -48,14 +58,17 @@ public class GatewayService {
         gateway.setProceso(proceso);
         gateway.setStatus(0);
 
-        return gatewayRepository.save(gateway);
+        Gateway guardado = gatewayRepository.save(gateway);
+        auditoriaService.registrar("Gateway", guardado.getId(), "CREAR", "Creado: " + guardado.getNombre());
+        return guardado;
     }
 
-    // 4. Actualizar un gateway existente
     public Gateway actualizarGateway(Long id, GatewayDTO datos, Long empresaId) {
         Gateway gatewayExistente = obtenerPorIdYEmpresa(id, empresaId);
         validarDatosObligatorios(datos);
 
+        boolean cambioAParalelo = datos.getTipo() == Gateway.TipoGateway.PARALELO
+                && gatewayExistente.getTipo() != Gateway.TipoGateway.PARALELO;
         gatewayExistente.setNombre(datos.getNombre().trim());
         gatewayExistente.setTipo(datos.getTipo());
         if (datos.getPosicionX() != null && datos.getPosicionY() != null) {
@@ -63,16 +76,56 @@ public class GatewayService {
             gatewayExistente.setPosicionY(Math.max(datos.getPosicionY(), 0));
         }
 
-        return gatewayRepository.save(gatewayExistente);
+        Gateway guardado = gatewayRepository.save(gatewayExistente);
+        if (cambioAParalelo) {
+            limpiarCondiciones(guardado.getId());
+        }
+        auditoriaService.registrar("Gateway", guardado.getId(), "EDITAR", "Editado: " + guardado.getNombre());
+        return guardado;
     }
 
-    // 5. Eliminar (soft delete via @SQLDelete)
     public void eliminarGateway(Long id, Long empresaId) {
         Gateway gateway = obtenerPorIdYEmpresa(id, empresaId);
+        arcoService.eliminarArcosDeElemento(id);
+        auditoriaService.registrar("Gateway", id, "ELIMINAR", "Gateway eliminado con sus arcos");
         gatewayRepository.delete(gateway);
     }
 
-    // Método auxiliar privado para validar que el proceso pertenece a la empresa
+    @Transactional(readOnly = true)
+    public String advertenciaAlEliminar(Long id, Long empresaId) {
+        Gateway gateway = obtenerPorIdYEmpresa(id, empresaId);
+        List<Arco> salientes = arcoRepository.findByOrigenId(gateway.getId());
+        List<Arco> entrantes = arcoRepository.findByDestinoId(gateway.getId());
+        if (salientes.isEmpty() && entrantes.isEmpty()) {
+            return null;
+        }
+        return "Al eliminar este gateway también se eliminarán " + (salientes.size() + entrantes.size())
+                + " arco(s) conectado(s).";
+    }
+
+    @Transactional(readOnly = true)
+    public void validarSalidasProceso(Long procesoId) {
+        for (Gateway gateway : gatewayRepository.findByProcesoId(procesoId)) {
+            List<Arco> salientes = arcoRepository.findByOrigenId(gateway.getId());
+            if (salientes.size() < 2) {
+                throw new IllegalArgumentException("El gateway '" + gateway.getNombre()
+                        + "' debe tener al menos dos salidas antes de publicar el proceso");
+            }
+            if (gateway.getTipo() != Gateway.TipoGateway.PARALELO
+                    && salientes.stream().anyMatch(arco -> arco.getCondicion() == null || arco.getCondicion().isBlank())) {
+                throw new IllegalArgumentException("Todas las salidas del gateway '" + gateway.getNombre()
+                        + "' deben tener condición");
+            }
+        }
+    }
+
+    private void limpiarCondiciones(Long gatewayId) {
+        for (Arco arco : arcoRepository.findByOrigenId(gatewayId)) {
+            arco.setCondicion(null);
+            arcoRepository.save(arco);
+        }
+    }
+
     private Proceso validarAccesoProceso(Long procesoId, Long empresaId) {
         return procesoService.obtenerPorIdYEmpresa(procesoId, empresaId);
     }

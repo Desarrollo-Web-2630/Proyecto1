@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/procesos")
@@ -52,8 +53,14 @@ public class ProcesoController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ProcesoRespuestaDTO> obtener(@PathVariable Long id) {
-        Proceso proceso = procesoService.obtenerPorIdYEmpresa(id, EmpresaActual.id());
+        Proceso proceso = procesoService.obtenerParaLectura(id, EmpresaActual.id());
         return ResponseEntity.ok(ProcesoRespuestaDTO.desde(proceso));
+    }
+
+    @GetMapping("/{id}/acceso")
+    public ResponseEntity<Map<String, Boolean>> acceso(@PathVariable Long id) {
+        return ResponseEntity.ok(Map.of("soloLectura",
+                procesoService.esSoloLectura(id, EmpresaActual.id())));
     }
 
     @PostMapping

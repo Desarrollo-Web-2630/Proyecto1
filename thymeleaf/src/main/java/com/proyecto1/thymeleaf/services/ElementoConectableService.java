@@ -2,6 +2,7 @@ package com.proyecto1.thymeleaf.services;
 
 import com.proyecto1.thymeleaf.model.ElementoConectable;
 import com.proyecto1.thymeleaf.repository.ElementoConectableRepository;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,15 +14,23 @@ public class ElementoConectableService {
 
     private final ElementoConectableRepository elementoRepository;
     private final ProcesoService procesoService;
+    private final AuditoriaService auditoriaService;
+    private final AccesoProcesoService accesoProcesoService;
+    private final ArcoService arcoService;
 
-    public ElementoConectableService(ElementoConectableRepository elementoRepository, ProcesoService procesoService) {
+    public ElementoConectableService(ElementoConectableRepository elementoRepository, ProcesoService procesoService,
+                                     AuditoriaService auditoriaService, @Lazy ArcoService arcoService,
+                                     AccesoProcesoService accesoProcesoService) {
         this.elementoRepository = elementoRepository;
         this.procesoService = procesoService;
+        this.auditoriaService = auditoriaService;
+        this.arcoService = arcoService;
+        this.accesoProcesoService = accesoProcesoService;
     }
 
     @Transactional(readOnly = true)
     public List<ElementoConectable> listarElementosPorProcesoYEmpresa(Long procesoId, Long empresaId) {
-        validarAccesoProceso(procesoId, empresaId);
+        accesoProcesoService.verificarLectura(procesoId, empresaId);
         return elementoRepository.findByProcesoId(procesoId);
     }
 
@@ -32,6 +41,7 @@ public class ElementoConectableService {
         elemento.setPosicionX(nuevaX);
         elemento.setPosicionY(nuevaY);
         elementoRepository.save(elemento);
+        auditoriaService.registrar("Elemento", elementoId, "MOVER", "Posicion actualizada");
     }
 
     private void validarAccesoProceso(Long procesoId, Long empresaId) {
@@ -47,6 +57,8 @@ public class ElementoConectableService {
     // Eliminar un elemento conectable
     public void eliminarElemento(Long id, Long empresaId) {
         ElementoConectable elemento = obtenerPorIdYEmpresa(id, empresaId);
+        arcoService.eliminarArcosDeElemento(id);
+        auditoriaService.registrar("Elemento", id, "ELIMINAR", "Elemento eliminado con sus arcos");
         elementoRepository.delete(elemento);
     }
 }

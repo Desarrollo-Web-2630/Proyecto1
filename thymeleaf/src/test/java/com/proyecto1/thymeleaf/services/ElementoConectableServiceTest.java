@@ -24,6 +24,10 @@ class ElementoConectableServiceTest {
     @Mock private ElementoConectableRepository elementoRepository;
     @Mock private ProcesoService procesoService;
 
+    @Mock private AuditoriaService auditoriaService;
+    @Mock private AccesoProcesoService accesoProcesoService;
+    @Mock private ArcoService arcoService;
+
     @InjectMocks
     private ElementoConectableService elementoConectableService;
 
@@ -43,7 +47,7 @@ class ElementoConectableServiceTest {
 
     @Test
     void listarElementosPorProcesoYEmpresa_delegaAlRepositorio() {
-        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenReturn(proceso);
+        when(accesoProcesoService.verificarLectura(1L, 1L)).thenReturn(proceso);
         when(elementoRepository.findByProcesoId(1L)).thenReturn(List.of(new ElementoDePrueba()));
 
         assertEquals(1, elementoConectableService.listarElementosPorProcesoYEmpresa(1L, 1L).size());
@@ -51,7 +55,7 @@ class ElementoConectableServiceTest {
 
     @Test
     void listarElementosPorProcesoYEmpresa_conProcesoDeOtraEmpresa_lanzaExcepcion() {
-        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenThrow(new IllegalArgumentException("El proceso no existe o no pertenece a su empresa"));
+        when(accesoProcesoService.verificarLectura(1L, 1L)).thenThrow(new IllegalArgumentException("El proceso no existe o no pertenece a su empresa"));
         assertThrows(IllegalArgumentException.class,
                 () -> elementoConectableService.listarElementosPorProcesoYEmpresa(1L, 1L));
     }

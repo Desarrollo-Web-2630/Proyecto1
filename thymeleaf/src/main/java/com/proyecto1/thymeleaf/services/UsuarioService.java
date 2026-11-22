@@ -28,17 +28,20 @@ public class UsuarioService {
     private final ModelMapper modelMapper;
     private final PasswordEncoder passwordEncoder;
     private final VerificacionCorreoService verificacionCorreoService;
+    private final AuditoriaService auditoriaService;
 
     public UsuarioService(UsuarioRepository usuarioRepository,
                           @Lazy EmpresaService empresaService,
                           ModelMapper modelMapper,
                           PasswordEncoder passwordEncoder,
-                          VerificacionCorreoService verificacionCorreoService) {
+                           VerificacionCorreoService verificacionCorreoService,
+                           AuditoriaService auditoriaService) {
         this.usuarioRepository = usuarioRepository;
         this.empresaService = empresaService;
         this.modelMapper = modelMapper;
         this.passwordEncoder = passwordEncoder;
         this.verificacionCorreoService = verificacionCorreoService;
+        this.auditoriaService = auditoriaService;
     }
 
     // 1. Registrar un usuario dentro de una empresa
@@ -69,6 +72,7 @@ public class UsuarioService {
         usuario.setActivo(false);
 
         Usuario guardado = usuarioRepository.save(usuario);
+        auditoriaService.registrar("Usuario", guardado.getId(), "CREAR", "Creado: " + guardado.getCorreo());
         verificacionCorreoService.crearYEnviarToken(guardado);
 
         return guardado;
@@ -112,7 +116,9 @@ public class UsuarioService {
     public Usuario desactivarUsuario(Long id, Long empresaId) {
         Usuario usuario = obtenerPorIdYEmpresa(id, empresaId);
         usuario.setActivo(false);
-        return usuarioRepository.save(usuario);
+        Usuario guardado = usuarioRepository.save(usuario);
+        auditoriaService.registrar("Usuario", guardado.getId(), "EDITAR", "Usuario actualizado: " + guardado.getCorreo());
+        return guardado;
     }
 
     // 6. Cambiar el rol de acceso de un usuario
@@ -122,12 +128,15 @@ public class UsuarioService {
         }
         Usuario usuario = obtenerPorIdYEmpresa(id, empresaId);
         usuario.setRolAcceso(nuevoRol);
-        return usuarioRepository.save(usuario);
+        Usuario guardado = usuarioRepository.save(usuario);
+        auditoriaService.registrar("Usuario", guardado.getId(), "CAMBIAR_ROL", "Nuevo rol: " + guardado.getRolAcceso());
+        return guardado;
     }
 
     // 7. Eliminar un usuario
     public void eliminarUsuario(Long id, Long empresaId) {
         Usuario usuario = obtenerPorIdYEmpresa(id, empresaId);
+        auditoriaService.registrar("Usuario", id, "ELIMINAR", "Usuario eliminado");
         usuarioRepository.delete(usuario);
     }
 

@@ -24,6 +24,9 @@ List<Proceso> findByEmpresaIdAndEstadoNot(@Param("empresaId") Long empresaId,
 @Query("SELECT p FROM Proceso p WHERE p.id = :id AND p.empresa.id = :empresaId AND p.status = 0")
 Optional<Proceso> findByIdAndEmpresaId(@Param("id") Long id, @Param("empresaId") Long empresaId);
 
+@Query("SELECT p.id FROM Proceso p WHERE p.empresa.id = :empresaId AND p.status = 0")
+List<Long> findIdsByEmpresaId(@Param("empresaId") Long empresaId);
+
 @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM Proceso p " +
         "WHERE LOWER(p.nombre) = LOWER(:nombre) AND p.empresa.id = :empresaId AND p.status = 0")
 boolean existsByNombreAndEmpresaId(@Param("nombre") String nombre, @Param("empresaId") Long empresaId);

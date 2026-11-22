@@ -1,11 +1,18 @@
 package com.proyecto1.thymeleaf.security;
 
 import com.proyecto1.thymeleaf.model.Usuario;
+import com.proyecto1.thymeleaf.model.TokenRevocado;
+import com.proyecto1.thymeleaf.repository.TokenRevocadoRepository;
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class JwtServicioTest {
 
@@ -71,6 +78,21 @@ class JwtServicioTest {
         JwtServicio servicio = new JwtServicio("", 60);
 
         assertTrue(servicio.correoDelToken(servicio.generarToken(usuario)).isPresent());
+    }
+
+    @Test
+    void revocar_tokenDejaDeSerValido() {
+        TokenRevocadoRepository repositorio = mock(TokenRevocadoRepository.class);
+        when(repositorio.existsById(anyString())).thenReturn(false, false, false, true);
+        JwtServicio servicio = new JwtServicio(SECRETO, 60, repositorio);
+        String token = servicio.generarToken(usuario);
+
+        assertTrue(servicio.correoDelToken(token).isPresent());
+        servicio.revocar(token);
+
+        verify(repositorio).deleteByExpiracionBefore(any());
+        verify(repositorio).save(any(TokenRevocado.class));
+        assertTrue(servicio.correoDelToken(token).isEmpty());
     }
 
     @Test
