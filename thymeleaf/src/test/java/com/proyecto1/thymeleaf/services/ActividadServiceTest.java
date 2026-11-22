@@ -32,6 +32,10 @@ class ActividadServiceTest {
     @Mock private ProcesoService procesoService;
     @Mock private LaneService laneService;
 
+    @Mock private AuditoriaService auditoriaService;
+    @Mock private AccesoProcesoService accesoProcesoService;
+    @Mock private ArcoService arcoService;
+
     @InjectMocks
     private ActividadService actividadService;
 
@@ -134,7 +138,7 @@ class ActividadServiceTest {
 
     @Test
     void listarPorLane_delegaAlRepositorioConLaneId() {
-        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenReturn(proceso);
+        when(accesoProcesoService.verificarLectura(1L, 1L)).thenReturn(proceso);
         when(actividadRepository.findByProcesoIdAndLaneId(1L, 2L)).thenReturn(java.util.List.of(new Actividad()));
 
         assertEquals(1, actividadService.listarPorLane(1L, 2L, 1L).size());
@@ -146,7 +150,7 @@ class ActividadServiceTest {
         actividad.setNombre("Revisar");
         Pageable pagina = PageRequest.of(0, 10);
 
-        when(procesoService.obtenerPorIdYEmpresa(1L, 1L)).thenReturn(proceso);
+        when(accesoProcesoService.verificarLectura(1L, 1L)).thenReturn(proceso);
         when(actividadRepository.buscarPorProcesoId(1L, pagina)).thenReturn(new PageImpl<>(List.of(actividad), pagina, 1));
 
         Page<ActividadResponseDTO> resultado = actividadService.buscarPorProcesoYEmpresa(1L, 1L, pagina);

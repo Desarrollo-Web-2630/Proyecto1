@@ -23,13 +23,15 @@ public class RolProcesoService {
     private final RolProcesoRepository rolProcesoRepository;
     private final EmpresaService empresaService;
     private final UsoRolProceso usoRolProceso;
+    private final AuditoriaService auditoriaService;
 
     // @Lazy rompe el ciclo UsoRolProcesoConLanes -> LaneService -> RolProcesoService -> UsoRolProceso
     public RolProcesoService(RolProcesoRepository rolProcesoRepository, EmpresaService empresaService,
-                             @Lazy UsoRolProceso usoRolProceso) {
+                             @Lazy UsoRolProceso usoRolProceso, AuditoriaService auditoriaService) {
         this.rolProcesoRepository = rolProcesoRepository;
         this.empresaService = empresaService;
         this.usoRolProceso = usoRolProceso;
+        this.auditoriaService = auditoriaService;
     }
 
     // 1. HU-20: catalogo de roles de la empresa, ordenado por nombre
@@ -76,7 +78,9 @@ public class RolProcesoService {
         rol.setDescripcion(descripcion);
         rol.setEmpresa(empresa);
 
-        return toRespuesta(rolProcesoRepository.save(rol), empresaId);
+        RolProceso guardado = rolProcesoRepository.save(rol);
+        auditoriaService.registrar("RolProceso", guardado.getId(), "CREAR", "Creado: " + guardado.getNombre());
+        return toRespuesta(guardado, empresaId);
     }
 
     // 5. HU-18: editar nombre y descripcion. Las lanes guardan una referencia al
@@ -93,7 +97,9 @@ public class RolProcesoService {
         rolExistente.setNombre(nombre);
         rolExistente.setDescripcion(descripcion);
 
-        return toRespuesta(rolProcesoRepository.save(rolExistente), empresaId);
+        RolProceso guardado = rolProcesoRepository.save(rolExistente);
+        auditoriaService.registrar("RolProceso", guardado.getId(), "EDITAR", "Editado: " + guardado.getNombre());
+        return toRespuesta(guardado, empresaId);
     }
 
     // 6. HU-19: eliminar (borrado logico via @SQLDelete) solo si el rol no esta en uso
@@ -107,6 +113,7 @@ public class RolProcesoService {
                     + "' porque esta en uso en los procesos: " + procesos);
         }
 
+        auditoriaService.registrar("RolProceso", id, "ELIMINAR", "Rol eliminado");
         rolProcesoRepository.delete(rol);
     }
 

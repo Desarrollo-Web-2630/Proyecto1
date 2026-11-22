@@ -22,18 +22,23 @@ public class MensajeService {
     private final PoolService poolService;
     private final ElementoConectableService elementoService;
     private final ProcesoService procesoService;
+    private final AuditoriaService auditoriaService;
+    private final AccesoProcesoService accesoProcesoService;
 
     public MensajeService(MensajeRepository mensajeRepository, PoolService poolService,
-                          ElementoConectableService elementoService, ProcesoService procesoService) {
+                          ElementoConectableService elementoService, ProcesoService procesoService,
+                          AuditoriaService auditoriaService, AccesoProcesoService accesoProcesoService) {
         this.mensajeRepository = mensajeRepository;
         this.poolService = poolService;
         this.elementoService = elementoService;
         this.procesoService = procesoService;
+        this.auditoriaService = auditoriaService;
+        this.accesoProcesoService = accesoProcesoService;
     }
 
     @Transactional(readOnly = true)
     public List<Mensaje> listarPorProcesoYEmpresa(Long procesoId, Long empresaId) {
-        validarAccesoProceso(procesoId, empresaId);
+        accesoProcesoService.verificarLectura(procesoId, empresaId);
         return mensajeRepository.findByProcesoId(procesoId);
     }
 
@@ -56,8 +61,11 @@ public class MensajeService {
         mensaje.setPoolOrigen(origen);
         mensaje.setPoolDestino(destino);
         mensaje.setElementoOrigen(buscarElementoOpcional(datos.getElementoOrigenId(), procesoId, empresaId));
+        aplicarDetalles(datos, mensaje);
 
-        return mensajeRepository.save(mensaje);
+        Mensaje guardado = mensajeRepository.save(mensaje);
+        auditoriaService.registrar("Mensaje", guardado.getId(), "CREAR", "Creado: " + guardado.getNombre());
+        return guardado;
     }
 
     public Mensaje actualizarMensaje(Long id, MensajeDTO datos, Long procesoId, Long empresaId) {
@@ -71,13 +79,43 @@ public class MensajeService {
         mensaje.setPoolOrigen(origen);
         mensaje.setPoolDestino(destino);
         mensaje.setElementoOrigen(buscarElementoOpcional(datos.getElementoOrigenId(), procesoId, empresaId));
+        aplicarDetalles(datos, mensaje);
 
-        return mensajeRepository.save(mensaje);
+        Mensaje guardado = mensajeRepository.save(mensaje);
+        auditoriaService.registrar("Mensaje", guardado.getId(), "EDITAR", "Editado: " + guardado.getNombre());
+        return guardado;
     }
 
     public void eliminarMensaje(Long id, Long procesoId, Long empresaId) {
         Mensaje mensaje = obtenerPorIdYEmpresa(id, procesoId, empresaId);
+        auditoriaService.registrar("Mensaje", id, "ELIMINAR", "Mensaje eliminado");
         mensajeRepository.delete(mensaje);
+    }
+
+    private void aplicarDetalles(MensajeDTO datos, Mensaje mensaje) {
+        Mensaje.TipoMensaje tipo = datos.getTipoMensaje() == null ? Mensaje.TipoMensaje.THROW : datos.getTipoMensaje();
+        Mensaje.VarianteMensaje variante = datos.getVariante() == null
+                ? Mensaje.VarianteMensaje.INICIO : datos.getVariante();
+        String destinoExterno = datos.getDestinoExterno() == null || datos.getDestinoExterno().isBlank()
+                ? null : datos.getDestinoExterno().trim();
+        String payload = datos.getPayload() == null || datos.getPayload().isBlank()
+                ? null : datos.getPayload().trim();
+
+        if (tipo == Mensaje.TipoMensaje.CATCH && destinoExterno != null) {
+            throw new IllegalArgumentException("Un mensaje CATCH no puede tener destino externo");
+        }
+        if (tipo == Mensaje.TipoMensaje.THROW && destinoExterno != null && datos.getPoliticaFallo() == null) {
+            throw new IllegalArgumentException("Un mensaje a sistema externo requiere política de fallo");
+        }
+        if (payload != null && payload.length() > 4000) {
+            throw new IllegalArgumentException("El payload no puede superar los 4000 caracteres");
+        }
+
+        mensaje.setTipoMensaje(tipo);
+        mensaje.setVariante(variante);
+        mensaje.setDestinoExterno(destinoExterno);
+        mensaje.setPayload(payload);
+        mensaje.setPoliticaFallo(datos.getPoliticaFallo());
     }
 
     private void validarExtremos(Pool origen, Pool destino) {

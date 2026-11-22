@@ -26,6 +26,10 @@ class ProcesoServiceTest {
     @Mock private ProcesoRepository procesoRepository;
     @Mock private EmpresaService empresaService;
 
+    @Mock private AuditoriaService auditoriaService;
+    @Mock private GatewayService gatewayService;
+    @Mock private AccesoProcesoService accesoProcesoService;
+
     @InjectMocks
     private ProcesoService procesoService;
 

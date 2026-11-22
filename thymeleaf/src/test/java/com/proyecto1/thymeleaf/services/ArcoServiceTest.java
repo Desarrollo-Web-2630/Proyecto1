@@ -29,6 +29,9 @@ class ArcoServiceTest {
     @Mock private ProcesoService procesoService;
     @Mock private LaneService laneService;
 
+    @Mock private AuditoriaService auditoriaService;
+    @Mock private AccesoProcesoService accesoProcesoService;
+
     @InjectMocks
     private ArcoService arcoService;
 

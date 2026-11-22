@@ -37,6 +37,8 @@ class RolProcesoServiceTest {
     @Mock private EmpresaService empresaService;
     @Mock private UsoRolProceso usoRolProceso;
 
+    @Mock private AuditoriaService auditoriaService;
+
     @InjectMocks
     private RolProcesoService rolProcesoService;
 

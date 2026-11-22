@@ -7,6 +7,7 @@ import com.proyecto1.thymeleaf.security.JwtServicio;
 import com.proyecto1.thymeleaf.security.UsuarioAutenticado;
 import com.proyecto1.thymeleaf.util.EmpresaActual;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -36,7 +37,15 @@ public class AuthController {
         return ResponseEntity.ok(new LoginRespuestaDTO(token, "Bearer", jwtServicio.getExpiracionSegundos(), usuario.aVista()));
     }
 
-    // Datos del usuario dueno del token
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String autorizacion) {
+        if (autorizacion != null && autorizacion.startsWith("Bearer ")) {
+            jwtServicio.revocar(autorizacion.substring(7));
+        }
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/yo")
     public ResponseEntity<UsuarioVistaDTO> yo() {
         return ResponseEntity.ok(EmpresaActual.usuario().aVista());

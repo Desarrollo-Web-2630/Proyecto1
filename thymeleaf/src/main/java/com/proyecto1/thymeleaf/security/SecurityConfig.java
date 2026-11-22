@@ -51,11 +51,14 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // Publicas: login, activacion de cuenta, registro de empresa y documentacion
-                        .requestMatchers("/api/auth/yo").authenticated()
+                        .requestMatchers("/api/auth/yo", "/api/auth/logout").authenticated()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/empresas").permitAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/error").permitAll()
                         .requestMatchers("/api/v1/debug/**").hasRole(ADMIN)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/empresas/catalogo").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/procesos/*/comparticion").hasRole(ADMIN)
+                        .requestMatchers("/api/v1/procesos/*/pools/*/permisos").hasRole(ADMIN)
                         // Consultar: cualquier rol de la empresa
                         .requestMatchers(HttpMethod.GET, API).authenticated()
                         // Eliminar, administrar usuarios, empresa y roles: solo ADMIN

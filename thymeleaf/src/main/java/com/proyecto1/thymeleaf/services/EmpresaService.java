@@ -25,15 +25,18 @@ public class EmpresaService {
     private final UsuarioService usuarioService;
     private final PasswordEncoder passwordEncoder;
     private final VerificacionCorreoService verificacionCorreoService;
+    private final AuditoriaService auditoriaService;
 
     public EmpresaService(EmpresaRepository empresaRepository,
                           UsuarioService usuarioService,
                           PasswordEncoder passwordEncoder,
-                          VerificacionCorreoService verificacionCorreoService) {
+                           VerificacionCorreoService verificacionCorreoService,
+                           AuditoriaService auditoriaService) {
         this.empresaRepository = empresaRepository;
         this.usuarioService = usuarioService;
         this.passwordEncoder = passwordEncoder;
         this.verificacionCorreoService = verificacionCorreoService;
+        this.auditoriaService = auditoriaService;
     }
 
     // 1. Listar todas las empresas registradas
@@ -83,6 +86,7 @@ public class EmpresaService {
         administrador.setEmpresa(empresaGuardada);
         Usuario administradorGuardado = usuarioService.guardarUsuario(administrador);
 
+        auditoriaService.registrar("Empresa", empresaGuardada.getId(), "CREAR", "Creada: " + empresaGuardada.getNombre());
         verificacionCorreoService.crearYEnviarToken(administradorGuardado);
 
         return empresaGuardada;
@@ -109,12 +113,15 @@ public class EmpresaService {
         empresaExistente.setNit(nit);
         empresaExistente.setCorreo(correo);
 
-        return empresaRepository.save(empresaExistente);
+        Empresa guardada = empresaRepository.save(empresaExistente);
+        auditoriaService.registrar("Empresa", guardada.getId(), "EDITAR", "Editada: " + guardada.getNombre());
+        return guardada;
     }
 
     // 5. Eliminar (borrado logico via @SQLDelete)
     public void eliminarEmpresa(Long id) {
         Empresa empresa = obtenerPorId(id);
+        auditoriaService.registrar("Empresa", id, "ELIMINAR", "Empresa eliminada");
         empresaRepository.delete(empresa);
     }
 

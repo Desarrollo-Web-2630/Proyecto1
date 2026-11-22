@@ -4,6 +4,7 @@ import com.proyecto1.thymeleaf.dto.ArcoDTO;
 import com.proyecto1.thymeleaf.model.Actividad;
 import com.proyecto1.thymeleaf.model.Arco;
 import com.proyecto1.thymeleaf.model.ElementoConectable;
+import com.proyecto1.thymeleaf.model.Gateway;
 import com.proyecto1.thymeleaf.model.Proceso;
 import com.proyecto1.thymeleaf.repository.ArcoRepository;
 import org.springframework.context.annotation.Lazy;
@@ -20,21 +21,26 @@ public class ArcoService {
     private final ElementoConectableService elementoService;
     private final ProcesoService procesoService;
     private final LaneService laneService;
+    private final AuditoriaService auditoriaService;
+    private final AccesoProcesoService accesoProcesoService;
 
     public ArcoService(ArcoRepository arcoRepository,
                        ElementoConectableService elementoService,
                        ProcesoService procesoService,
-                       @Lazy LaneService laneService) {
+                       @Lazy LaneService laneService, AuditoriaService auditoriaService,
+                       AccesoProcesoService accesoProcesoService) {
         this.arcoRepository = arcoRepository;
         this.elementoService = elementoService;
         this.procesoService = procesoService;
         this.laneService = laneService;
+        this.auditoriaService = auditoriaService;
+        this.accesoProcesoService = accesoProcesoService;
     }
 
     // 1. Listar los arcos de un proceso verificando la empresa
     @Transactional(readOnly = true)
     public List<Arco> listarPorProcesoYEmpresa(Long procesoId, Long empresaId) {
-        validarAccesoProceso(procesoId, empresaId);
+        accesoProcesoService.verificarLectura(procesoId, empresaId);
         return arcoRepository.findByProcesoId(procesoId);
     }
 
@@ -54,12 +60,14 @@ public class ArcoService {
 
         Arco arco = new Arco();
         arco.setNombre(datos.getNombre());
-        arco.setCondicion(datos.getCondicion());
+        arco.setCondicion(condicionParaGateway(origen, datos.getCondicion()));
         arco.setOrigen(origen);
         arco.setDestino(destino);
         arco.setProceso(proceso);
 
-        return arcoRepository.save(arco);
+        Arco guardado = arcoRepository.save(arco);
+        auditoriaService.registrar("Arco", guardado.getId(), "CREAR", "Creado: " + guardado.getNombre());
+        return guardado;
     }
 
     // 4. Editar el arco: la HU-12 permite cambiar tambien origen y destino,
@@ -72,16 +80,19 @@ public class ArcoService {
         ElementoConectable destino = obtenerElemento(datos.getDestinoId(), empresaId);
 
         arcoExistente.setNombre(datos.getNombre());
-        arcoExistente.setCondicion(datos.getCondicion());
+        arcoExistente.setCondicion(condicionParaGateway(origen, datos.getCondicion()));
         arcoExistente.setOrigen(origen);
         arcoExistente.setDestino(destino);
 
-        return arcoRepository.save(arcoExistente);
+        Arco guardado = arcoRepository.save(arcoExistente);
+        auditoriaService.registrar("Arco", guardado.getId(), "EDITAR", "Editado: " + guardado.getNombre());
+        return guardado;
     }
 
     // 5. Eliminar (borrado logico via @SQLDelete)
     public void eliminarArco(Long id, Long empresaId) {
         Arco arco = obtenerPorIdYEmpresa(id, empresaId);
+        auditoriaService.registrar("Arco", id, "ELIMINAR", "Arco eliminado");
         arcoRepository.delete(arco);
     }
 
@@ -104,7 +115,10 @@ public class ArcoService {
         List<Arco> conectados = new java.util.ArrayList<>(arcoRepository.findByOrigenId(elementoId));
         conectados.addAll(arcoRepository.findByDestinoId(elementoId));
 
-        conectados.forEach(arcoRepository::delete);
+        for (Arco arco : conectados) {
+            auditoriaService.registrar("Arco", arco.getId(), "ELIMINAR", "Eliminado con su elemento");
+            arcoRepository.delete(arco);
+        }
         return conectados.size();
     }
 
@@ -139,6 +153,19 @@ public class ArcoService {
         }
 
         return origen;
+    }
+
+    private String condicionParaGateway(ElementoConectable origen, String condicion) {
+        if (!(origen instanceof Gateway gateway)) {
+            return condicion;
+        }
+        if (gateway.getTipo() == Gateway.TipoGateway.PARALELO) {
+            return null;
+        }
+        if (condicion == null || condicion.isBlank()) {
+            throw new IllegalArgumentException("Las salidas de un gateway exclusivo o inclusivo requieren condición");
+        }
+        return condicion.trim();
     }
 
     private Long poolDe(ElementoConectable elemento, Long procesoId) {

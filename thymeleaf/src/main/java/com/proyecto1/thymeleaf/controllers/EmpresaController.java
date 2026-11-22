@@ -2,6 +2,7 @@ package com.proyecto1.thymeleaf.controllers;
 
 import com.proyecto1.thymeleaf.dto.EmpresaDTO;
 import com.proyecto1.thymeleaf.dto.EmpresaRespuestaDTO;
+import com.proyecto1.thymeleaf.dto.EmpresaResumenDTO;
 import com.proyecto1.thymeleaf.services.EmpresaService;
 import com.proyecto1.thymeleaf.util.EmpresaActual;
 import jakarta.validation.Valid;
@@ -26,6 +27,11 @@ public class EmpresaController {
     @GetMapping
     public ResponseEntity<List<EmpresaRespuestaDTO>> listar() {
         return ResponseEntity.ok(List.of(EmpresaRespuestaDTO.desde(empresaService.obtenerPorId(EmpresaActual.id()))));
+    }
+
+    @GetMapping("/catalogo")
+    public ResponseEntity<List<EmpresaResumenDTO>> catalogo() {
+        return ResponseEntity.ok(empresaService.listarTodas().stream().map(EmpresaResumenDTO::desde).toList());
     }
 
     @GetMapping("/{id}")

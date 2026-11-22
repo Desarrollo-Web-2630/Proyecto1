@@ -76,7 +76,7 @@ class ProcesoControllerTest {
 
     @Test
     void obtener_inexistente_devuelve400() throws Exception {
-        when(procesoService.obtenerPorIdYEmpresa(eq(99L), anyLong()))
+        when(procesoService.obtenerParaLectura(eq(99L), anyLong()))
                 .thenThrow(new IllegalArgumentException("El proceso no existe o no pertenece a su empresa"));
 
         mockMvc.perform(get("/api/v1/procesos/99"))
