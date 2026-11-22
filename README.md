@@ -344,25 +344,31 @@ Content-Type: application/json
 
 ## Pruebas de carga (JMeter)
 
-El plan `thymeleaf/src/test/jmeter/plan-carga.jmx` lanza usuarios concurrentes
-contra `GET /api/v1/procesos`, `GET /api/v1/procesos/buscar` y
-`POST /api/v1/procesos`, y verifica que respondan 200/201. No hace falta
-instalar JMeter: el plugin de Maven lo descarga la primera vez.
+El plan `thymeleaf/src/test/jmeter/plan-carga.jmx` simula usuarios que entran,
+consultan sus procesos, crean uno y trabajan en el editor. Primero un hilo de
+preparacion crea por API un rol, un proceso, su pool, una lane y una actividad.
+Luego cada usuario hace login una vez y repite: `GET /api/v1/procesos`,
+`GET /api/v1/procesos/buscar`, `POST /api/v1/procesos`, `GET /api/v1/procesos/{id}`,
+`GET /api/v1/procesos/{id}/actividades` y `POST .../actividades/{id}/mover`
+(el drag and drop), verificando que respondan 200/201. No hace falta instalar
+JMeter: el plugin de Maven lo descarga la primera vez.
 
-1. Arranca el backend en otra terminal (`./mvnw spring-boot:run -Dspring-boot.run.profiles=h2`).
-2. Ejecuta, desde `thymeleaf`:
+1. Arranca el backend en otra terminal con `DEMO_ADMIN_PASSWORD` definida
+   (`./mvnw spring-boot:run -Dspring-boot.run.profiles=h2`).
+2. Ejecuta, desde `thymeleaf` (la clave es la de `DEMO_ADMIN_PASSWORD`):
 
 ```bash
-./mvnw jmeter:configure jmeter:jmeter jmeter:results
+./mvnw jmeter:configure jmeter:jmeter jmeter:results -Dcarga.clave="$DEMO_ADMIN_PASSWORD"
 ```
 
-En PowerShell: `.\mvnw jmeter:configure jmeter:jmeter jmeter:results`.
+En PowerShell: `.\mvnw jmeter:configure jmeter:jmeter jmeter:results "-Dcarga.clave=$env:DEMO_ADMIN_PASSWORD"`.
 
-Por defecto son 20 usuarios, rampa de 10 s y 5 repeticiones (20 x 5 x 3
-endpoints = 300 peticiones). Se cambian sin tocar el plan:
+Por defecto son 20 usuarios, rampa de 10 s y 5 repeticiones. Se cambian sin
+tocar el plan (escenarios de la entrega final: 20/10 s, 50/20 s, 100/30 s y
+200/20 s, todos con 10 repeticiones):
 
 ```bash
-./mvnw jmeter:configure jmeter:jmeter jmeter:results -Dcarga.usuarios=50 -Dcarga.rampa=20 -Dcarga.repeticiones=10
+./mvnw jmeter:configure jmeter:jmeter jmeter:results -Dcarga.usuarios=100 -Dcarga.rampa=30 -Dcarga.repeticiones=10 -Dcarga.clave="$DEMO_ADMIN_PASSWORD"
 ```
 
 Resultados:
@@ -375,3 +381,28 @@ Resultados:
 Para editar el plan con la interfaz grafica de JMeter, ejecuta `./mvnw jmeter:configure`
 y abre `plan-carga.jmx` con `target/jmeter/apache-jmeter-*/bin/jmeter` (o con un
 JMeter instalado aparte).
+
+## Pruebas de sistema E2E (Selenium)
+
+Las pruebas de `thymeleaf/src/test/java/com/proyecto1/thymeleaf/e2e` manejan
+Chrome con Selenium WebDriver contra el frontend Angular real. La propia prueba
+arranca el backend en el puerto 8080 (perfil h2) y crea sus datos: un usuario de
+solo lectura, otra empresa con su administrador y un rol de proceso.
+
+Cubren login y cierre de sesion, rutas protegidas, crear, validar y buscar procesos,
+modelar en el editor arrastrando desde la paleta (pool, lane, actividades y arco),
+mover una actividad con drag and drop, el rol LECTURA y el aislamiento entre empresas.
+
+Estan marcadas con `@Tag("e2e")` y no corren en el `./mvnw test` normal (necesitan
+Chrome y el frontend). Para ejecutarlas:
+
+1. En el repositorio del frontend: `npx ng serve` (queda en http://localhost:4200).
+2. Con el puerto 8080 libre, desde `thymeleaf`:
+
+```bash
+./mvnw test -Pe2e
+```
+
+Opciones: `-De2e.headless=false` para ver el navegador, `-De2e.front=URL` para
+otro frontend y `-Dtest=EditorProcesoE2ETest` para una sola suite. Al terminar
+cada prueba queda una captura en `target/e2e/capturas` (con prefijo `FALLO-` si fallo).
