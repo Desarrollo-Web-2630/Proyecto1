@@ -29,6 +29,8 @@ class EditorProcesoE2ETest extends E2EBase {
                 .agregarActividad("Revisar solicitud", 0, 320)
                 .conectar("Registrar solicitud", "Revisar solicitud");
 
+        EvidenciaE2E.capturar(driver, "EditorProcesoE2ETest-modelarProceso_antesDeRecargar");
+
         // Al recargar, todo viene del backend: el diagrama quedo guardado
         editor.recargar();
         assertThat(editor.tienePool()).isTrue();
@@ -49,6 +51,7 @@ class EditorProcesoE2ETest extends E2EBase {
         double[] antes = editor.posicion("Aprobar");
         Long actividadId = actividadRepository.findByProcesoId(proceso.getId()).get(0).getId();
         int xGuardadaAntes = posicionXEnBaseDeDatos(actividadId);
+        EvidenciaE2E.capturar(driver, "EditorProcesoE2ETest-moverActividad_antesDeMover");
 
         editor.moverActividad("Aprobar", 200, 0);
 
